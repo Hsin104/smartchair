@@ -12,7 +12,7 @@
 - Mosquitto MQTT Broker 架設
 - REST API 開發
 - 坐姿數據採集與標記
-- AI 模型訓練（隨機森林／神經網路）
+- AI 模型訓練（深度學習 MLP，TensorFlow/Keras）
 - Physio Agent 開發（LLM + RAG + Function Calling）
 - 壓力測試
 
@@ -27,7 +27,7 @@
 - 後端：Django + Django REST Framework
 - 資料庫：PostgreSQL
 - 通訊：MQTT（paho-mqtt）
-- AI 模型：scikit-learn 隨機森林 → 神經網路
+- AI 模型：TensorFlow / Keras（MLP 深度學習）
 - LLM：GPT-4o 或 Gemini 1.5 Pro
 - RAG：LangChain + ChromaDB
 - 環境：Python 3.11、Docker、VSCode、PowerShell
@@ -52,17 +52,3 @@
 - smartchair/sensor/imu
 - smartchair/result/posture
 - smartchair/alert/vibrate
-
-## 本週任務（3/17 ～ 3/23）
-- 建立 Python 虛擬環境
-- Docker 跑起 PostgreSQL（port 5432）
-- Docker 跑起 Mosquitto（port 1883）
-- 建立 Django 專案並連接 PostgreSQL
-- python manage.py migrate 無報錯
-
-## 給 AI 的提示
-- 大學專題，程式碼以清楚易懂為優先
-- 請用繁體中文回答
-- Django 版本 4.x 或 5.x
-- 資料庫用 PostgreSQL，不要用 SQLite
-- MQTT 用 paho-mqtt 套件

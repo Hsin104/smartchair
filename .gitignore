@@ -1,3 +1,6 @@
+# Claude Code
+.claude/
+
 # 虛擬環境
 venv/
 
@@ -25,3 +28,8 @@ media/
 # OS
 .DS_Store
 Thumbs.db
+
+# 訓練產出的模型檔案（體積大，由訓練腳本重新產生）
+*.pkl
+*.keras
+*.h5

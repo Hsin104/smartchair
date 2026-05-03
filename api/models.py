@@ -30,10 +30,9 @@ class PostureRecord(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True, verbose_name='時間戳')
     posture = models.CharField(max_length=20, choices=POSTURE_CHOICES, verbose_name='坐姿類別')
 
-    # 感測器原始數值（FSR 壓力感測、ToF 距離、IMU 姿態角）
-    fsr_data = models.JSONField(null=True, blank=True, verbose_name='FSR 數值')
-    tof_data = models.JSONField(null=True, blank=True, verbose_name='ToF 數值')
-    imu_data = models.JSONField(null=True, blank=True, verbose_name='IMU 數值')
+    # 感測器原始數值（座墊 8 個 FSR、椅背 3 個 FSR）
+    seat_pressure_data = models.JSONField(null=True, blank=True, verbose_name='座墊壓力感測數值（8點）')
+    back_pressure_data = models.JSONField(null=True, blank=True, verbose_name='椅背脊椎壓力感測數值（3點）')
 
     class Meta:
         ordering = ['-timestamp']

@@ -118,7 +118,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Taipei'
 
 USE_I18N = True
 
@@ -137,6 +137,12 @@ REST_FRAMEWORK = {
     ],
 }
 
+# Gemini API
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
+
 # MQTT Broker 設定
-MQTT_HOST = os.getenv('MQTT_HOST', 'localhost')
-MQTT_PORT = int(os.getenv('MQTT_PORT', 1883))
+MQTT_HOST     = os.getenv('MQTT_HOST', 'localhost')
+MQTT_PORT     = int(os.getenv('MQTT_PORT', 1883))
+MQTT_USERNAME = os.getenv('MQTT_USERNAME', '')
+MQTT_PASSWORD = os.getenv('MQTT_PASSWORD', '')
+MQTT_USE_TLS  = os.getenv('MQTT_USE_TLS', 'false').lower() == 'true'

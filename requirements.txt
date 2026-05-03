@@ -1,0 +1,30 @@
+# Web 框架
+Django==6.0.3
+djangorestframework==3.16.0
+python-dotenv==1.1.0
+
+# 資料庫
+psycopg2-binary==2.9.10
+
+# MQTT
+paho-mqtt==2.1.0
+
+# 資料處理與機器學習
+numpy==2.2.5
+pandas==2.2.3
+scikit-learn==1.6.1
+joblib==1.4.2
+
+# 深度學習（DL 訓練管線用）
+tensorflow==2.16.1
+
+# JSON Schema 驗證
+jsonschema==4.23.0
+
+# Physio Agent（RAG + LLM）
+google-generativeai
+langchain
+langchain-text-splitters
+langchain-google-genai
+langchain-community
+faiss-cpu
