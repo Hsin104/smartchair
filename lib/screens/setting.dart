@@ -1,7 +1,16 @@
 import 'package:flutter/material.dart';
 
 class SettingPage extends StatefulWidget {
-  const SettingPage({super.key});
+  const SettingPage({
+    super.key,
+    this.isLoggedIn = false,
+    this.userEmail,
+    this.onLogout,
+  });
+
+  final bool isLoggedIn;
+  final String? userEmail;
+  final Future<void> Function()? onLogout;
 
   @override
   State<SettingPage> createState() => _SettingPageState();
@@ -14,9 +23,6 @@ class _SettingPageState extends State<SettingPage> {
   final TextEditingController weightController = TextEditingController(
     text: "55",
   );
-  final TextEditingController chairHeightController = TextEditingController(
-    text: "45",
-  );
 
   bool postureAlert = true;
   bool sedentaryAlert = true;
@@ -26,7 +32,6 @@ class _SettingPageState extends State<SettingPage> {
   void dispose() {
     heightController.dispose();
     weightController.dispose();
-    chairHeightController.dispose();
     super.dispose();
   }
 
@@ -35,6 +40,7 @@ class _SettingPageState extends State<SettingPage> {
     required String unit,
     required TextEditingController controller,
     required IconData icon,
+    String? helper,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
@@ -44,6 +50,7 @@ class _SettingPageState extends State<SettingPage> {
         decoration: InputDecoration(
           prefixIcon: Icon(icon),
           labelText: label,
+          helperText: helper,
           suffixText: unit,
           filled: true,
           fillColor: Colors.white,
@@ -68,9 +75,10 @@ class _SettingPageState extends State<SettingPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: SwitchListTile(
-        secondary: Icon(icon, color: Colors.blue),
+        secondary: Icon(icon, color: const Color(0xFF0F766E)),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
         subtitle: Text(subtitle),
         value: value,
@@ -81,137 +89,185 @@ class _SettingPageState extends State<SettingPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: const Text(
-          "Settings",
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 0,
-        centerTitle: true,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              "User Profile",
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsets.only(bottom: 16),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
             ),
-            const SizedBox(height: 12),
-
-            buildTextField(
-              label: "Height",
-              unit: "cm",
-              controller: heightController,
-              icon: Icons.height,
-            ),
-            buildTextField(
-              label: "Weight",
-              unit: "kg",
-              controller: weightController,
-              icon: Icons.monitor_weight,
-            ),
-            buildTextField(
-              label: "Chair Height",
-              unit: "cm",
-              controller: chairHeightController,
-              icon: Icons.chair_alt,
-            ),
-
-            const SizedBox(height: 20),
-            const Text(
-              "Alert Settings",
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-
-            buildSwitchTile(
-              title: "Posture Alert",
-              subtitle: "Notify when poor posture is detected",
-              value: postureAlert,
-              icon: Icons.warning_amber_rounded,
-              onChanged: (value) {
-                setState(() {
-                  postureAlert = value;
-                });
-              },
-            ),
-            buildSwitchTile(
-              title: "Sedentary Alert",
-              subtitle: "Notify when sitting too long",
-              value: sedentaryAlert,
-              icon: Icons.access_time,
-              onChanged: (value) {
-                setState(() {
-                  sedentaryAlert = value;
-                });
-              },
-            ),
-            buildSwitchTile(
-              title: "Vibration Feedback",
-              subtitle: "Enable chair vibration reminder",
-              value: vibrationAlert,
-              icon: Icons.vibration,
-              onChanged: (value) {
-                setState(() {
-                  vibrationAlert = value;
-                });
-              },
-            ),
-
-            const SizedBox(height: 24),
-
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Calibration started")),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: widget.isLoggedIn
+                      ? const Color(0xFF16A34A).withValues(alpha: 0.15)
+                      : const Color(0xFF94A3B8).withValues(alpha: 0.18),
+                  child: Icon(
+                    widget.isLoggedIn
+                        ? Icons.verified_user_rounded
+                        : Icons.person_rounded,
+                    color: widget.isLoggedIn
+                        ? const Color(0xFF15803D)
+                        : const Color(0xFF64748B),
                   ),
                 ),
-                child: const Text(
-                  "Start Initial Calibration",
-                  style: TextStyle(fontSize: 16, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.isLoggedIn ? '帳號已連線' : '尚未登入',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          color: Color(0xFF0F172A),
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        widget.userEmail ?? '登入後可自動同步你的偏好設定',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: Color(0xFF64748B)),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Text(
+            '使用者資料',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF0F172A),
+            ),
+          ),
+          const SizedBox(height: 12),
+          buildTextField(
+            label: '身高',
+            unit: 'cm',
+            controller: heightController,
+            icon: Icons.height_rounded,
+            helper: '建議填寫實際身高，讓姿勢判斷更準確',
+          ),
+          buildTextField(
+            label: '體重',
+            unit: 'kg',
+            controller: weightController,
+            icon: Icons.monitor_weight_rounded,
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            '提醒設定',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF0F172A),
+            ),
+          ),
+          const SizedBox(height: 12),
+          buildSwitchTile(
+            title: '姿勢提醒',
+            subtitle: '偵測到不良坐姿時即時通知',
+            value: postureAlert,
+            icon: Icons.warning_amber_rounded,
+            onChanged: (value) {
+              setState(() {
+                postureAlert = value;
+              });
+            },
+          ),
+          buildSwitchTile(
+            title: '久坐提醒',
+            subtitle: '坐太久時提醒你起身活動',
+            value: sedentaryAlert,
+            icon: Icons.access_time_rounded,
+            onChanged: (value) {
+              setState(() {
+                sedentaryAlert = value;
+              });
+            },
+          ),
+          buildSwitchTile(
+            title: '震動回饋',
+            subtitle: '透過椅子震動提供快速提醒',
+            value: vibrationAlert,
+            icon: Icons.vibration_rounded,
+            onChanged: (value) {
+              setState(() {
+                vibrationAlert = value;
+              });
+            },
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: () {
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('校正已開始')));
+              },
+              style: FilledButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
                 ),
               ),
+              child: const Text(
+                '開始初始校正',
+                style: TextStyle(fontSize: 16, color: Colors.white),
+              ),
             ),
-
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: () {
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('設定已儲存')));
+              },
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              child: const Text('儲存設定', style: TextStyle(fontSize: 16)),
+            ),
+          ),
+          if (widget.isLoggedIn) ...[
             const SizedBox(height: 12),
-
             SizedBox(
               width: double.infinity,
-              child: OutlinedButton(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Settings saved")),
-                  );
-                },
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
+              child: TextButton.icon(
+                onPressed: widget.onLogout,
+                icon: const Icon(Icons.logout_rounded, color: Colors.red),
+                label: const Text(
+                  '登出帳號',
+                  style: TextStyle(color: Colors.red, fontSize: 16),
                 ),
-                child: const Text(
-                  "Save Settings",
-                  style: TextStyle(fontSize: 16),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
             ),
           ],
-        ),
+        ],
       ),
     );
   }
