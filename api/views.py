@@ -176,15 +176,9 @@ def posture_create(request):
 
         detected_posture = data['posture']
         if detected_posture != 'normal':
-            # 建立震動提醒通知（供 ESP32 輪詢）
-            Notification.objects.create(
-                user=request.user,
-                message=f'坐姿不良：{detected_posture}',
-            )
-
-            # 自動觸發 Physio Agent 建議
+            # 自動觸發 Physio Agent（Agent 內部會呼叫 trigger_vibration 建立震動通知）
             try:
-                advice = get_advice(detected_posture)
+                advice = get_advice(detected_posture, request.user.id, trigger_action=True)
                 AgentLog.objects.create(
                     user=request.user,
                     posture=detected_posture,
@@ -215,7 +209,7 @@ def agent_advice(request):
     user_message = request.data.get('user_message', '')
 
     try:
-        advice = get_advice(posture, user_message)
+        advice = get_advice(posture, request.user.id, user_message)
     except Exception as e:
         return Response(
             {'error': f'Agent 暫時無法使用：{str(e)}'},
