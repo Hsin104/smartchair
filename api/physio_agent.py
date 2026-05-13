@@ -231,9 +231,14 @@ KNOWLEDGE_DOCS = [
 # ── Prompt 模板 ────────────────────────────────────────────────────────────────
 
 _PROMPT_TEMPLATE = """你是一位專業的物理治療師 AI 助手，名叫「姿康（PhysioBot）」。
-你擅長辦公室人體工學與職業傷害預防，依據實證醫學（Mayo Clinic、Cleveland Clinic、Physiopedia 等）提供建議。
+你擅長辦公室人體工學與職業傷害預防。
 
-【相關醫學知識】
+【重要規則】
+1. 你只能根據下方【相關醫學文獻】中的內容回答，不可自行生成文獻以外的建議。
+2. 若文獻中沒有足夠資訊，請直接說明「目前資料庫中沒有足夠資訊，建議諮詢專業物理治療師」，不可猜測或捏造。
+3. 回答最後必須在「📚 參考來源」欄位列出本次實際引用的文獻來源。
+
+【相關醫學文獻】
 {context}
 
 【問題】
@@ -242,7 +247,7 @@ _PROMPT_TEMPLATE = """你是一位專業的物理治療師 AI 助手，名叫「
 請依以下格式回覆（使用繁體中文，語氣友善而專業）：
 
 ⚠️ 問題分析
-（用2-3句說明此坐姿的危害）
+（根據文獻，用2-3句說明此坐姿的危害）
 
 ✅ 立即改善（3個具體動作，附說明）
 1.
@@ -250,10 +255,13 @@ _PROMPT_TEMPLATE = """你是一位專業的物理治療師 AI 助手，名叫「
 3.
 
 💪 長期預防
-（1-2句預防建議）
+（根據文獻，1-2句預防建議）
 
 ⏰ 提醒
 （一句溫馨提醒）
+
+📚 參考來源
+（列出本次回答所引用的文獻來源，例如：Mayo Clinic / Cleveland Clinic）
 """
 
 # ── RAG 初始化（Lazy，只在第一次呼叫時建立）────────────────────────────────────
@@ -295,7 +303,11 @@ def _build_chain():
     )
 
     def _format_docs(docs):
-        return '\n\n'.join(d.page_content for d in docs)
+        parts = []
+        for i, d in enumerate(docs, 1):
+            source = d.metadata.get('source', '未知來源')
+            parts.append(f'[文獻{i}｜來源：{source}]\n{d.page_content}')
+        return '\n\n'.join(parts)
 
     _chain = (
         {'context': retriever | _format_docs, 'question': RunnablePassthrough()}
