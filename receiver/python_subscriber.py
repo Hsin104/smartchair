@@ -1,6 +1,7 @@
 import json
 import os
 import ssl
+import sys
 from datetime import datetime
 
 import paho.mqtt.client as mqtt
@@ -12,7 +13,20 @@ MQTT_USER = "xiao"
 MQTT_PASS = "zxzcindy1"
 
 SENSOR_LABELS = ["S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8"]
-SENSOR_GPIOS  = [32,   33,   34,   35,   36,   39,   25,   26]
+SENSOR_INPUTS = [
+    "ADS1 A0",
+    "ADS1 A1",
+    "ADS1 A2",
+    "ADS1 A3",
+    "ADS2 A0",
+    "ADS2 A1",
+    "ADS2 A2",
+    "ADS2 A3",
+]
+
+reconfigure_stdout = getattr(sys.stdout, "reconfigure", None)
+if callable(reconfigure_stdout):
+    reconfigure_stdout(encoding="utf-8", errors="replace")
 
 
 def clear():
@@ -23,17 +37,17 @@ def print_table(device, ts, raw, norm):
     clear()
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"裝置: {device}    時間: {now}    ESP32 ts: {ts}s")
-    print("=" * 62)
-    print(f"{'感測器':<6} {'GPIO':<8} {'RAW (0-4095)':<16} {'壓力 (0-100)':<12} {'狀態'}")
-    print("-" * 62)
+    print("=" * 72)
+    print(f"{'感測器':<6} {'接腳(ADS通道)':<16} {'RAW (0-32767)':<16} {'壓力 (0-100)':<12} {'狀態'}")
+    print("-" * 72)
     for i in range(len(SENSOR_LABELS)):
+        sensor_input = SENSOR_INPUTS[i] if i < len(SENSOR_INPUTS) else "N/A"
         r = raw[i] if i < len(raw) else 0
         n = norm[i] if i < len(norm) else 0
         bar = "█" * (n // 10) + "░" * (10 - n // 10)
         status = "●" if r > 0 else "○"
-        gpio = f"GPIO{SENSOR_GPIOS[i]}"
-        print(f"{SENSOR_LABELS[i]:<6} {gpio:<8} {r:<16} {n:<12} {status} {bar}")
-    print("=" * 62)
+        print(f"{SENSOR_LABELS[i]:<6} {sensor_input:<16} {r:<16} {n:<12} {status} {bar}")
+    print("=" * 72)
 
 
 def on_connect(client, userdata, flags, reason_code, properties=None):
@@ -49,6 +63,10 @@ def on_message(client, userdata, msg):
         ts = data.get("ts", 0)
         raw = data.get("raw", [])
         norm = data.get("norm", [])
+        if not isinstance(raw, list):
+            raw = [raw] if raw is not None else []
+        if not isinstance(norm, list):
+            norm = [norm] if norm is not None else []
         print_table(device, ts, raw, norm)
     except Exception:
         print(f"無法解析: {payload_text}")
