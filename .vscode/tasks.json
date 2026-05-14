@@ -1,0 +1,19 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Flutter Web: Live Preview",
+      "type": "shell",
+      "command": "flutter",
+      "args": [
+        "run",
+        "-d",
+        "chrome",
+        "--web-port",
+        "0"
+      ],
+      "isBackground": true,
+      "problemMatcher": []
+    }
+  ]
+}

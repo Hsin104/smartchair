@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../services/api_service.dart';
 
 class SettingPage extends StatefulWidget {
   const SettingPage({
@@ -17,16 +19,99 @@ class SettingPage extends StatefulWidget {
 }
 
 class _SettingPageState extends State<SettingPage> {
-  final TextEditingController heightController = TextEditingController(
-    text: "165",
-  );
-  final TextEditingController weightController = TextEditingController(
-    text: "55",
-  );
+  final TextEditingController heightController = TextEditingController();
+  final TextEditingController weightController = TextEditingController();
 
   bool postureAlert = true;
   bool sedentaryAlert = true;
   bool vibrationAlert = true;
+
+  String get _userScope {
+    final email = widget.userEmail?.trim().toLowerCase();
+    if (widget.isLoggedIn && email != null && email.isNotEmpty) {
+      return email;
+    }
+    return 'guest';
+  }
+
+  String _key(String field) => 'settings_${_userScope}_$field';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  @override
+  void didUpdateWidget(covariant SettingPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final oldScope =
+        (oldWidget.isLoggedIn &&
+            (oldWidget.userEmail?.trim().isNotEmpty ?? false))
+        ? oldWidget.userEmail!.trim().toLowerCase()
+        : 'guest';
+    if (oldScope != _userScope) {
+      _loadSettings();
+    }
+  }
+
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    print('[Setting] Loading settings for scope=$_userScope');
+    final savedHeight = prefs.getString(_key('height'));
+    final savedWeight = prefs.getString(_key('weight'));
+    final savedPostureAlert = prefs.getBool(_key('postureAlert'));
+    final savedSedentaryAlert = prefs.getBool(_key('sedentaryAlert'));
+    final savedVibrationAlert = prefs.getBool(_key('vibrationAlert'));
+
+    if (!mounted) return;
+    setState(() {
+      heightController.text = savedHeight ?? '';
+      weightController.text = savedWeight ?? '';
+      postureAlert = savedPostureAlert ?? true;
+      sedentaryAlert = savedSedentaryAlert ?? true;
+      vibrationAlert = savedVibrationAlert ?? true;
+    });
+  }
+
+  Future<void> _saveSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    final heightStr = heightController.text.trim();
+    final weightStr = weightController.text.trim();
+
+    // 本地保存所有設定
+    await prefs.setString(_key('height'), heightStr);
+    await prefs.setString(_key('weight'), weightStr);
+    await prefs.setBool(_key('postureAlert'), postureAlert);
+    await prefs.setBool(_key('sedentaryAlert'), sedentaryAlert);
+    await prefs.setBool(_key('vibrationAlert'), vibrationAlert);
+    print(
+      '[Setting] Saved locally for scope=$_userScope: height=$heightStr, weight=$weightStr, postureAlert=$postureAlert, sedentaryAlert=$sedentaryAlert, vibrationAlert=$vibrationAlert',
+    );
+
+    // 如果已登入，將身高、體重同步到後端（後端只支援 height, weight, email）
+    if (widget.isLoggedIn) {
+      try {
+        final height = double.tryParse(heightStr);
+        final weight = double.tryParse(weightStr);
+        final updates = <String, dynamic>{};
+        if (height != null) updates['height'] = height;
+        if (weight != null) updates['weight'] = weight;
+
+        if (updates.isNotEmpty) {
+          final ok = await ApiService.updateMe(updates);
+          print('[Setting] updateMe ok=$ok, updates=$updates');
+          if (!ok && mounted) {
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(const SnackBar(content: Text('設定已儲存本地，但同步到伺服器失敗')));
+          }
+        }
+      } catch (e) {
+        print('[Setting] updateMe error: $e');
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -233,7 +318,9 @@ class _SettingPageState extends State<SettingPage> {
           SizedBox(
             width: double.infinity,
             child: OutlinedButton(
-              onPressed: () {
+              onPressed: () async {
+                await _saveSettings();
+                if (!mounted) return;
                 ScaffoldMessenger.of(
                   context,
                 ).showSnackBar(const SnackBar(content: Text('設定已儲存')));

@@ -1,0 +1,34 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Flutter Web Sync Preview",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "deviceId": "chrome",
+      "args": [
+        "--web-port=0"
+      ]
+    },
+    {
+      "name": "Flutter Web Sync Preview (With API)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "deviceId": "chrome",
+      "args": [
+        "--web-port=0",
+        "--dart-define=API_BASE_URL=${input:apiBaseUrl}"
+      ]
+    }
+  ],
+  "inputs": [
+    {
+      "id": "apiBaseUrl",
+      "type": "promptString",
+      "description": "API_BASE_URL",
+      "default": "http://192.168.0.21:8000/api"
+    }
+  ]
+}

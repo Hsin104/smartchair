@@ -1,41 +1,14 @@
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
-import 'firebase_options.dart';
 import 'screens/home_page.dart';
 import 'state/chair_sync_controller.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  bool firebaseReady = false;
-  String? firebaseError;
-
-  try {
-    if (kIsWeb) {
-      await Firebase.initializeApp(options: DefaultFirebaseOptions.web);
-    } else {
-      await Firebase.initializeApp();
-    }
-    firebaseReady = true;
-  } catch (e) {
-    firebaseError = e.toString();
-  }
-
-  runApp(
-    SmartChairApp(firebaseReady: firebaseReady, firebaseError: firebaseError),
-  );
+  runApp(const SmartChairApp());
 }
 
 class SmartChairApp extends StatefulWidget {
-  const SmartChairApp({
-    super.key,
-    required this.firebaseReady,
-    this.firebaseError,
-  });
-
-  final bool firebaseReady;
-  final String? firebaseError;
+  const SmartChairApp({super.key});
 
   @override
   State<SmartChairApp> createState() => _SmartChairAppState();
@@ -91,11 +64,7 @@ class _SmartChairAppState extends State<SmartChairApp> {
           ),
         ),
       ),
-      home: HomePage(
-        firebaseReady: widget.firebaseReady,
-        firebaseError: widget.firebaseError,
-        chairSyncController: chairSyncController,
-      ),
+      home: HomePage(chairSyncController: chairSyncController),
     );
   }
 }

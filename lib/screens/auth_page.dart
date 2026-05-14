@@ -1,5 +1,5 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import '../services/api_service.dart';
 
 enum AuthMode { login, register }
 
@@ -14,11 +14,17 @@ class AuthPage extends StatefulWidget {
 
 class _AuthPageState extends State<AuthPage> {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
+  final _usernameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+  final _heightController = TextEditingController();
+  final _weightController = TextEditingController();
 
   late AuthMode _mode;
   bool _isSubmitting = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
   @override
   void initState() {
@@ -28,8 +34,12 @@ class _AuthPageState extends State<AuthPage> {
 
   @override
   void dispose() {
+    _usernameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    _heightController.dispose();
+    _weightController.dispose();
     super.dispose();
   }
 
@@ -39,63 +49,33 @@ class _AuthPageState extends State<AuthPage> {
       _mode == AuthMode.login ? '登入後即可查看你的智慧座椅資料' : '註冊後即可開始使用完整功能';
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
 
-    setState(() {
-      _isSubmitting = true;
-    });
+    setState(() => _isSubmitting = true);
 
-    try {
-      if (_mode == AuthMode.login) {
-        await FirebaseAuth.instance.signInWithEmailAndPassword(
-          email: _emailController.text.trim(),
-          password: _passwordController.text,
-        );
-      } else {
-        await FirebaseAuth.instance.createUserWithEmailAndPassword(
-          email: _emailController.text.trim(),
-          password: _passwordController.text,
-        );
-      }
+    final result = _mode == AuthMode.login
+        ? await ApiService.login(
+            _usernameController.text.trim(),
+            _passwordController.text,
+          )
+        : await ApiService.register(
+            _usernameController.text.trim(),
+            _emailController.text.trim(),
+            _passwordController.text,
+            height: double.tryParse(_heightController.text.trim()),
+            weight: double.tryParse(_weightController.text.trim()),
+          );
 
-      if (!mounted) {
-        return;
-      }
-      Navigator.of(context).pop(true);
-    } on FirebaseAuthException catch (e) {
-      if (!mounted) {
-        return;
-      }
+    if (!mounted) return;
+
+    setState(() => _isSubmitting = false);
+
+    if (result.success) {
+      Navigator.of(context).pop(result.email);
+    } else {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(_mapErrorMessage(e))));
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isSubmitting = false;
-        });
-      }
-    }
-  }
-
-  String _mapErrorMessage(FirebaseAuthException e) {
-    switch (e.code) {
-      case 'invalid-email':
-        return 'Email 格式不正確';
-      case 'user-not-found':
-      case 'wrong-password':
-      case 'invalid-credential':
-        return '帳號或密碼錯誤';
-      case 'email-already-in-use':
-        return '此 Email 已被註冊';
-      case 'weak-password':
-        return '密碼強度不足，至少 6 碼';
-      case 'network-request-failed':
-        return '網路連線失敗，請稍後再試';
-      default:
-        return e.message ?? '驗證失敗，請稍後再試';
+      ).showSnackBar(SnackBar(content: Text(result.message)));
     }
   }
 
@@ -123,6 +103,7 @@ class _AuthPageState extends State<AuthPage> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // 標題列
                       Row(
                         children: [
                           Container(
@@ -163,44 +144,140 @@ class _AuthPageState extends State<AuthPage> {
                         ),
                       ),
                       const SizedBox(height: 16),
+
+                      // 帳號（登入 & 註冊都需要）
                       TextFormField(
-                        controller: _emailController,
-                        keyboardType: TextInputType.emailAddress,
+                        controller: _usernameController,
                         decoration: const InputDecoration(
-                          labelText: 'Email',
+                          labelText: '帳號',
                           border: OutlineInputBorder(),
                         ),
-                        validator: (value) {
-                          final text = (value ?? '').trim();
-                          if (text.isEmpty) {
-                            return '請輸入 Email';
-                          }
-                          if (!text.contains('@')) {
-                            return '請輸入有效 Email';
-                          }
-                          return null;
-                        },
+                        validator: (v) =>
+                            (v ?? '').trim().isEmpty ? '請輸入帳號' : null,
                       ),
                       const SizedBox(height: 12),
+
+                      // Email（只有註冊需要）
+                      if (_mode == AuthMode.register) ...[
+                        TextFormField(
+                          controller: _emailController,
+                          keyboardType: TextInputType.emailAddress,
+                          decoration: const InputDecoration(
+                            labelText: 'Email',
+                            border: OutlineInputBorder(),
+                          ),
+                          validator: (v) {
+                            final text = (v ?? '').trim();
+                            if (text.isEmpty) return '請輸入 Email';
+                            if (!text.contains('@')) return '請輸入有效 Email';
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        // 身高（只有註冊需要）
+                        TextFormField(
+                          controller: _heightController,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: '身高 (cm)',
+                            border: OutlineInputBorder(),
+                            hintText: '例：170',
+                          ),
+                          validator: (v) {
+                            final text = (v ?? '').trim();
+                            if (text.isEmpty) return '請輸入身高';
+                            final height = double.tryParse(text);
+                            if (height == null || height < 50 || height > 250) {
+                              return '身高應在 50~250 公分之間';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        // 體重（只有註冊需要）
+                        TextFormField(
+                          controller: _weightController,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: '體重 (kg)',
+                            border: OutlineInputBorder(),
+                            hintText: '例：70',
+                          ),
+                          validator: (v) {
+                            final text = (v ?? '').trim();
+                            if (text.isEmpty) return '請輸入體重';
+                            final weight = double.tryParse(text);
+                            if (weight == null || weight < 20 || weight > 300) {
+                              return '體重應在 20~300 公斤之間';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+
+                      // 密碼
                       TextFormField(
                         controller: _passwordController,
-                        obscureText: true,
-                        decoration: const InputDecoration(
+                        obscureText: _obscurePassword,
+                        decoration: InputDecoration(
                           labelText: '密碼',
-                          border: OutlineInputBorder(),
+                          border: const OutlineInputBorder(),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurePassword
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
+                            ),
+                            onPressed: () => setState(() {
+                              _obscurePassword = !_obscurePassword;
+                            }),
+                          ),
                         ),
-                        validator: (value) {
-                          final text = value ?? '';
-                          if (text.isEmpty) {
-                            return '請輸入密碼';
-                          }
+                        validator: (v) {
+                          final text = v ?? '';
+                          if (text.isEmpty) return '請輸入密碼';
                           if (_mode == AuthMode.register && text.length < 6) {
                             return '密碼至少需要 6 碼';
                           }
                           return null;
                         },
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
+
+                      // 密碼確認（只有註冊需要）
+                      if (_mode == AuthMode.register) ...[
+                        TextFormField(
+                          controller: _confirmPasswordController,
+                          obscureText: _obscureConfirmPassword,
+                          decoration: InputDecoration(
+                            labelText: '確認密碼',
+                            border: const OutlineInputBorder(),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscureConfirmPassword
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                              ),
+                              onPressed: () => setState(() {
+                                _obscureConfirmPassword =
+                                    !_obscureConfirmPassword;
+                              }),
+                            ),
+                          ),
+                          validator: (v) {
+                            final text = v ?? '';
+                            if (text.isEmpty) return '請再次輸入密碼';
+                            if (text != _passwordController.text) {
+                              return '密碼不相符';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                      ] else
+                        const SizedBox(height: 16),
+
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
@@ -214,13 +291,19 @@ class _AuthPageState extends State<AuthPage> {
                         child: TextButton(
                           onPressed: _isSubmitting
                               ? null
-                              : () {
-                                  setState(() {
-                                    _mode = _mode == AuthMode.login
-                                        ? AuthMode.register
-                                        : AuthMode.login;
-                                  });
-                                },
+                              : () => setState(() {
+                                  _mode = _mode == AuthMode.login
+                                      ? AuthMode.register
+                                      : AuthMode.login;
+                                  _usernameController.clear();
+                                  _emailController.clear();
+                                  _passwordController.clear();
+                                  _confirmPasswordController.clear();
+                                  _heightController.clear();
+                                  _weightController.clear();
+                                  _obscurePassword = true;
+                                  _obscureConfirmPassword = true;
+                                }),
                           child: Text(
                             _mode == AuthMode.login ? '沒有帳號？前往註冊' : '已有帳號？前往登入',
                           ),

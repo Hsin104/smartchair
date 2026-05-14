@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../services/api_service.dart';
 
 class ChairSyncController extends ChangeNotifier {
   String postureLabel = '姿勢正常';
@@ -10,6 +11,7 @@ class ChairSyncController extends ChangeNotifier {
 
   Timer? _mockInputTimer;
   int _inputIndex = 0;
+  Timer? _syncTimer;
 
   final List<String> _mockInputs = const [
     '準備開始今日工作',
@@ -44,10 +46,7 @@ class ChairSyncController extends ChangeNotifier {
     updatedAt = DateTime.now();
 
     addPostureHistory(label: label, score: score, isGood: isGood);
-
-    if (!isGood) {
-      addPostureNotification(label);
-    }
+    if (!isGood) addPostureNotification(label);
 
     notifyListeners();
   }
@@ -58,15 +57,12 @@ class ChairSyncController extends ChangeNotifier {
     required bool isGood,
   }) {
     postureHistory.add({
-      "label": label,
-      "score": score,
-      "isGood": isGood,
-      "time": DateTime.now(),
+      'label': label,
+      'score': score,
+      'isGood': isGood,
+      'time': DateTime.now(),
     });
-
-    if (postureHistory.length > 100) {
-      postureHistory.removeAt(0);
-    }
+    if (postureHistory.length > 100) postureHistory.removeAt(0);
   }
 
   void addPostureNotification(String posture) {
@@ -75,20 +71,30 @@ class ChairSyncController extends ChangeNotifier {
         '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
 
     notifications.insert(0, {
-      "title": "偵測到不良坐姿",
-      "time": timeText,
-      "message": "目前姿勢為「$posture」，請調整坐姿。",
-      "icon": Icons.warning_amber_rounded,
-      "color": _getPostureColor(posture),
+      'title': '偵測到不良坐姿',
+      'time': timeText,
+      'message': '目前姿勢為「$posture」，請調整坐姿。',
+      'icon': Icons.warning_amber_rounded,
+      'color': _postureColor(posture),
     });
 
-    if (notifications.length > 20) {
-      notifications.removeLast();
-    }
+    if (notifications.length > 20) notifications.removeLast();
   }
 
-  Color _getPostureColor(String posture) {
-    switch (posture) {
+  Color _postureColor(String label) {
+    switch (label) {
+      // 中文顯示名稱（dashboard 傳入的是中文）
+      case '頭部前傾':
+        return const Color(0xFFDC2626);
+      case '身體左傾':
+        return const Color(0xFFEA580C);
+      case '身體右傾':
+        return const Color(0xFFC2410C);
+      case '過度後仰':
+        return const Color(0xFF2563EB);
+      case '久坐未動':
+        return const Color(0xFF7C3AED);
+      // 相容舊版中文
       case '身體前傾':
         return const Color(0xFFDC2626);
       case '左側傾斜':
@@ -117,7 +123,6 @@ class ChairSyncController extends ChangeNotifier {
   void updateInput(String text) {
     final trimmed = text.trim();
     if (trimmed.isEmpty) return;
-
     latestInput = trimmed.length > 24
         ? '${trimmed.substring(0, 24)}...'
         : trimmed;
@@ -128,6 +133,72 @@ class ChairSyncController extends ChangeNotifier {
   @override
   void dispose() {
     _mockInputTimer?.cancel();
+    _syncTimer?.cancel();
     super.dispose();
+  }
+
+  /// Start periodic background sync with backend to keep UI consistent with server
+  void startAutoSync({Duration interval = const Duration(seconds: 5)}) {
+    _syncTimer?.cancel();
+    _syncTimer = Timer.periodic(interval, (_) async {
+      await _pullFromServer();
+    });
+    // do an immediate pull
+    _pullFromServer();
+  }
+
+  void stopAutoSync() {
+    _syncTimer?.cancel();
+    _syncTimer = null;
+  }
+
+  Future<void> _pullFromServer() async {
+    try {
+      // Pull latest posture history and pending notifications
+      final history = await ApiService.getPostureHistory(limit: 100);
+      final pending = await ApiService.getPendingNotifications();
+
+      // Map server posture entries into controller format
+      postureHistory.clear();
+      for (final item in history) {
+        final label =
+            item['posture'] as String? ?? item['label'] as String? ?? '未知';
+        final score = (item['score'] as int?) ?? ApiService.toScore(label);
+        final isGood = label == 'normal' || label == '姿勢正常';
+        postureHistory.add({
+          'label': ApiService.toDisplayName(label),
+          'score': score,
+          'isGood': isGood,
+          'time':
+              DateTime.tryParse(item['time']?.toString() ?? '') ??
+              DateTime.now(),
+        });
+      }
+
+      // Update notifications from pending list
+      notifications.clear();
+      for (final n in pending) {
+        final title = n['title'] as String? ?? '通知';
+        final message = n['message'] as String? ?? n['body'] as String? ?? '';
+        final time = n['time']?.toString() ?? '';
+        final color = _postureColor(n['posture'] as String? ?? 'normal');
+        notifications.add({
+          'title': title,
+          'time': time.isNotEmpty ? time : _formatNow(),
+          'message': message,
+          'icon': Icons.notifications_active_rounded,
+          'color': color,
+        });
+      }
+
+      notifyListeners();
+    } catch (_) {
+      // ignore network errors; keep current local state
+    }
+  }
+
+  String _formatNow() {
+    final now = TimeOfDay.now();
+    return '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
   }
 }

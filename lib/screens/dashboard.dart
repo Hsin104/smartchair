@@ -1,17 +1,20 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import '../state/chair_sync_controller.dart';
-import '../services/mock_api.dart';
+import '../services/api_service.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({
     super.key,
     required this.controller,
+    required this.isLoggedIn,
     required this.onOpenReport,
     required this.onStartStretch,
   });
 
   final ChairSyncController controller;
+  final bool isLoggedIn;
   final VoidCallback onOpenReport;
   final VoidCallback onStartStretch;
 
@@ -20,70 +23,123 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
-  bool demoMode = true;
-  bool isLoading = false;
+  bool _demoMode = false; // true = 示範模式（假資料），false = 即時模式（後端 API）
+  bool _isLoading = false;
 
-  String currentPosture = "姿勢正常";
-  int currentScore = 92;
-  String currentRisk = "低風險";
-  String currentAdvice = "目前姿勢良好，請繼續維持。";
-  Color currentColor = const Color(0xFF16A34A);
+  String _postureDisplay = '姿勢正常';
+  String _postureCode = 'normal';
+  int _score = 92;
+  String _risk = '低風險';
+  String _advice = '目前姿勢良好，請繼續維持。';
+  Color _color = const Color(0xFF16A34A);
 
-  Timer? timer;
+  Timer? _timer;
+
+  int get _todayReminderCount => widget.controller.notifications.length;
+
+  String get _goodPostureDurationText {
+    final goodCount = widget.controller.postureHistory
+        .where((item) => item['isGood'] == true)
+        .length;
+    final goodSeconds = goodCount * 5;
+    final hours = goodSeconds ~/ 3600;
+    final minutes = (goodSeconds % 3600) ~/ 60;
+    if (hours > 0) return '$hours 小時 $minutes 分';
+    return '$minutes 分鐘';
+  }
+
+  // 示範用假資料（保留作為離線展示）
+  static final List<Map<String, dynamic>> _demoPostures = [
+    {'code': 'normal', 'advice': '目前姿勢良好，請繼續維持。建議每 30 分鐘起身活動 5 分鐘。'},
+    {'code': 'forward', 'advice': '偵測到頭部前傾，建議收下巴並將螢幕提高至眼睛等高。'},
+    {'code': 'left', 'advice': '偵測到身體左傾，建議調整骨盆讓左右坐骨均等受力。'},
+    {'code': 'right', 'advice': '偵測到身體右傾，請將滑鼠移近身體並坐正。'},
+    {'code': 'recline', 'advice': '後仰角度過大，建議回到正常坐姿並使用腰枕支撐。'},
+    {'code': 'sedentary', 'advice': '久坐過久，建議立刻起身伸展 3–5 分鐘。'},
+  ];
 
   @override
   void initState() {
     super.initState();
-
-    fetchMockPosture();
-
-    timer = Timer.periodic(const Duration(seconds: 2), (timer) {
-      if (demoMode) {
-        fetchMockPosture();
-      }
-    });
+    _fetch();
+    _timer = Timer.periodic(const Duration(seconds: 5), (_) => _fetch());
   }
 
-  Future<void> fetchMockPosture() async {
-    if (isLoading) return;
+  @override
+  void didUpdateWidget(DashboardPage old) {
+    super.didUpdateWidget(old);
+    // 登入狀態改變時立即重新拉資料
+    if (old.isLoggedIn != widget.isLoggedIn) _fetch();
+  }
 
-    setState(() {
-      isLoading = true;
-    });
+  Future<void> _fetch() async {
+    if (_isLoading) return;
+    setState(() => _isLoading = true);
 
-    final data = await MockApi.getPosture();
+    if (_demoMode) {
+      // ── 示範模式：隨機假資料 ──
+      await Future.delayed(const Duration(milliseconds: 400));
+      final demo = _demoPostures[Random().nextInt(_demoPostures.length)];
+      _applyPosture(
+        code: demo['code'] as String,
+        advice: demo['advice'] as String,
+      );
+    } else {
+      // ── 即時模式：呼叫後端 API；若無資料則顯示目前狀態 ──
+      final data = await ApiService.getLatestPosture();
+      if (data != null) {
+        _applyPosture(
+          code: data['posture'] as String,
+          advice: (data['physio_advice'] as String?) ?? '',
+        );
+      } else {
+        if (!mounted) return;
+        setState(() {
+          _advice = widget.isLoggedIn
+              ? '尚未取得即時姿勢資料，請確認後端服務與 API_BASE_URL 設定。'
+              : '目前未登入，登入後可取得個人化即時姿勢資料。';
+        });
+      }
+    }
+
+    if (mounted) setState(() => _isLoading = false);
+  }
+
+  void _applyPosture({required String code, required String advice}) {
+    final display = ApiService.toDisplayName(code);
+    final score = ApiService.toScore(code);
+    final risk = ApiService.toRisk(code);
 
     if (!mounted) return;
-
     setState(() {
-      currentPosture = data["posture"] as String;
-      currentScore = data["score"] as int;
-      currentRisk = data["risk"] as String;
-      currentAdvice = data["advice"] as String;
-      currentColor = getPostureColor(currentPosture);
-      isLoading = false;
+      _postureCode = code;
+      _postureDisplay = display;
+      _score = score;
+      _risk = risk;
+      _advice = advice.isNotEmpty ? advice : '目前姿勢良好，請繼續維持。';
+      _color = _postureColor(code);
     });
 
     widget.controller.updatePosture(
-      label: currentPosture,
-      score: currentScore,
-      isGood: currentPosture == "姿勢正常",
+      label: display,
+      score: score,
+      isGood: code == 'normal',
     );
   }
 
-  Color getPostureColor(String posture) {
-    switch (posture) {
-      case "姿勢正常":
+  Color _postureColor(String code) {
+    switch (code) {
+      case 'normal':
         return const Color(0xFF16A34A);
-      case "身體前傾":
+      case 'forward':
         return const Color(0xFFDC2626);
-      case "左側傾斜":
+      case 'left':
         return const Color(0xFFEA580C);
-      case "右側傾斜":
+      case 'right':
         return const Color(0xFFC2410C);
-      case "後仰過多":
+      case 'recline':
         return const Color(0xFF2563EB);
-      case "久坐過久":
+      case 'sedentary':
         return const Color(0xFF7C3AED);
       default:
         return Colors.grey;
@@ -92,25 +148,20 @@ class _DashboardPageState extends State<DashboardPage> {
 
   @override
   void dispose() {
-    timer?.cancel();
+    _timer?.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final posture = currentPosture;
-    final postureColor = currentColor;
-    final score = currentScore.toString();
-    final risk = currentRisk;
-    final advice = currentAdvice;
-    final isGood = posture == '姿勢正常';
+    final isGood = _postureCode == 'normal';
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 目前姿勢狀態卡片
+          // 姿勢狀態主卡片
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(18),
@@ -119,14 +170,14 @@ class _DashboardPageState extends State<DashboardPage> {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  postureColor.withValues(alpha: 0.92),
-                  postureColor.withValues(alpha: 0.68),
+                  _color.withValues(alpha: 0.92),
+                  _color.withValues(alpha: 0.68),
                 ],
               ),
               borderRadius: BorderRadius.circular(22),
               boxShadow: [
                 BoxShadow(
-                  color: postureColor.withValues(alpha: 0.25),
+                  color: _color.withValues(alpha: 0.25),
                   blurRadius: 20,
                   offset: const Offset(0, 10),
                 ),
@@ -164,7 +215,7 @@ class _DashboardPageState extends State<DashboardPage> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            posture,
+                            _postureDisplay,
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 28,
@@ -174,7 +225,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         ],
                       ),
                     ),
-                    if (isLoading)
+                    if (_isLoading)
                       const SizedBox(
                         width: 22,
                         height: 22,
@@ -210,23 +261,21 @@ class _DashboardPageState extends State<DashboardPage> {
 
           const SizedBox(height: 14),
 
-          // 資訊卡片
+          // 資訊卡片列
           Row(
             children: [
-              Expanded(
-                child: _InfoCard(
-                  title: '姿勢評分',
-                  value: '$score 分',
-                  icon: Icons.speed_rounded,
-                  accent: postureColor,
-                ),
+              _InfoCard(
+                title: '姿勢評分',
+                value: '$_score 分',
+                icon: Icons.speed_rounded,
+                accent: _color,
               ),
               const SizedBox(width: 10),
               _InfoCard(
                 title: '風險等級',
-                value: risk,
+                value: _risk,
                 icon: Icons.warning_amber_rounded,
-                accent: postureColor,
+                accent: _color,
               ),
             ],
           ),
@@ -235,22 +284,18 @@ class _DashboardPageState extends State<DashboardPage> {
 
           Row(
             children: [
-              Expanded(
-                child: _InfoCard(
-                  title: '今日提醒',
-                  value: isGood ? '2 次' : '5 次',
-                  icon: Icons.notifications_active_rounded,
-                  accent: const Color(0xFF7C3AED),
-                ),
+              _InfoCard(
+                title: '今日提醒',
+                value: '$_todayReminderCount 次',
+                icon: Icons.notifications_active_rounded,
+                accent: const Color(0xFF7C3AED),
               ),
               const SizedBox(width: 10),
-              const Expanded(
-                child: _InfoCard(
-                  title: '良好坐姿',
-                  value: '4 小時 12 分',
-                  icon: Icons.check_circle_rounded,
-                  accent: Color(0xFF15803D),
-                ),
+              _InfoCard(
+                title: '良好坐姿',
+                value: _goodPostureDurationText,
+                icon: Icons.check_circle_rounded,
+                accent: const Color(0xFF15803D),
               ),
             ],
           ),
@@ -300,13 +345,13 @@ class _DashboardPageState extends State<DashboardPage> {
                         vertical: 5,
                       ),
                       decoration: BoxDecoration(
-                        color: postureColor.withValues(alpha: 0.12),
+                        color: _color.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(999),
                       ),
                       child: Text(
-                        risk,
+                        _risk,
                         style: TextStyle(
-                          color: postureColor,
+                          color: _color,
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
                         ),
@@ -316,7 +361,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  advice,
+                  _advice,
                   style: const TextStyle(
                     fontSize: 14,
                     height: 1.6,
@@ -353,16 +398,17 @@ class _DashboardPageState extends State<DashboardPage> {
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
                   title: const Text(
-                    "Demo 模式",
+                    '示範模式',
                     style: TextStyle(fontWeight: FontWeight.w700),
                   ),
-                  subtitle: const Text("自動模擬後端 API 回傳坐姿資料"),
-                  value: demoMode,
-                  onChanged: (value) {
-                    setState(() {
-                      demoMode = value;
-                    });
-                  },
+                  subtitle: Text(
+                    widget.isLoggedIn ? '關閉後切換為即時後端資料' : '登入後可切換為即時後端資料',
+                  ),
+                  value: _demoMode,
+                  onChanged: (v) => setState(() {
+                    _demoMode = v;
+                    _fetch();
+                  }),
                 ),
 
                 const SizedBox(height: 8),
@@ -370,15 +416,15 @@ class _DashboardPageState extends State<DashboardPage> {
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton.icon(
-                    onPressed: isLoading ? null : fetchMockPosture,
-                    icon: isLoading
+                    onPressed: _isLoading ? null : _fetch,
+                    icon: _isLoading
                         ? const SizedBox(
                             width: 16,
                             height: 16,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : const Icon(Icons.refresh),
-                    label: Text(isLoading ? "取得中..." : "手動取得資料"),
+                    label: Text(_isLoading ? '取得中...' : '手動更新資料'),
                   ),
                 ),
 

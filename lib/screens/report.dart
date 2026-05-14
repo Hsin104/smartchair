@@ -242,15 +242,15 @@ class ReportPage extends StatelessWidget {
     required Map<String, int> postureCounts,
     required int total,
   }) {
-    final labels = ["姿勢正常", "身體前傾", "左側傾斜", "右側傾斜", "後仰過多", "久坐過久"];
+    final labels = ["姿勢正常", "頭部前傾", "身體左傾", "身體右傾", "過度後仰", "久坐未動"];
 
     final colors = {
       "姿勢正常": Colors.green,
-      "身體前傾": Colors.red,
-      "左側傾斜": Colors.orange,
-      "右側傾斜": Colors.deepOrange,
-      "後仰過多": Colors.blue,
-      "久坐過久": Colors.purple,
+      "頭部前傾": Colors.red,
+      "身體左傾": Colors.orange,
+      "身體右傾": Colors.deepOrange,
+      "過度後仰": Colors.blue,
+      "久坐未動": Colors.purple,
     };
 
     return Container(
@@ -298,11 +298,11 @@ class ReportPage extends StatelessWidget {
                   runSpacing: 8,
                   children: [
                     _LegendItem(color: Colors.green, text: "姿勢正常"),
-                    _LegendItem(color: Colors.red, text: "身體前傾"),
-                    _LegendItem(color: Colors.orange, text: "左側傾斜"),
-                    _LegendItem(color: Colors.deepOrange, text: "右側傾斜"),
-                    _LegendItem(color: Colors.blue, text: "後仰過多"),
-                    _LegendItem(color: Colors.purple, text: "久坐過久"),
+                    _LegendItem(color: Colors.red, text: "頭部前傾"),
+                    _LegendItem(color: Colors.orange, text: "身體左傾"),
+                    _LegendItem(color: Colors.deepOrange, text: "身體右傾"),
+                    _LegendItem(color: Colors.blue, text: "過度後仰"),
+                    _LegendItem(color: Colors.purple, text: "久坐未動"),
                   ],
                 ),
               ],
@@ -317,10 +317,11 @@ class ReportPage extends StatelessWidget {
   }) {
     final stats = [
       (title: "姿勢正常", value: _percentText(postureCounts["姿勢正常"] ?? 0, total)),
-      (title: "身體前傾", value: _percentText(postureCounts["身體前傾"] ?? 0, total)),
-      (title: "左側傾斜", value: _percentText(postureCounts["左側傾斜"] ?? 0, total)),
-      (title: "右側傾斜", value: _percentText(postureCounts["右側傾斜"] ?? 0, total)),
-      (title: "後仰過多", value: _percentText(postureCounts["後仰過多"] ?? 0, total)),
+      (title: "頭部前傾", value: _percentText(postureCounts["頭部前傾"] ?? 0, total)),
+      (title: "身體左傾", value: _percentText(postureCounts["身體左傾"] ?? 0, total)),
+      (title: "身體右傾", value: _percentText(postureCounts["身體右傾"] ?? 0, total)),
+      (title: "過度後仰", value: _percentText(postureCounts["過度後仰"] ?? 0, total)),
+      (title: "久坐未動", value: _percentText(postureCounts["久坐未動"] ?? 0, total)),
       (title: "提醒次數", value: "$badCount 次"),
     ];
 
