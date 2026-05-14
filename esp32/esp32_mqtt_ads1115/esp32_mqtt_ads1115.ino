@@ -35,8 +35,8 @@ bool ads3_available = false;
 const bool SENSOR_ACTIVE[SENSOR_COUNT] = {true, true, true, true, true, true, true, true};
 
 // 每顆感測器各自校正區間（空載/受力後再調整，ADS1115 16bit 範圍 0~32767）
-int adcMin[SENSOR_COUNT] = {2500, 2500, 2500, 2500, 2500, 2500, 2500, 2500};
-int adcMax[SENSOR_COUNT] = {20000, 20000, 20000, 20000, 20000, 20000, 20000, 20000};
+int adcMin[SENSOR_COUNT] = {2400, 2400, 2400, 2400, 2400, 2400, 2400, 2400};
+int adcMax[SENSOR_COUNT] = {20500, 20500, 20500, 20500, 20500, 20500, 20500, 20500};
 
 unsigned long lastPublishMs = 0;
 const unsigned long PUBLISH_INTERVAL_MS = 500;  // 每秒2次，節省雲端流量
