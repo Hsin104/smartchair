@@ -201,6 +201,8 @@ def posture_create(request):
                     posture=detected_posture,
                     agent_reply=advice,
                 )
+                # 把 AI 建議存回 PostureRecord
+                PostureRecord.objects.filter(id=serializer.data['id']).update(physio_advice=advice)
                 response_data['physio_advice'] = advice
             except Exception:
                 pass

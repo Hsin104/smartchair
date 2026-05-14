@@ -33,6 +33,7 @@ class PostureRecord(models.Model):
     # 感測器原始數值（座墊 8 個 FSR、椅背 3 個 FSR）
     seat_pressure_data = models.JSONField(null=True, blank=True, verbose_name='座墊壓力感測數值（8點）')
     back_pressure_data = models.JSONField(null=True, blank=True, verbose_name='椅背脊椎壓力感測數值（3點）')
+    physio_advice      = models.TextField(null=True, blank=True, verbose_name='AI 物理治療建議')
 
     class Meta:
         ordering = ['-timestamp']
