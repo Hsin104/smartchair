@@ -38,7 +38,7 @@ def print_table(device, ts, raw, norm):
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"裝置: {device}    時間: {now}    ESP32 ts: {ts}s")
     print("=" * 72)
-    print(f"{'感測器':<6} {'接腳(ADS通道)':<16} {'RAW (0-32767)':<16} {'壓力 (0-100)':<12} {'狀態'}")
+    print(f"{'感測器':<4} {'接腳(ADS通道)':<12} {'RAW (0-32767)':<16} {'壓力 (0-100)':<14} {'狀態'}")
     print("-" * 72)
     for i in range(len(SENSOR_LABELS)):
         sensor_input = SENSOR_INPUTS[i] if i < len(SENSOR_INPUTS) else "N/A"
