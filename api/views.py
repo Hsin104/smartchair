@@ -14,7 +14,8 @@ from .serializers import (
     RegisterSerializer, LoginSerializer, UserSerializer, PostureRecordSerializer
 )
 from .schemas import (
-    REGISTER_SCHEMA, LOGIN_SCHEMA, POSTURE_CREATE_SCHEMA, AGENT_SCHEMA, validate_request
+    REGISTER_SCHEMA, LOGIN_SCHEMA, POSTURE_CREATE_SCHEMA, AGENT_SCHEMA,
+    UPDATE_ME_SCHEMA, validate_request,
 )
 from .physio_agent import get_advice, POSTURE_DISPLAY
 
@@ -138,6 +139,22 @@ def login(request):
 def me(request):
     """GET /api/me — 取得目前登入使用者的資料。"""
     return Response(UserSerializer(request.user).data)
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def update_me(request):
+    """PATCH /api/me/update — 更新身高、體重、Email。"""
+    error = validate_request(request.data, UPDATE_ME_SCHEMA)
+    if error:
+        return Response({'schema_error': error}, status=status.HTTP_400_BAD_REQUEST)
+
+    user = request.user
+    for field in ('height', 'weight', 'email'):
+        if field in request.data:
+            setattr(user, field, request.data[field])
+    user.save()
+    return Response(UserSerializer(user).data)
 
 
 @api_view(['POST'])

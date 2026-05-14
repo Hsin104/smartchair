@@ -10,7 +10,7 @@ psycopg2-binary==2.9.10
 paho-mqtt==2.1.0
 
 # 資料處理與機器學習
-numpy==2.2.5
+numpy>=1.26.0,<2.0.0
 pandas==2.2.3
 scikit-learn==1.6.1
 joblib==1.4.2

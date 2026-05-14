@@ -13,6 +13,15 @@
 - 減少背部疼痛，提高工作效率
 - 改善血液循環，降低疲勞感
 
+智慧椅研究補充（學術來源）：
+- 智慧感測椅研究中，「正確直立坐姿（Upright with backrest support）」是20種已分類坐姿中的基準類別（Odesola et al., 2024）
+- 壓力感測陣列（Force Sensing Resistors, FSR）是目前最主流的正確坐姿偵測感測器，分類準確率可達85-99%
+- 研究強調「動態坐姿」優於靜態完美坐姿：頻繁的微幅移動比長時間維持固定姿勢更有益（Odesola et al., 2024）
+- 智慧椅結合壓力感測與PPG心率監測，可即時顯示坐姿對心率的影響，正確坐姿可達99%分類準確率（Nguyen et al., 2024）
+- 目前智慧椅研究的主要缺口：訓練資料集未能充分代表多元體型與肌骨構型的差異，建議系統個人化校準
+
 參考文獻：
 - Mayo Clinic. Office ergonomics: Your how-to guide.
 - Cleveland Clinic. Back Pain Prevention: Proper Sitting Posture.
+- Odesola, D. F. et al. (2024). Smart sensing chairs for sitting posture detection, classification, and monitoring. Sensors, 24(9), 2940.
+- Nguyen, T. M. H. et al. (2024). A smart chair for health monitoring in daily life. arXiv:2410.01459.

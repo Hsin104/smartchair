@@ -23,6 +23,16 @@
 - 考慮改為左手使用滑鼠（輪流使用可預防重複性傷害）
 - 設定站立辦公時段，讓肌肉有機會恢復平衡
 
+智慧椅研究補充（學術來源）：
+- 右傾通常與慣用右手操作滑鼠高度相關，屬於非對稱性坐姿中最常見的方向（Anwary et al., 2021）
+- Smart-Cover 的模糊分類器可區分「輕度右傾」與「重度右傾」，為偵測結果提供嚴重程度分級（Anwary et al., 2021）
+- 在 Odesola 等人（2024）整理的20種坐姿分類中，「向右傾（Rightward Lean）」與向左傾並列為主要側向偏差類別
+- 壓力感測陣列的右側感測元素讀值顯著高於左側時，即觸發姿勢警示；研究顯示此類非對稱坐姿是工作相關肌骨疾病（WMSD）的重要風險因子（Anwary et al., 2021）
+- IoT 回饋機制：偵測到持續右傾時，系統可透過手機 App、LED 指示燈或振動回饋通知使用者（Odesola et al., 2024；Singh et al., 2023）
+
 參考文獻：
 - Physiopedia. Postural Assessment and Lateral Deviation.
 - Cleveland Clinic. Neck Pain: Causes and Treatment.
+- Anwary, A. R. et al. (2021). Smart-Cover: A real time sitting posture monitoring system. Sensors and Actuators A, 317, 112451.
+- Odesola, D. F. et al. (2024). Smart sensing chairs for sitting posture detection, classification, and monitoring. Sensors, 24(9), 2940.
+- Singh, S. et al. (2023). IoT-based smart posture correcting chair design. AKGEC International Journal of Technology, 14(1), 13–16.

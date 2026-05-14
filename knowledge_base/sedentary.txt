@@ -23,7 +23,18 @@
 - 考慮使用升降桌，每天站立累積2-4小時
 - 午休時間步行至少10分鐘
 
+智慧椅研究補充（學術來源）：
+- 研究實測數據：辦公室工作者平均 81.8% 工作時間處於靜態久坐狀態，是工作相關肌骨疾病（WMSD）的主要風險來源（Anwary et al., 2021）
+- Smart-Cover IoT 系統：10名受試者各自連續靜坐30分鐘，感測資料即時上傳雲端，驗證了長時間靜坐的姿勢漂移現象（Anwary et al., 2021）
+- Singh 等人（2023）的 IoT 智慧椅使用振動馬達作為回饋機制：偵測到久坐超過設定閾值時，震動提醒使用者起身活動，是低成本有效的行為介入方式
+- Nguyen 等人（2024）的系統同時監測坐姿與心率（PPG），發現久坐期間心率趨於穩定低值，可作為久坐時間的輔助偵測指標，系統坐姿分類準確率達 99%
+- 回饋機制研究：目前僅 36% 的智慧椅研究有納入使用者回饋系統，是最需要強化的研究缺口（Odesola et al., 2024）；手機 App 是最常見的回饋方式，其次為振動觸覺回饋與 LED 燈號
+
 參考文獻：
 - WHO. Global recommendations on physical activity for health (2010).
 - Mayo Clinic. What are the risks of sitting too much?
 - Physiopedia. Sedentary Behaviour and Health.
+- Anwary, A. R. et al. (2021). Smart-Cover: A real time sitting posture monitoring system. Sensors and Actuators A, 317, 112451.
+- Singh, S. et al. (2023). IoT-based smart posture correcting chair design. AKGEC International Journal of Technology, 14(1), 13–16.
+- Nguyen, T. M. H. et al. (2024). A smart chair for health monitoring in daily life. arXiv:2410.01459.
+- Odesola, D. F. et al. (2024). Smart sensing chairs for sitting posture detection, classification, and monitoring. Sensors, 24(9), 2940.

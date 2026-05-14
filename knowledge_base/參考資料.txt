@@ -1,0 +1,7 @@
+[1] Odesola, D. F., Kulon, J., Verghese, S., Partlow, A., & Gibson, C. (2024). Smart sensing chairs for sitting posture detection, classification, and monitoring: A comprehensive review. Sensors, 24(9), 2940. https://doi.org/10.3390/s24092940
+[2] https://github.com/LIAAD/physio
+[3] Singh, S., Sharma, U., Sharma, S., & Mangesh, S. (2023). IoT-based smart posture correcting chair design. AKGEC International Journal of Technology, 14(1), 13–16.
+[4] Arthi, M., & Savitha, J. (2025). IOT driven smart chair for posture and health monitoring. International Journal of Scientific Research in Computer Science, Engineering and Information Technology, 11(2), 1444–1452. https://doi.org/10.32628/CSEIT25112484
+[5] Nguyen, T. M. H., Vo, Q. B., Nguyen, T. H., & Huynh, Q. L. (2024). A smart chair for health monitoring in daily life. arXiv. https://arxiv.org/abs/2410.01459
+[6] Anwary, A. R., Cetinkaya, D., Vassallo, M., & Bouchachia, H. (2021). Smart-Cover: A real time sitting posture monitoring system. Sensors and Actuators A: Physical, 317, 112451. https://doi.org/10.1016/j.sna.2020.112451
+[7] Mariettou, S., Shahbandi, S., Triantafyllou, V., & Koutsojannis, C. (2026). Conversational AI agents in physical rehabilitation: A scoping review of design, applications, and future directions for Greek physiotherapy (Preprint). Preprints.org. https://doi.org/10.20944/preprints202602.1769.v1

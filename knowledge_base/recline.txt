@@ -23,6 +23,16 @@
 - 選擇有良好腰部支撐的人體工學椅
 - 下午設定鬧鐘提醒，疲勞是後仰的主要觸發點
 
+智慧椅研究補充（學術來源）：
+- 「後仰/後靠（Backward Recline）」是 Odesola 等人（2024）整理的20種坐姿分類之一，為智慧椅系統中常見偵測目標
+- 研究指出椅背角度 95–110 度為最佳範圍：超過 110 度即進入異常後仰區間，腰椎剪力明顯上升
+- 壓力感測陣列在後仰姿勢下，座墊前方感測元素讀值下降、靠背感測元素讀值上升，可作為後仰程度指標（Odesola et al., 2024）
+- 後仰姿勢若持續超過15分鐘，研究建議系統發出矯正提醒（Arthi & Savitha, 2025）
+- IoT 智慧椅可結合後仰偵測與心率監測：研究發現長時間後仰常伴隨低覺醒狀態（嗜睡），心率趨緩可作為輔助判斷指標（Nguyen et al., 2024）
+
 參考文獻：
 - Cleveland Clinic. Back Pain: Causes, Diagnosis and Treatment.
 - NHS. Sitting and lower back pain.
+- Odesola, D. F. et al. (2024). Smart sensing chairs for sitting posture detection, classification, and monitoring. Sensors, 24(9), 2940.
+- Arthi, M., & Savitha, J. (2025). IOT driven smart chair for posture and health monitoring. IJSRCSEIT, 11(2), 1444–1452.
+- Nguyen, T. M. H. et al. (2024). A smart chair for health monitoring in daily life. arXiv:2410.01459.

@@ -23,6 +23,16 @@
 - 每週2-3次側向核心訓練（Side Plank）
 - 定期按摩左側腰部及臀部緊繃肌肉
 
+智慧椅研究補充（學術來源）：
+- 非對稱性坐姿（Asymmetrical Sitting）是辦公室工作者最常見的問題，Smart-Cover 系統以 Velostat 壓阻布料製作的座墊感測陣列，能即時偵測左右側壓力分佈不均（Anwary et al., 2021）
+- Smart-Cover 使用模糊規則分類器（Fuzzy Rule-Based Classifier）判斷側向傾斜程度，並透過 IoT 將資料上傳雲端伺服器進行即時視覺化（Anwary et al., 2021）
+- 在 Odesola 等人（2024）整理的20種坐姿分類中，「向左傾（Leftward Lean）」是明確獨立的分類類別
+- FSR 壓力感測陣列分布於座墊左右兩側，可量化左右承重比例差異，作為側傾嚴重程度指標（Odesola et al., 2024）
+- 智慧椅研究建議：偵測到持續側傾超過5分鐘應即時發出提醒（Arthi & Savitha, 2025）
+
 參考文獻：
 - Physiopedia. Scoliosis and Postural Asymmetry.
 - NHS. Back pain at work: causes and prevention.
+- Anwary, A. R. et al. (2021). Smart-Cover: A real time sitting posture monitoring system. Sensors and Actuators A, 317, 112451.
+- Odesola, D. F. et al. (2024). Smart sensing chairs for sitting posture detection, classification, and monitoring. Sensors, 24(9), 2940.
+- Arthi, M., & Savitha, J. (2025). IOT driven smart chair for posture and health monitoring. IJSRCSEIT, 11(2), 1444–1452.

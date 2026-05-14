@@ -23,7 +23,18 @@
 - 使用文件架將紙本文件提高，減少低頭
 - 眼鏡度數定期更新，視力不足是主因之一
 
+智慧椅研究補充（學術來源）：
+- 頭部前傾/軀幹前傾是智慧椅研究中最常被偵測的不良坐姿類別之一，在20種坐姿分類中屬高頻出現姿勢（Odesola et al., 2024）
+- Smart-Cover 系統使用 Velostat 壓阻材料製成的座墊感測器，能有效偵測前傾導致的壓力分佈重心前移（Anwary et al., 2021）
+- 辦公室工作者平均 81.8% 工作時間為靜態久坐，其中前傾是最常見的疲勞後代償姿勢（Anwary et al., 2021）
+- IoT 智慧椅可透過振動馬達即時提供回饋，提醒使用者矯正前傾姿勢（Singh et al., 2023）
+- 結合壓力感測與PPG心率監測的研究顯示，長時間前傾姿勢會伴隨心率異常，建議同步監測（Nguyen et al., 2024）
+
 參考文獻：
 - Physiopedia. Forward Head Posture.
 - Mayo Clinic. Neck Pain: Symptoms and Causes.
 - PubMed. Cervical Spine Load in Forward Head Posture (Hansraj, 2014).
+- Odesola, D. F. et al. (2024). Smart sensing chairs for sitting posture detection, classification, and monitoring. Sensors, 24(9), 2940.
+- Anwary, A. R. et al. (2021). Smart-Cover: A real time sitting posture monitoring system. Sensors and Actuators A, 317, 112451.
+- Singh, S. et al. (2023). IoT-based smart posture correcting chair design. AKGEC International Journal of Technology, 14(1), 13–16.
+- Nguyen, T. M. H. et al. (2024). A smart chair for health monitoring in daily life. arXiv:2410.01459.

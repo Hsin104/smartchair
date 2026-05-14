@@ -22,6 +22,16 @@
 
 以上動作無需離開座位，每小時一輪，預防肌肉緊張與職業傷害。
 
+對話式 AI 輔助復健（學術來源）：
+- Mariettou 等人（2026）的文獻回顧指出，對話式 AI（Chatbot / LLM Agent）在物理治療復健中展現出顯著潛力，特別在以下方面：
+  • 患者教育（Patient Education）：即時解釋正確伸展方式與姿勢知識
+  • 治療依從性（Treatment Adherence）：定時提醒患者執行伸展計畫，並追蹤完成狀況
+  • 自我管理支援（Self-Management Support）：指導患者在家中獨立進行復健動作
+  • 運動指導（Exercise Coaching）：即時反饋動作正確性
+- 智慧椅整合對話式 AI 的應用方向：當偵測到久坐超過閾值時，AI Agent 主動提示使用者進行特定伸展動作，並根據偵測到的坐姿類型（前傾/側傾/後仰）推薦對應的矯正伸展（Mariettou et al., 2026）
+- LIAAD Physio 開源專案（GitHub: LIAAD/physio）提供物理治療相關的 AI 工具參考實作
+
 參考文獻：
 - NHS. Exercises for back pain.
 - Cleveland Clinic. Stretching: Focus on Flexibility.
+- Mariettou, S. et al. (2026). Conversational AI agents in physical rehabilitation: A scoping review. Preprints.org. https://doi.org/10.20944/preprints202602.1769.v1

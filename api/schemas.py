@@ -82,6 +82,16 @@ POSTURE_CREATE_SCHEMA = {
     "additionalProperties": False,
 }
 
+UPDATE_ME_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "height": {"type": "number", "minimum": 50,  "maximum": 250},
+        "weight": {"type": "number", "minimum": 20,  "maximum": 300},
+        "email":  {"type": "string"},
+    },
+    "additionalProperties": False,
+}
+
 AGENT_SCHEMA = {
     "type": "object",
     "required": ["posture"],

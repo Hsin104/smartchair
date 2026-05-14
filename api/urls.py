@@ -6,6 +6,7 @@ urlpatterns = [
     path('register',        views.register,        name='register'),
     path('login',           views.login,            name='login'),
     path('me',              views.me,               name='me'),
+    path('me/update',       views.update_me,        name='me-update'),
 
     # 坐姿數據
     path('posture',         views.posture_create,   name='posture-create'),

@@ -29,7 +29,7 @@ SECRET_KEY = 'django-insecure-w%*nn(%0v5!&b3r9*q_7s$g!*hznocoz9%in21lp66a%0u_)v)
 # 安全警告：正式環境請將 DEBUG 設為 False！
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']  # 開發階段允許所有 host，部署前需改為實際 IP 或域名
 
 
 # 已安裝的應用程式
@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders',
     'rest_framework',
     'rest_framework.authtoken',
     'api',
@@ -51,6 +52,7 @@ AUTH_USER_MODEL = 'api.User'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -136,6 +138,9 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.TokenAuthentication',
     ],
 }
+
+# CORS 設定（允許瀏覽器跨來源存取 API）
+CORS_ALLOW_ALL_ORIGINS = True
 
 # Gemini API
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
