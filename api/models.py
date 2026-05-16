@@ -61,6 +61,19 @@ class Notification(models.Model):
         return f'{self.user.username} - {self.message}'
 
 
+class ChairSession(models.Model):
+    """記錄目前正在使用椅子的使用者（全系統只會有一筆 is_active=True）。"""
+    user       = models.ForeignKey(User, on_delete=models.CASCADE, related_name='chair_sessions')
+    started_at = models.DateTimeField(auto_now_add=True)
+    is_active  = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = '座椅使用紀錄'
+
+    def __str__(self):
+        return f'{self.user.username} — {"使用中" if self.is_active else "已結束"}'
+
+
 class AgentLog(models.Model):
     """Physio Agent 對話紀錄，儲存 LLM 的輸入與輸出。"""
 

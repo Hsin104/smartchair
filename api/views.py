@@ -9,7 +9,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 
-from .models import PostureRecord, AgentLog, Notification
+from .models import PostureRecord, AgentLog, Notification, ChairSession
 from .serializers import (
     RegisterSerializer, LoginSerializer, UserSerializer, PostureRecordSerializer
 )
@@ -298,3 +298,31 @@ def notification_ack(request):
         ).update(is_sent=True)
 
     return Response({'acked': acked})
+
+
+# ── 座椅佔用管理 ───────────────────────────────────────────────────────────────
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def chair_checkin(request):
+    """POST /api/chair/checkin — 使用者坐上椅子，成為目前的感測對象。"""
+    ChairSession.objects.filter(is_active=True).update(is_active=False)
+    ChairSession.objects.create(user=request.user)
+    return Response({'status': 'checked_in', 'username': request.user.username})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def chair_checkout(request):
+    """POST /api/chair/checkout — 使用者離開椅子。"""
+    ChairSession.objects.filter(user=request.user, is_active=True).update(is_active=False)
+    return Response({'status': 'checked_out'})
+
+
+@api_view(['GET'])
+def chair_status(request):
+    """GET /api/chair/status — 查詢目前是誰在使用椅子（不需要登入）。"""
+    session = ChairSession.objects.filter(is_active=True).select_related('user').first()
+    if session:
+        return Response({'active': True, 'username': session.user.username, 'since': session.started_at})
+    return Response({'active': False, 'username': None})

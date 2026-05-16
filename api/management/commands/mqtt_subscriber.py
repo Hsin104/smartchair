@@ -23,7 +23,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 
-from api.models import PostureRecord
+from api.models import PostureRecord, ChairSession
 from api.views import predict_posture
 
 logger = logging.getLogger(__name__)
@@ -58,34 +58,52 @@ def _get_buffer(username):
     return _sensor_buffer[username]
 
 
+def _parse_esp32_payload(payload: dict):
+    """
+    將 ESP32 的 norm 陣列（8個值）轉換為後端需要的 seat_pressure_data 格式。
+    感測器順序 S1~S8：left_back, left_mid, left_front,
+                      center_back, center_front,
+                      right_back, right_mid, right_front
+    """
+    norm = payload.get('norm', [])
+    if len(norm) >= 8:
+        seat_data = {
+            'left_back':    norm[0],
+            'left_mid':     norm[1],
+            'left_front':   norm[2],
+            'center_back':  norm[3],
+            'center_front': norm[4],
+            'right_back':   norm[5],
+            'right_mid':    norm[6],
+            'right_front':  norm[7],
+        }
+    else:
+        seat_data = payload.get('seat') or {}
+    back_data = payload.get('back') or {}
+    return seat_data, back_data
+
+
 def _handle_pressure_01(payload: dict):
     """
     處理 chair/pressure/01 的訊息，自動預測坐姿後寫入資料庫。
 
-    支援的 payload 格式：
-      {
-        "username": "user01",          ← 可選，預設 DEFAULT_USERNAME
-        "seat": {                      ← 椅墊 8 個 FSR（3-2-3）
-          "left_back": 45, "left_mid": 50, "left_front": 48,
-          "center_back": 42, "center_front": 40,
-          "right_back": 44, "right_mid": 49, "right_front": 47
-        },
-        "back": {                      ← 椅背脊椎 3 個 FSR
-          "spine_upper": 30, "spine_mid": 35, "spine_lower": 28
-        }
-      }
+    支援 ESP32 格式：{"device_id":"chair_01","ts":123,"raw":[...],"norm":[...]}
+    使用者需先呼叫 POST /api/chair/checkin 登記為目前座椅使用者。
     """
-    username = payload.get('username', DEFAULT_USERNAME)
+    session = ChairSession.objects.filter(is_active=True).select_related('user').first()
+    if session:
+        user = session.user
+        print(f'[MQTT] 寫入 active session 使用者：{user.username}')
+    else:
+        username = payload.get('username', DEFAULT_USERNAME)
+        user, created = User.objects.get_or_create(username=username)
+        if created:
+            user.set_password('changeme')
+            user.save()
+            print(f'[MQTT] 自動建立使用者：{username}（密碼：changeme，請盡快修改）')
+        print(f'[MQTT] 無 active session，使用 fallback：{user.username}')
 
-    user, created = User.objects.get_or_create(username=username)
-    if created:
-        user.set_password('changeme')
-        user.save()
-        print(f'[MQTT] 自動建立使用者：{username}（密碼：changeme，請盡快修改）')
-
-    seat_data = payload.get('seat') or {}
-    back_data = payload.get('back') or {}
-
+    seat_data, back_data = _parse_esp32_payload(payload)
     posture = predict_posture(seat_data, back_data) or payload.get('posture', 'normal')
 
     PostureRecord.objects.create(
@@ -94,7 +112,7 @@ def _handle_pressure_01(payload: dict):
         seat_pressure_data=seat_data,
         back_pressure_data=back_data,
     )
-    print(f'[MQTT] 寫入資料庫 — {username}: {posture}')
+    print(f'[MQTT] 寫入資料庫 — {user.username}: {posture}')
 
 
 # ── paho 事件回調 ────────────────────────────────────────────────────────────

@@ -15,6 +15,11 @@ urlpatterns = [
     # Physio Agent
     path('agent',           views.agent_advice,     name='agent-advice'),
 
+    # 座椅佔用管理
+    path('chair/checkin',  views.chair_checkin,  name='chair-checkin'),
+    path('chair/checkout', views.chair_checkout, name='chair-checkout'),
+    path('chair/status',   views.chair_status,   name='chair-status'),
+
     # 震動馬達通知（ESP32 輪詢用）
     path('notification/pending', views.notification_pending, name='notification-pending'),
     path('notification/ack',     views.notification_ack,     name='notification-ack'),
