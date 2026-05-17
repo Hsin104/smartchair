@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../state/chair_sync_controller.dart';
@@ -33,7 +32,7 @@ class _DashboardPageState extends State<DashboardPage> {
   String _advice = '目前姿勢良好，請繼續維持。';
   Color _color = const Color(0xFF16A34A);
 
-  Timer? _timer;
+  // 不使用計時器：僅以手動更新資料
 
   int get _todayReminderCount => widget.controller.notifications.length;
 
@@ -61,8 +60,7 @@ class _DashboardPageState extends State<DashboardPage> {
   @override
   void initState() {
     super.initState();
-    _fetch();
-    _timer = Timer.periodic(const Duration(seconds: 5), (_) => _fetch());
+    // 不自動抓取資料，僅透過「手動更新資料」按鈕觸發 _fetch()
   }
 
   @override
@@ -148,7 +146,6 @@ class _DashboardPageState extends State<DashboardPage> {
 
   @override
   void dispose() {
-    _timer?.cancel();
     super.dispose();
   }
 
@@ -385,31 +382,7 @@ class _DashboardPageState extends State<DashboardPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  '快速操作',
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF0F172A),
-                  ),
-                ),
                 const SizedBox(height: 10),
-
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text(
-                    '示範模式',
-                    style: TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                  subtitle: Text(
-                    widget.isLoggedIn ? '關閉後切換為即時後端資料' : '登入後可切換為即時後端資料',
-                  ),
-                  value: _demoMode,
-                  onChanged: (v) => setState(() {
-                    _demoMode = v;
-                    _fetch();
-                  }),
-                ),
 
                 const SizedBox(height: 8),
 
@@ -426,28 +399,6 @@ class _DashboardPageState extends State<DashboardPage> {
                         : const Icon(Icons.refresh),
                     label: Text(_isLoading ? '取得中...' : '手動更新資料'),
                   ),
-                ),
-
-                const SizedBox(height: 10),
-
-                Row(
-                  children: [
-                    Expanded(
-                      child: FilledButton.icon(
-                        onPressed: widget.onOpenReport,
-                        icon: const Icon(Icons.bar_chart_rounded),
-                        label: const Text('查看今日報表'),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: widget.onStartStretch,
-                        icon: const Icon(Icons.accessibility_new_rounded),
-                        label: const Text('開始伸展提醒'),
-                      ),
-                    ),
-                  ],
                 ),
               ],
             ),

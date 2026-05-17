@@ -89,7 +89,17 @@ class ApiService {
       final res = await http
           .post(
             Uri.parse('$baseUrl/login'),
-            headers: {'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true'},
+<<<<<<< HEAD
+            headers: {
+              'Content-Type': 'application/json',
+              'ngrok-skip-browser-warning': 'true',
+            },
+=======
+            headers: {
+              'Content-Type': 'application/json',
+              'ngrok-skip-browser-warning': 'true',
+            },
+>>>>>>> 5191e62 (dashboard: keep only manual refresh in Quick Actions)
             body: jsonEncode({'username': username, 'password': password}),
           )
           .timeout(const Duration(seconds: 10));
@@ -130,7 +140,17 @@ class ApiService {
       final res = await http
           .post(
             Uri.parse('$baseUrl/register'),
-            headers: {'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true'},
+<<<<<<< HEAD
+            headers: {
+              'Content-Type': 'application/json',
+              'ngrok-skip-browser-warning': 'true',
+            },
+=======
+            headers: {
+              'Content-Type': 'application/json',
+              'ngrok-skip-browser-warning': 'true',
+            },
+>>>>>>> 5191e62 (dashboard: keep only manual refresh in Quick Actions)
             body: jsonEncode(body),
           )
           .timeout(const Duration(seconds: 10));
