@@ -4,7 +4,7 @@ class MockApi {
   static final List<Map<String, dynamic>> _mockPostures = [
     {
       "posture": "姿勢正常",
-      "score": 92,
+      "score": 100,
       "risk": "低風險",
       "advice": "目前姿勢良好，請繼續維持。建議每 50 分鐘起身活動 5 分鐘。",
     },
@@ -45,5 +45,39 @@ class MockApi {
 
     final random = Random();
     return _mockPostures[random.nextInt(_mockPostures.length)];
+  }
+
+  static Future<String> getAdvice(
+    String postureCode, {
+    String userMessage = '',
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 400));
+
+    final advices = {
+      'normal': '目前姿勢良好，請持續保持並每 50 分鐘活動一次。',
+      'forward': '建議將背部貼近椅背，並做收下巴運動以改善前傾。',
+      'left': '調整坐姿並平均放鬆雙側肩膀，避免長時間偏向一側。',
+      'right': '請重新坐正，檢查椅子或桌面是否不平衡。',
+      'recline': '減少後仰幅度，確保腰部有適當支撐。',
+      'sedentary': '久坐時間過長，建議起身伸展 3 到 5 分鐘。',
+    };
+
+    return advices[postureCode] ??
+        advices.values.elementAt(Random().nextInt(advices.length));
+  }
+
+  static Future<List<Map<String, dynamic>>> getPendingNotifications() async {
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    final now = DateTime.now().toIso8601String();
+    return [
+      {
+        'id': 1,
+        'type': 'vibration',
+        'message': '請起身活動或調整坐姿',
+        'created_at': now,
+        'vibrate': true,
+      },
+    ];
   }
 }

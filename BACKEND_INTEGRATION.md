@@ -4,7 +4,7 @@
 
 ### 1. 後端 API 對接
 
-後端基礎 URL（可通過 `--dart-define=API_BASE_URL=http://your-ip:8000/api` 設置）
+後端基礎 URL（可通過 `--dart-define=API_BASE_URL=https://sandbar-badass-subfloor.ngrok-free.dev/api` 設置）
 
 #### 認證相關
 - **POST /api/register** — 註冊新使用者（支援 username, password, email, height, weight）
@@ -109,12 +109,12 @@ POST /api/register
 
 ```powershell
 # 從 VS Code 終端或 PowerShell 執行
-.\scripts\start_web.ps1 -FixedPort 7357 -ApiBaseUrl "http://192.168.1.100:8000/api"
+.\scripts\start_web.ps1 -FixedPort 7357 -ApiBaseUrl "https://sandbar-badass-subfloor.ngrok-free.dev/api"
 ```
 
 或不固定埠（自動分配）：
 ```powershell
-.\scripts\start_web.ps1 -ApiBaseUrl "http://192.168.1.100:8000/api"
+.\scripts\start_web.ps1 -ApiBaseUrl "https://sandbar-badass-subfloor.ngrok-free.dev/api"
 ```
 
 ---

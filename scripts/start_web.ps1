@@ -4,7 +4,7 @@
 # - Starts `flutter run` with an auto-selected port so hot reload works
 
 param(
-  [string]$ApiBaseUrl = "",
+  [string]$ApiBaseUrl = "https://sandbar-badass-subfloor.ngrok-free.dev/api",
   [int]$DebuggingPort = 9222,
   [int]$FixedPort = 0
 )

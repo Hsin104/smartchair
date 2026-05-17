@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'mock_api.dart';
 
 class ApiService {
   // 可透過 --dart-define=API_BASE_URL=... 覆蓋，避免寫死在程式中
@@ -171,6 +172,11 @@ class ApiService {
   // ── 坐姿 ────────────────────────────────────────────────────
   static Future<Map<String, dynamic>?> getLatestPosture() async {
     try {
+      // 若尚未登入，優先使用 MockApi 回傳本地模擬資料
+      if (!await isLoggedIn()) {
+        return await MockApi.getPosture();
+      }
+
       final res = await http
           .get(
             Uri.parse('$baseUrl/posture/history?limit=1'),
@@ -182,9 +188,15 @@ class ApiService {
         final list = jsonDecode(res.body) as List;
         return list.isNotEmpty ? list.first as Map<String, dynamic> : null;
       }
-      return null;
+      // 若後端回傳非 200，可回退到 MockApi 作為 fallback
+      return await MockApi.getPosture();
     } catch (_) {
-      return null;
+      // 若發生例外，優先嘗試使用 MockApi（離線模式）
+      try {
+        return await MockApi.getPosture();
+      } catch (_) {
+        return null;
+      }
     }
   }
 
@@ -192,6 +204,12 @@ class ApiService {
     int limit = 50,
   }) async {
     try {
+      // 若尚未登入，使用 MockApi 回傳單筆模擬資料
+      if (!await isLoggedIn()) {
+        final mock = await MockApi.getPosture();
+        return [mock];
+      }
+
       final res = await http
           .get(
             Uri.parse('$baseUrl/posture/history?limit=$limit'),
@@ -204,6 +222,11 @@ class ApiService {
       }
       return [];
     } catch (_) {
+      // 當後端失敗且未登入時，回退到 MockApi
+      if (!await isLoggedIn()) {
+        final mock = await MockApi.getPosture();
+        return [mock];
+      }
       return [];
     }
   }
@@ -214,6 +237,11 @@ class ApiService {
     String userMessage = '',
   }) async {
     try {
+      // 若尚未登入，使用 MockApi 回傳模擬建議
+      if (!await isLoggedIn()) {
+        return await MockApi.getAdvice(postureCode, userMessage: userMessage);
+      }
+
       final res = await http
           .post(
             Uri.parse('$baseUrl/agent'),
@@ -228,15 +256,26 @@ class ApiService {
       if (res.statusCode == 200) {
         return jsonDecode(res.body)['advice'] as String? ?? '';
       }
-      return '';
+      // 後端非 200，回退到 MockApi
+      return await MockApi.getAdvice(postureCode, userMessage: userMessage);
     } catch (_) {
-      return '';
+      // 發生例外時回退到 MockApi
+      try {
+        return await MockApi.getAdvice(postureCode, userMessage: userMessage);
+      } catch (_) {
+        return '';
+      }
     }
   }
 
   // ── 通知 ────────────────────────────────────────────────────
   static Future<List<Map<String, dynamic>>> getPendingNotifications() async {
     try {
+      // 若尚未登入，使用 MockApi 回傳模擬通知
+      if (!await isLoggedIn()) {
+        return await MockApi.getPendingNotifications();
+      }
+
       final res = await http
           .get(
             Uri.parse('$baseUrl/notification/pending'),
@@ -248,9 +287,15 @@ class ApiService {
         return (jsonDecode(res.body)['notifications'] as List)
             .cast<Map<String, dynamic>>();
       }
-      return [];
+      // 後端非 200，回退到 MockApi
+      return await MockApi.getPendingNotifications();
     } catch (_) {
-      return [];
+      // 異常時回退到 MockApi
+      try {
+        return await MockApi.getPendingNotifications();
+      } catch (_) {
+        return [];
+      }
     }
   }
 
