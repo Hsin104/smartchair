@@ -61,21 +61,26 @@ def _get_buffer(username):
 def _parse_esp32_payload(payload: dict):
     """
     將 ESP32 的 norm 陣列（8個值）轉換為後端需要的 seat_pressure_data 格式。
-    感測器順序 S1~S8：left_back, left_mid, left_front,
-                      center_back, center_front,
-                      right_back, right_mid, right_front
+
+    實際感測器佈局（對應 norm 索引）：
+        [左後 S8][中後 S4][右後 S1]
+        [左中 S7][中中 S5][右中 S2]
+        [左前 S6]         [右前 S3]
+
+    norm[0]=S1(右後), norm[1]=S2(右中), norm[2]=S3(右前), norm[3]=S4(中後),
+    norm[4]=S5(中中),  norm[5]=S6(左前), norm[6]=S7(左中), norm[7]=S8(左後)
     """
     norm = payload.get('norm', [])
     if len(norm) >= 8:
         seat_data = {
-            'left_back':    norm[0],
-            'left_mid':     norm[1],
-            'left_front':   norm[2],
-            'center_back':  norm[3],
-            'center_front': norm[4],
-            'right_back':   norm[5],
-            'right_mid':    norm[6],
-            'right_front':  norm[7],
+            'right_back':   norm[0],  # S1
+            'right_mid':    norm[1],  # S2
+            'right_front':  norm[2],  # S3
+            'center_back':  norm[3],  # S4
+            'center_front': norm[4],  # S5
+            'left_front':   norm[5],  # S6
+            'left_mid':     norm[6],  # S7
+            'left_back':    norm[7],  # S8
         }
     else:
         seat_data = payload.get('seat') or {}

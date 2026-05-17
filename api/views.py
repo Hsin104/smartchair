@@ -33,7 +33,8 @@ try:
     _dl_model   = tf.keras.models.load_model(_DL_MODEL_PATH)
     _dl_encoder = joblib.load(_DL_LABEL_PATH)
     _dl_scaler  = joblib.load(_DL_SCALER_PATH)
-except Exception:
+except Exception as _e:
+    print(f'[模型載入失敗] {_e}')
     _dl_model = _dl_encoder = _dl_scaler = None
 
 # ── 推論 ──────────────────────────────────────────────────────────────────────
