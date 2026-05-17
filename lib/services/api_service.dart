@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -64,6 +65,7 @@ class ApiService {
   }
 
   static Future<void> logout() async {
+    await chairCheckout();
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('auth_token');
     await prefs.remove('user_email');
@@ -95,6 +97,7 @@ class ApiService {
       if (res.statusCode == 200) {
         final email = (data['user']?['email'] as String?) ?? username;
         await _saveAuth(data['token'] as String, email);
+        unawaited(chairCheckin());
         return (success: true, message: '登入成功', email: email);
       }
       final msg =
@@ -134,6 +137,7 @@ class ApiService {
       final data = jsonDecode(res.body) as Map<String, dynamic>;
       if (res.statusCode == 201) {
         await _saveAuth(data['token'] as String, email);
+        unawaited(chairCheckin());
         return (success: true, message: '註冊成功', email: email);
       }
       final errors = data.values.expand((v) => v is List ? v : [v]).join('、');
@@ -257,5 +261,28 @@ class ApiService {
   /// 將本地設定同步到後端（舊名稱，現在轉向 updateMe）。
   static Future<bool> saveUserSettings(Map<String, dynamic> settings) async {
     return updateMe(settings);
+  }
+
+  // ── 座椅佔用 ──────────────────────────────────────────────────────────────
+  static Future<void> chairCheckin() async {
+    try {
+      await http
+          .post(
+            Uri.parse('$baseUrl/chair/checkin'),
+            headers: await _authHeaders(),
+          )
+          .timeout(const Duration(seconds: 5));
+    } catch (_) {}
+  }
+
+  static Future<void> chairCheckout() async {
+    try {
+      await http
+          .post(
+            Uri.parse('$baseUrl/chair/checkout'),
+            headers: await _authHeaders(),
+          )
+          .timeout(const Duration(seconds: 5));
+    } catch (_) {}
   }
 }
