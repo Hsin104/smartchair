@@ -75,6 +75,7 @@ class ApiService {
     final token = await getToken();
     return {
       'Content-Type': 'application/json',
+      'ngrok-skip-browser-warning': 'true',
       if (token != null) 'Authorization': 'Token $token',
     };
   }
@@ -88,7 +89,7 @@ class ApiService {
       final res = await http
           .post(
             Uri.parse('$baseUrl/login'),
-            headers: {'Content-Type': 'application/json'},
+            headers: {'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true'},
             body: jsonEncode({'username': username, 'password': password}),
           )
           .timeout(const Duration(seconds: 10));
@@ -129,7 +130,7 @@ class ApiService {
       final res = await http
           .post(
             Uri.parse('$baseUrl/register'),
-            headers: {'Content-Type': 'application/json'},
+            headers: {'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true'},
             body: jsonEncode(body),
           )
           .timeout(const Duration(seconds: 10));
