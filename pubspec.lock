@@ -41,6 +41,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.19.1"
+  crypto:
+    dependency: transitive
+    description:
+      name: crypto
+      sha256: c8ea0233063ba03258fbcf2ca4d6dadfefe14f02fab57702265467a19f27fadf
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.0.7"
   cupertino_icons:
     dependency: "direct main"
     description:
@@ -232,6 +240,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.8"
+  screen_retriever:
+    dependency: transitive
+    description:
+      name: screen_retriever
+      sha256: "6ee02c8a1158e6dae7ca430da79436e3b1c9563c8cf02f524af997c201ac2b90"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.1.9"
   shared_preferences:
     dependency: "direct main"
     description:
@@ -325,6 +341,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.4.1"
+  system_tray:
+    dependency: "direct main"
+    description:
+      name: system_tray
+      sha256: "40444e5de8ed907822a98694fd031b8accc3cb3c0baa547634ce76189cf3d9cf"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.0.3"
   term_glyph:
     dependency: transitive
     description:
@@ -349,6 +373,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.4.0"
+  uuid:
+    dependency: transitive
+    description:
+      name: uuid
+      sha256: "648e103079f7c64a36dc7d39369cabb358d377078a051d6ae2ad3aa539519313"
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.0.7"
   vector_math:
     dependency: transitive
     description:
@@ -373,6 +405,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.1.1"
+  window_manager:
+    dependency: "direct main"
+    description:
+      name: window_manager
+      sha256: d812d3189d23465d2e94baa2505a4462b46dde4939012ff370711c6897d747ae
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.2.9"
   xdg_directories:
     dependency: transitive
     description:
