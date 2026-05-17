@@ -6,7 +6,7 @@ class ApiService {
   // 可透過 --dart-define=API_BASE_URL=... 覆蓋，避免寫死在程式中
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://192.168.0.21:8000/api',
+    defaultValue: 'https://sandbar-badass-subfloor.ngrok-free.dev/api',
   );
 
   // ── 坐姿顯示名稱對照表 ──────────────────────────────────────────
