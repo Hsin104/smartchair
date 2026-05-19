@@ -3,46 +3,31 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 
 class ChairSyncController extends ChangeNotifier {
-  String postureLabel = '姿勢正常';
-  int postureScore = 92;
-  bool isGoodPosture = true;
-  String latestInput = '正在同步輸入內容...';
+  String postureLabel = '';
+  String postureCode = '';
+  int postureScore = 0;
+  bool isGoodPosture = false;
+  String latestAdvice = '等待後端資料同步';
   DateTime updatedAt = DateTime.now();
+  DateTime lastBackendSyncAt = DateTime.now();
 
-  Timer? _mockInputTimer;
-  int _inputIndex = 0;
   Timer? _syncTimer;
-
-  final List<String> _mockInputs = const [
-    '準備開始今日工作',
-    '肩膀有點緊，提醒我伸展',
-    '30 分鐘後提醒站起來',
-    '目前專注模式開啟中',
-    '剛完成一段報告輸入',
-    '喝水提醒已收到',
-  ];
 
   final List<Map<String, dynamic>> notifications = [];
   final List<Map<String, dynamic>> postureHistory = [];
 
-  void startMockInputStream() {
-    _mockInputTimer?.cancel();
-    _mockInputTimer = Timer.periodic(const Duration(seconds: 4), (_) {
-      _inputIndex = (_inputIndex + 1) % _mockInputs.length;
-      latestInput = _mockInputs[_inputIndex];
-      updatedAt = DateTime.now();
-      notifyListeners();
-    });
-  }
-
   void updatePosture({
+    required String code,
     required String label,
     required int score,
+    required String advice,
     required bool isGood,
   }) {
+    postureCode = code;
     postureLabel = label;
     postureScore = score;
     isGoodPosture = isGood;
+    latestAdvice = advice;
     updatedAt = DateTime.now();
 
     addPostureHistory(label: label, score: score, isGood: isGood);
@@ -120,19 +105,8 @@ class ChairSyncController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void updateInput(String text) {
-    final trimmed = text.trim();
-    if (trimmed.isEmpty) return;
-    latestInput = trimmed.length > 24
-        ? '${trimmed.substring(0, 24)}...'
-        : trimmed;
-    updatedAt = DateTime.now();
-    notifyListeners();
-  }
-
   @override
   void dispose() {
-    _mockInputTimer?.cancel();
     _syncTimer?.cancel();
     super.dispose();
   }
@@ -145,6 +119,10 @@ class ChairSyncController extends ChangeNotifier {
     });
     // do an immediate pull
     _pullFromServer();
+  }
+
+  Future<void> refreshFromServer() async {
+    await _pullFromServer();
   }
 
   void stopAutoSync() {
@@ -160,6 +138,18 @@ class ChairSyncController extends ChangeNotifier {
 
       // Map server posture entries into controller format
       postureHistory.clear();
+      if (history.isNotEmpty) {
+        final latest = history.first;
+        final code = latest['posture'] as String? ?? 'normal';
+        postureCode = code;
+        postureLabel = ApiService.toDisplayName(code);
+        postureScore = (latest['score'] as int?) ?? ApiService.toScore(code);
+        isGoodPosture = code == 'normal';
+        latestAdvice =
+            latest['physio_advice'] as String? ??
+            latest['advice'] as String? ??
+            (isGoodPosture ? '目前姿勢良好，請繼續維持。' : '請依照後端建議調整姿勢。');
+      }
       for (final item in history) {
         final label =
             item['posture'] as String? ?? item['label'] as String? ?? '未知';
@@ -174,6 +164,8 @@ class ChairSyncController extends ChangeNotifier {
               DateTime.now(),
         });
       }
+
+      lastBackendSyncAt = DateTime.now();
 
       // Update notifications from pending list
       notifications.clear();

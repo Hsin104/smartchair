@@ -4,7 +4,7 @@
 
 ### 1. 後端 API 對接
 
-後端基礎 URL（可通過 `--dart-define=API_BASE_URL=https://sandbar-badass-subfloor.ngrok-free.dev/api` 設置）
+後端基礎 URL（預設為 `https://sandbar-badass-subfloor.ngrok-free.dev/api`，可通過 `--dart-define=API_BASE_URL=...` 覆蓋）
 
 #### 認證相關
 - **POST /api/register** — 註冊新使用者（支援 username, password, email, height, weight）
@@ -22,6 +22,11 @@
 #### 通知（馬達提醒）
 - **GET /api/notification/pending** — 取得待處理的振動提醒通知
 - **POST /api/notification/ack** — 確認通知已收到
+
+#### 座椅佔用
+- **POST /api/chair/checkin** — 登記目前使用者
+- **POST /api/chair/checkout** — 結束目前使用者的使用狀態
+- **GET /api/chair/status** — 查詢目前椅子是否有人使用
 
 ### 2. 前端代碼變更
 

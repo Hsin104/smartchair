@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'mock_api.dart';
 
 class ApiService {
   // 可透過 --dart-define=API_BASE_URL=... 覆蓋，避免寫死在程式中
@@ -22,7 +22,7 @@ class ApiService {
   };
 
   static const Map<String, int> _scores = {
-    'normal': 100,
+    'normal': 92,
     'forward': 60,
     'left': 70,
     'right': 68,
@@ -74,11 +74,41 @@ class ApiService {
 
   static Future<Map<String, String>> _authHeaders() async {
     final token = await getToken();
-    return {
+    final headers = {
       'Content-Type': 'application/json',
-      'ngrok-skip-browser-warning': 'true',
-      if (token != null) 'Authorization': 'Token $token',
+      if (token != null && token.isNotEmpty) 'Authorization': 'Token $token',
     };
+    if (!kIsWeb) {
+      headers['ngrok-skip-browser-warning'] = 'true';
+    }
+    return headers;
+  }
+
+  static Map<String, String> _publicHeaders() {
+    final headers = <String, String>{'Content-Type': 'application/json'};
+    if (!kIsWeb) {
+      headers['ngrok-skip-browser-warning'] = 'true';
+    }
+    return headers;
+  }
+
+  static Uri _buildApiUri(String path, {Map<String, String>? queryParameters}) {
+    final uri = Uri.parse('$baseUrl/$path');
+    final mergedQuery = <String, String>{
+      ...uri.queryParameters,
+      ...?queryParameters,
+      if (kIsWeb) 'ngrok-skip-browser-warning': 'true',
+    };
+    return uri.replace(queryParameters: mergedQuery);
+  }
+
+  static Map<String, dynamic>? _decodeJsonMap(String body) {
+    try {
+      final decoded = jsonDecode(body);
+      return decoded is Map<String, dynamic> ? decoded : null;
+    } catch (_) {
+      return null;
+    }
   }
 
   // ── 認證 ────────────────────────────────────────────────────
@@ -89,36 +119,44 @@ class ApiService {
     try {
       final res = await http
           .post(
-            Uri.parse('$baseUrl/login'),
-<<<<<<< HEAD
-            headers: {
-              'Content-Type': 'application/json',
-              'ngrok-skip-browser-warning': 'true',
-            },
-=======
-            headers: {
-              'Content-Type': 'application/json',
-              'ngrok-skip-browser-warning': 'true',
-            },
->>>>>>> 5191e62 (dashboard: keep only manual refresh in Quick Actions)
+            _buildApiUri('login'),
+            headers: _publicHeaders(),
             body: jsonEncode({'username': username, 'password': password}),
           )
           .timeout(const Duration(seconds: 10));
 
-      final data = jsonDecode(res.body) as Map<String, dynamic>;
+      final data = _decodeJsonMap(res.body);
       if (res.statusCode == 200) {
+        if (data == null) {
+          return (
+            success: false,
+            message: '伺服器回應格式錯誤，請檢查後端 /api/login',
+            email: null,
+          );
+        }
+        final token = (data['token'] as String?)?.trim() ?? '';
+        if (token.isEmpty) {
+          return (
+            success: false,
+            message: '登入回應缺少 token，請檢查後端 /api/login',
+            email: null,
+          );
+        }
         final email = (data['user']?['email'] as String?) ?? username;
-        await _saveAuth(data['token'] as String, email);
+        await _saveAuth(token, email);
         unawaited(chairCheckin());
         return (success: true, message: '登入成功', email: email);
       }
-      final msg =
-          (data['non_field_errors'] as List?)?.first?.toString() ??
-          data.values.first?.toString() ??
-          '帳號或密碼錯誤';
+      final msg = data == null
+          ? '伺服器回應 ${res.statusCode}，內容：${res.body.isNotEmpty ? res.body.substring(0, res.body.length > 120 ? 120 : res.body.length) : '空'}'
+          : (data['non_field_errors'] as List?)?.first?.toString() ??
+                data.values.first?.toString() ??
+                '帳號或密碼錯誤';
       return (success: false, message: msg, email: null);
-    } catch (_) {
-      return (success: false, message: '無法連線到伺服器，請確認後端已啟動', email: null);
+    } on TimeoutException {
+      return (success: false, message: '連線逾時，請確認 ngrok 與後端服務是否正常', email: null);
+    } catch (error) {
+      return (success: false, message: '登入失敗：${error.toString()}', email: null);
     }
   }
 
@@ -140,46 +178,69 @@ class ApiService {
 
       final res = await http
           .post(
-            Uri.parse('$baseUrl/register'),
-<<<<<<< HEAD
-            headers: {
-              'Content-Type': 'application/json',
-              'ngrok-skip-browser-warning': 'true',
-            },
-=======
-            headers: {
-              'Content-Type': 'application/json',
-              'ngrok-skip-browser-warning': 'true',
-            },
->>>>>>> 5191e62 (dashboard: keep only manual refresh in Quick Actions)
+            _buildApiUri('register'),
+            headers: _publicHeaders(),
             body: jsonEncode(body),
           )
           .timeout(const Duration(seconds: 10));
 
-      final data = jsonDecode(res.body) as Map<String, dynamic>;
+      final data = _decodeJsonMap(res.body);
       if (res.statusCode == 201) {
-        await _saveAuth(data['token'] as String, email);
+        if (data == null) {
+          return (
+            success: false,
+            message: '伺服器回應格式錯誤，請檢查後端 /api/register',
+            email: null,
+          );
+        }
+        final token = (data['token'] as String?)?.trim() ?? '';
+        if (token.isEmpty) {
+          return (
+            success: false,
+            message: '註冊回應缺少 token，請檢查後端 /api/register',
+            email: null,
+          );
+        }
+        await _saveAuth(token, email);
         unawaited(chairCheckin());
         return (success: true, message: '註冊成功', email: email);
       }
-      final errors = data.values.expand((v) => v is List ? v : [v]).join('、');
+      final errors = data == null
+          ? '伺服器回應 ${res.statusCode}，內容：${res.body.isNotEmpty ? res.body.substring(0, res.body.length > 120 ? 120 : res.body.length) : '空'}'
+          : data.values.expand((v) => v is List ? v : [v]).join('、');
       return (success: false, message: errors, email: null);
+    } on TimeoutException {
+      return (success: false, message: '連線逾時，請確認 ngrok 與後端服務是否正常', email: null);
+    } catch (error) {
+      return (success: false, message: '註冊失敗：${error.toString()}', email: null);
+    }
+  }
+
+  static Future<Map<String, dynamic>?> getMe() async {
+    try {
+      final res = await http
+          .get(_buildApiUri('me'), headers: await _authHeaders())
+          .timeout(const Duration(seconds: 10));
+
+      if (res.statusCode == 200) {
+        return _decodeJsonMap(res.body);
+      }
+      return null;
     } catch (_) {
-      return (success: false, message: '無法連線到伺服器，請確認後端已啟動', email: null);
+      return null;
     }
   }
 
   // ── 坐姿 ────────────────────────────────────────────────────
   static Future<Map<String, dynamic>?> getLatestPosture() async {
     try {
-      // 若尚未登入，優先使用 MockApi 回傳本地模擬資料
       if (!await isLoggedIn()) {
-        return await MockApi.getPosture();
+        return null;
       }
 
       final res = await http
           .get(
-            Uri.parse('$baseUrl/posture/history?limit=1'),
+            _buildApiUri('posture/history', queryParameters: {'limit': '1'}),
             headers: await _authHeaders(),
           )
           .timeout(const Duration(seconds: 10));
@@ -188,15 +249,9 @@ class ApiService {
         final list = jsonDecode(res.body) as List;
         return list.isNotEmpty ? list.first as Map<String, dynamic> : null;
       }
-      // 若後端回傳非 200，可回退到 MockApi 作為 fallback
-      return await MockApi.getPosture();
+      return null;
     } catch (_) {
-      // 若發生例外，優先嘗試使用 MockApi（離線模式）
-      try {
-        return await MockApi.getPosture();
-      } catch (_) {
-        return null;
-      }
+      return null;
     }
   }
 
@@ -204,15 +259,16 @@ class ApiService {
     int limit = 50,
   }) async {
     try {
-      // 若尚未登入，使用 MockApi 回傳單筆模擬資料
       if (!await isLoggedIn()) {
-        final mock = await MockApi.getPosture();
-        return [mock];
+        return [];
       }
 
       final res = await http
           .get(
-            Uri.parse('$baseUrl/posture/history?limit=$limit'),
+            _buildApiUri(
+              'posture/history',
+              queryParameters: {'limit': '$limit'},
+            ),
             headers: await _authHeaders(),
           )
           .timeout(const Duration(seconds: 10));
@@ -222,11 +278,6 @@ class ApiService {
       }
       return [];
     } catch (_) {
-      // 當後端失敗且未登入時，回退到 MockApi
-      if (!await isLoggedIn()) {
-        final mock = await MockApi.getPosture();
-        return [mock];
-      }
       return [];
     }
   }
@@ -237,14 +288,13 @@ class ApiService {
     String userMessage = '',
   }) async {
     try {
-      // 若尚未登入，使用 MockApi 回傳模擬建議
       if (!await isLoggedIn()) {
-        return await MockApi.getAdvice(postureCode, userMessage: userMessage);
+        return '';
       }
 
       final res = await http
           .post(
-            Uri.parse('$baseUrl/agent'),
+            _buildApiUri('agent'),
             headers: await _authHeaders(),
             body: jsonEncode({
               'posture': postureCode,
@@ -256,29 +306,22 @@ class ApiService {
       if (res.statusCode == 200) {
         return jsonDecode(res.body)['advice'] as String? ?? '';
       }
-      // 後端非 200，回退到 MockApi
-      return await MockApi.getAdvice(postureCode, userMessage: userMessage);
+      return '';
     } catch (_) {
-      // 發生例外時回退到 MockApi
-      try {
-        return await MockApi.getAdvice(postureCode, userMessage: userMessage);
-      } catch (_) {
-        return '';
-      }
+      return '';
     }
   }
 
   // ── 通知 ────────────────────────────────────────────────────
   static Future<List<Map<String, dynamic>>> getPendingNotifications() async {
     try {
-      // 若尚未登入，使用 MockApi 回傳模擬通知
       if (!await isLoggedIn()) {
-        return await MockApi.getPendingNotifications();
+        return [];
       }
 
       final res = await http
           .get(
-            Uri.parse('$baseUrl/notification/pending'),
+            _buildApiUri('notification/pending'),
             headers: await _authHeaders(),
           )
           .timeout(const Duration(seconds: 10));
@@ -287,15 +330,9 @@ class ApiService {
         return (jsonDecode(res.body)['notifications'] as List)
             .cast<Map<String, dynamic>>();
       }
-      // 後端非 200，回退到 MockApi
-      return await MockApi.getPendingNotifications();
+      return [];
     } catch (_) {
-      // 異常時回退到 MockApi
-      try {
-        return await MockApi.getPendingNotifications();
-      } catch (_) {
-        return [];
-      }
+      return [];
     }
   }
 
@@ -305,7 +342,7 @@ class ApiService {
     try {
       final res = await http
           .patch(
-            Uri.parse('$baseUrl/me/update'),
+            _buildApiUri('me/update'),
             headers: await _authHeaders(),
             body: jsonEncode(updates),
           )
@@ -333,10 +370,7 @@ class ApiService {
   static Future<void> chairCheckin() async {
     try {
       await http
-          .post(
-            Uri.parse('$baseUrl/chair/checkin'),
-            headers: await _authHeaders(),
-          )
+          .post(_buildApiUri('chair/checkin'), headers: await _authHeaders())
           .timeout(const Duration(seconds: 5));
     } catch (_) {}
   }
@@ -344,11 +378,23 @@ class ApiService {
   static Future<void> chairCheckout() async {
     try {
       await http
-          .post(
-            Uri.parse('$baseUrl/chair/checkout'),
-            headers: await _authHeaders(),
-          )
+          .post(_buildApiUri('chair/checkout'), headers: await _authHeaders())
           .timeout(const Duration(seconds: 5));
     } catch (_) {}
+  }
+
+  static Future<Map<String, dynamic>?> getChairStatus() async {
+    try {
+      final res = await http
+          .get(_buildApiUri('chair/status'))
+          .timeout(const Duration(seconds: 5));
+
+      if (res.statusCode == 200) {
+        return jsonDecode(res.body) as Map<String, dynamic>;
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
   }
 }

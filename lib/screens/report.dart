@@ -38,61 +38,65 @@ class ReportPage extends StatelessWidget {
           postureCounts[label] = (postureCounts[label] ?? 0) + 1;
         }
 
-        return SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 清除資料按鈕
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    "報表總覽",
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF0F172A),
-                    ),
-                  ),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      controller.clearPostureHistory();
-                      controller.clearNotifications();
-
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("報表與通知資料已清除")),
-                      );
-                    },
-                    icon: const Icon(Icons.delete_outline, color: Colors.white),
-                    label: const Text(
-                      "清除資料",
-                      style: TextStyle(color: Colors.white),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 10,
+        return RefreshIndicator(
+          onRefresh: controller.refreshFromServer,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 從後端重新同步
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      "報表總覽",
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF0F172A),
                       ),
                     ),
-                  ),
-                ],
-              ),
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        await controller.refreshFromServer();
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text("已從後端重新同步報表資料")),
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.refresh, color: Colors.white),
+                      label: const Text(
+                        "重新同步",
+                        style: TextStyle(color: Colors.white),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF0F766E),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
 
-              const SizedBox(height: 12),
+                const SizedBox(height: 12),
 
-              _buildSummaryCard(total, avgScore),
-              const SizedBox(height: 12),
-              _buildQuickKpiRow(goodPercent, badCount),
-              const SizedBox(height: 18),
-              _buildDistributionAndStatsSection(
-                postureCounts: postureCounts,
-                total: total,
-                goodCount: goodCount,
-                badCount: badCount,
-              ),
-            ],
+                _buildSummaryCard(total, avgScore),
+                const SizedBox(height: 12),
+                _buildQuickKpiRow(goodPercent, badCount),
+                const SizedBox(height: 18),
+                _buildDistributionAndStatsSection(
+                  postureCounts: postureCounts,
+                  total: total,
+                  goodCount: goodCount,
+                  badCount: badCount,
+                ),
+              ],
+            ),
           ),
         );
       },

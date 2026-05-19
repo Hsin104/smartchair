@@ -11,9 +11,7 @@ import 'package:smart_chair_app/main.dart';
 
 void main() {
   testWidgets('App shell renders', (WidgetTester tester) async {
-    await tester.pumpWidget(
-      const SmartChairApp(firebaseReady: false, firebaseError: 'test'),
-    );
+    await tester.pumpWidget(const SmartChairApp());
 
     expect(find.text('智慧座椅'), findsOneWidget);
   });

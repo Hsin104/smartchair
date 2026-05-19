@@ -57,39 +57,60 @@ class _SettingPageState extends State<SettingPage> {
 
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
-    print('[Setting] Loading settings for scope=$_userScope');
-    final savedHeight = prefs.getString(_key('height'));
-    final savedWeight = prefs.getString(_key('weight'));
+    debugPrint('[Setting] Loading settings for scope=$_userScope');
     final savedPostureAlert = prefs.getBool(_key('postureAlert'));
     final savedSedentaryAlert = prefs.getBool(_key('sedentaryAlert'));
     final savedVibrationAlert = prefs.getBool(_key('vibrationAlert'));
 
+    String? heightText;
+    String? weightText;
+
+    if (widget.isLoggedIn) {
+      final profile = await ApiService.getMe();
+      if (profile != null) {
+        final height = profile['height']?.toString();
+        final weight = profile['weight']?.toString();
+        if (height != null && height != 'null' && height.isNotEmpty) {
+          heightText = height;
+        }
+        if (weight != null && weight != 'null' && weight.isNotEmpty) {
+          weightText = weight;
+        }
+        debugPrint(
+          '[Setting] Loaded backend profile: height=$heightText, weight=$weightText',
+        );
+      }
+    }
+
+    heightText ??= prefs.getString(_key('height'));
+    weightText ??= prefs.getString(_key('weight'));
+
     if (!mounted) return;
     setState(() {
-      heightController.text = savedHeight ?? '';
-      weightController.text = savedWeight ?? '';
+      heightController.text = heightText ?? '';
+      weightController.text = weightText ?? '';
       postureAlert = savedPostureAlert ?? true;
       sedentaryAlert = savedSedentaryAlert ?? true;
       vibrationAlert = savedVibrationAlert ?? true;
     });
   }
 
-  Future<void> _saveSettings() async {
+  Future<bool> _saveSettings() async {
     final prefs = await SharedPreferences.getInstance();
     final heightStr = heightController.text.trim();
     final weightStr = weightController.text.trim();
 
-    // 本地保存所有設定
+    // 本地保存所有設定（偏好開關永遠只存在本地）
     await prefs.setString(_key('height'), heightStr);
     await prefs.setString(_key('weight'), weightStr);
     await prefs.setBool(_key('postureAlert'), postureAlert);
     await prefs.setBool(_key('sedentaryAlert'), sedentaryAlert);
     await prefs.setBool(_key('vibrationAlert'), vibrationAlert);
-    print(
+    debugPrint(
       '[Setting] Saved locally for scope=$_userScope: height=$heightStr, weight=$weightStr, postureAlert=$postureAlert, sedentaryAlert=$sedentaryAlert, vibrationAlert=$vibrationAlert',
     );
 
-    // 如果已登入，將身高、體重同步到後端（後端只支援 height, weight, email）
+    // 如果已登入，才把可同步的個資寫回後端；本地偏好不送後端
     if (widget.isLoggedIn) {
       try {
         final height = double.tryParse(heightStr);
@@ -100,17 +121,16 @@ class _SettingPageState extends State<SettingPage> {
 
         if (updates.isNotEmpty) {
           final ok = await ApiService.updateMe(updates);
-          print('[Setting] updateMe ok=$ok, updates=$updates');
-          if (!ok && mounted) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(const SnackBar(content: Text('設定已儲存本地，但同步到伺服器失敗')));
-          }
+          debugPrint('[Setting] updateMe ok=$ok, updates=$updates');
+          return ok;
         }
       } catch (e) {
-        print('[Setting] updateMe error: $e');
+        debugPrint('[Setting] updateMe error: $e');
+        return false;
       }
     }
+
+    return true;
   }
 
   @override
@@ -319,11 +339,13 @@ class _SettingPageState extends State<SettingPage> {
             width: double.infinity,
             child: OutlinedButton(
               onPressed: () async {
-                await _saveSettings();
-                if (!mounted) return;
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(const SnackBar(content: Text('設定已儲存')));
+                final syncedOk = await _saveSettings();
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(syncedOk ? '設定已儲存' : '設定已儲存本地，但同步到伺服器失敗'),
+                  ),
+                );
               },
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),

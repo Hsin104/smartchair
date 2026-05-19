@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import '../state/chair_sync_controller.dart';
 import '../services/api_service.dart';
@@ -22,17 +21,15 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
-  bool _demoMode = false; // true = 示範模式（假資料），false = 即時模式（後端 API）
   bool _isLoading = false;
+  late final VoidCallback _controllerListener;
 
-  String _postureDisplay = '姿勢正常';
-  String _postureCode = 'normal';
-  int _score = 92;
-  String _risk = '低風險';
-  String _advice = '目前姿勢良好，請繼續維持。';
-  Color _color = const Color(0xFF16A34A);
-
-  // 不使用計時器：僅以手動更新資料
+  String _postureDisplay = '等待後端資料';
+  String _postureCode = '';
+  int _score = 0;
+  String _risk = '尚無資料';
+  String _advice = '登入後並完成同步，這裡會顯示後端回傳的最新建議。';
+  Color _color = const Color(0xFF64748B);
 
   int get _todayReminderCount => widget.controller.notifications.length;
 
@@ -47,82 +44,65 @@ class _DashboardPageState extends State<DashboardPage> {
     return '$minutes 分鐘';
   }
 
-  // 示範用假資料（保留作為離線展示）
-  static final List<Map<String, dynamic>> _demoPostures = [
-    {'code': 'normal', 'advice': '目前姿勢良好，請繼續維持。建議每 30 分鐘起身活動 5 分鐘。'},
-    {'code': 'forward', 'advice': '偵測到頭部前傾，建議收下巴並將螢幕提高至眼睛等高。'},
-    {'code': 'left', 'advice': '偵測到身體左傾，建議調整骨盆讓左右坐骨均等受力。'},
-    {'code': 'right', 'advice': '偵測到身體右傾，請將滑鼠移近身體並坐正。'},
-    {'code': 'recline', 'advice': '後仰角度過大，建議回到正常坐姿並使用腰枕支撐。'},
-    {'code': 'sedentary', 'advice': '久坐過久，建議立刻起身伸展 3–5 分鐘。'},
-  ];
-
   @override
   void initState() {
     super.initState();
-    // 不自動抓取資料，僅透過「手動更新資料」按鈕觸發 _fetch()
+    _controllerListener = () {
+      if (mounted) _syncFromController();
+    };
+    widget.controller.addListener(_controllerListener);
+    _syncFromController();
+    _fetch();
   }
 
   @override
   void didUpdateWidget(DashboardPage old) {
     super.didUpdateWidget(old);
+    if (old.controller != widget.controller) {
+      old.controller.removeListener(_controllerListener);
+      widget.controller.addListener(_controllerListener);
+      _syncFromController();
+    }
     // 登入狀態改變時立即重新拉資料
     if (old.isLoggedIn != widget.isLoggedIn) _fetch();
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_controllerListener);
+    super.dispose();
+  }
+
+  void _syncFromController() {
+    setState(() {
+      _postureDisplay = widget.controller.postureLabel.isNotEmpty
+          ? widget.controller.postureLabel
+          : '等待後端資料';
+      _postureCode = widget.controller.postureCode;
+      _score = widget.controller.postureScore;
+      _risk = widget.controller.postureCode.isNotEmpty
+          ? ApiService.toRisk(widget.controller.postureCode)
+          : '尚無資料';
+      _advice = widget.controller.latestAdvice;
+      _color = widget.controller.postureCode.isNotEmpty
+          ? _postureColor(widget.controller.postureCode)
+          : const Color(0xFF64748B);
+    });
   }
 
   Future<void> _fetch() async {
     if (_isLoading) return;
     setState(() => _isLoading = true);
 
-    if (_demoMode) {
-      // ── 示範模式：隨機假資料 ──
-      await Future.delayed(const Duration(milliseconds: 400));
-      final demo = _demoPostures[Random().nextInt(_demoPostures.length)];
-      _applyPosture(
-        code: demo['code'] as String,
-        advice: demo['advice'] as String,
-      );
-    } else {
-      // ── 即時模式：呼叫後端 API；若無資料則顯示目前狀態 ──
-      final data = await ApiService.getLatestPosture();
-      if (data != null) {
-        _applyPosture(
-          code: data['posture'] as String,
-          advice: (data['physio_advice'] as String?) ?? '',
-        );
-      } else {
-        if (!mounted) return;
-        setState(() {
-          _advice = widget.isLoggedIn
-              ? '尚未取得即時姿勢資料，請確認後端服務與 API_BASE_URL 設定。'
-              : '目前未登入，登入後可取得個人化即時姿勢資料。';
-        });
-      }
+    // 由控制器依後端輪詢同步資料，畫面跟著控制器狀態更新
+    await widget.controller.refreshFromServer();
+    if (!widget.isLoggedIn && mounted) {
+      setState(() {
+        _advice = '目前未登入，登入後可取得個人化即時姿勢資料。';
+      });
     }
 
     if (mounted) setState(() => _isLoading = false);
-  }
-
-  void _applyPosture({required String code, required String advice}) {
-    final display = ApiService.toDisplayName(code);
-    final score = ApiService.toScore(code);
-    final risk = ApiService.toRisk(code);
-
-    if (!mounted) return;
-    setState(() {
-      _postureCode = code;
-      _postureDisplay = display;
-      _score = score;
-      _risk = risk;
-      _advice = advice.isNotEmpty ? advice : '目前姿勢良好，請繼續維持。';
-      _color = _postureColor(code);
-    });
-
-    widget.controller.updatePosture(
-      label: display,
-      score: score,
-      isGood: code == 'normal',
-    );
   }
 
   Color _postureColor(String code) {
@@ -145,12 +125,8 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   @override
-  void dispose() {
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final hasData = _postureCode.isNotEmpty;
     final isGood = _postureCode == 'normal';
 
     return SingleChildScrollView(
@@ -263,7 +239,7 @@ class _DashboardPageState extends State<DashboardPage> {
             children: [
               _InfoCard(
                 title: '姿勢評分',
-                value: '$_score 分',
+                value: hasData ? '$_score 分' : '尚無資料',
                 icon: Icons.speed_rounded,
                 accent: _color,
               ),

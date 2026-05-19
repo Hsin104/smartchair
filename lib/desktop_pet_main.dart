@@ -1,9 +1,9 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:screen_retriever/screen_retriever.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:system_tray/system_tray.dart';
-import 'screens/home_page.dart';
 import 'state/chair_sync_controller.dart';
 import 'widgets/desk_pet_overlay.dart';
 
@@ -24,12 +24,13 @@ Future<void> main() async {
 
   windowManager.waitUntilReadyToShow(options, () async {
     // 設定在螢幕右下角
-    final display = await windowManager.getPrimaryDisplay();
-    final workArea = display.workArea;
+    final display = await screenRetriever.getPrimaryDisplay();
+    final workAreaSize = display.visibleSize ?? display.size;
+    final workAreaOffset = display.visiblePosition ?? Offset.zero;
     final width = options.size!.width;
     final height = options.size!.height;
-    final dx = workArea.right - width - 20;
-    final dy = workArea.bottom - height - 40;
+    final dx = workAreaOffset.dx + workAreaSize.width - width - 20;
+    final dy = workAreaOffset.dy + workAreaSize.height - height - 40;
 
     await windowManager.setSize(options.size!);
     await windowManager.setPosition(Offset(dx, dy));
@@ -44,7 +45,7 @@ Future<void> main() async {
   String iconPath = 'assets/tray_icon.ico';
   if (!File(iconPath).existsSync()) {
     // 若沒有 icon，使用空白（system_tray 需要 icon，提醒使用者自行放置）
-    print(
+    debugPrint(
       'Warning: $iconPath not found. Please add an ICO file at that path for the tray icon.',
     );
   }

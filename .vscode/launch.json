@@ -28,7 +28,7 @@
       "id": "apiBaseUrl",
       "type": "promptString",
       "description": "API_BASE_URL",
-    "default": "https://sandbar-badass-subfloor.ngrok-free.dev/api"
+      "default": "https://sandbar-badass-subfloor.ngrok-free.dev/api"
     }
   ]
 }
