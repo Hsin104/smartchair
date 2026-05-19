@@ -18,8 +18,6 @@ class _AuthPageState extends State<AuthPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  final _heightController = TextEditingController();
-  final _weightController = TextEditingController();
 
   late AuthMode _mode;
   bool _isSubmitting = false;
@@ -38,8 +36,6 @@ class _AuthPageState extends State<AuthPage> {
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
-    _heightController.dispose();
-    _weightController.dispose();
     super.dispose();
   }
 
@@ -62,8 +58,6 @@ class _AuthPageState extends State<AuthPage> {
             _usernameController.text.trim(),
             _emailController.text.trim(),
             _passwordController.text,
-            height: double.tryParse(_heightController.text.trim()),
-            weight: double.tryParse(_weightController.text.trim()),
           );
 
     if (!mounted) return;
@@ -174,46 +168,6 @@ class _AuthPageState extends State<AuthPage> {
                           },
                         ),
                         const SizedBox(height: 12),
-                        // 身高（只有註冊需要）
-                        TextFormField(
-                          controller: _heightController,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                            labelText: '身高 (cm)',
-                            border: OutlineInputBorder(),
-                            hintText: '例：170',
-                          ),
-                          validator: (v) {
-                            final text = (v ?? '').trim();
-                            if (text.isEmpty) return '請輸入身高';
-                            final height = double.tryParse(text);
-                            if (height == null || height < 50 || height > 250) {
-                              return '身高應在 50~250 公分之間';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 12),
-                        // 體重（只有註冊需要）
-                        TextFormField(
-                          controller: _weightController,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                            labelText: '體重 (kg)',
-                            border: OutlineInputBorder(),
-                            hintText: '例：70',
-                          ),
-                          validator: (v) {
-                            final text = (v ?? '').trim();
-                            if (text.isEmpty) return '請輸入體重';
-                            final weight = double.tryParse(text);
-                            if (weight == null || weight < 20 || weight > 300) {
-                              return '體重應在 20~300 公斤之間';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 12),
                       ],
 
                       // 密碼
@@ -299,8 +253,7 @@ class _AuthPageState extends State<AuthPage> {
                                   _emailController.clear();
                                   _passwordController.clear();
                                   _confirmPasswordController.clear();
-                                  _heightController.clear();
-                                  _weightController.clear();
+                                  // height/weight removed from registration
                                   _obscurePassword = true;
                                   _obscureConfirmPassword = true;
                                 }),
