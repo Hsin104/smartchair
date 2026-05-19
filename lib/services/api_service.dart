@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 // no longer need foundation import here
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -80,6 +81,10 @@ class ApiService {
     };
     // ngrok requires this header to skip the browser warning page. Always include it.
     headers['ngrok-skip-browser-warning'] = 'true';
+    debugPrint(
+      'ApiService._authHeaders -> tokenPresent=${token != null && token.isNotEmpty}',
+    );
+    debugPrint('ApiService._authHeaders -> headers=$headers');
     return headers;
   }
 
