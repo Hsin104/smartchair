@@ -115,6 +115,36 @@ class _DashboardPageState extends State<DashboardPage> {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(msg)));
+
+        // If /me is null, show a detailed diagnostic dialog with curl commands
+        if (me == null) {
+          final curlCheck = '''curl -s -H "Authorization: Token <YOUR_TOKEN>" "${ApiService.baseUrl}/me" | jq .''';
+          // show one-time dialog
+          showDialog<void>(
+            context: context,
+            builder: (_) => AlertDialog(
+              title: const Text('診斷：/api/me 回傳為空'),
+              content: SingleChildScrollView(
+                child: ListBody(
+                  children: [
+                    Text('已登入: $loggedIn'),
+                    Text('token 存在: $tokenFlag'),
+                    const SizedBox(height: 8),
+                    const Text('請協助後端檢查 token 驗證或執行下列測試：'),
+                    const SizedBox(height: 8),
+                    SelectableText(curlCheck),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('關閉'),
+                ),
+              ],
+            ),
+          );
+        }
       }
     } catch (_) {}
     if (!widget.isLoggedIn && mounted) {
