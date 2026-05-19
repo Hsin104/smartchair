@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../state/chair_sync_controller.dart';
 import '../services/api_service.dart';
 
@@ -117,53 +116,7 @@ class _DashboardPageState extends State<DashboardPage> {
           context,
         ).showSnackBar(SnackBar(content: Text(msg)));
 
-        // If /me is null, show a detailed diagnostic dialog with curl commands
-        if (me == null) {
-          final rawToken = token ?? '<YOUR_TOKEN>';
-          final curlCheck =
-              'curl -s -H "Authorization: Token $rawToken" "${ApiService.baseUrl}/me" | jq .';
-          // show one-time dialog
-          showDialog<void>(
-            context: context,
-            builder: (_) => AlertDialog(
-              title: const Text('診斷：/api/me 回傳為空'),
-              content: SingleChildScrollView(
-                child: ListBody(
-                  children: [
-                    Text('已登入: $loggedIn'),
-                    Text('token 存在: $tokenFlag'),
-                    const SizedBox(height: 8),
-                    const Text('請協助後端檢查 token 驗證或執行下列測試：'),
-                    const SizedBox(height: 8),
-                    SelectableText(curlCheck),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () async {
-                    try {
-                      await Clipboard.setData(ClipboardData(text: curlCheck));
-                      if (mounted) {
-                        Navigator.of(context).pop();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('已複製 curl 指令（含 token）')),
-                        );
-                      }
-                    } catch (_) {
-                      if (mounted) Navigator.of(context).pop();
-                    }
-                  },
-                  child: const Text('複製 curl'),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('關閉'),
-                ),
-              ],
-            ),
-          );
-        }
+        // 診斷對話框已移除：若需要，請使用畫面上的 SnackBar 或 BACKEND_DIAGNOSIS.md 傳給後端。
       }
     } catch (_) {}
     if (!widget.isLoggedIn && mounted) {

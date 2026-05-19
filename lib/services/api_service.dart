@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
+// no longer need foundation import here
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -78,17 +78,15 @@ class ApiService {
       'Content-Type': 'application/json',
       if (token != null && token.isNotEmpty) 'Authorization': 'Token $token',
     };
-    if (!kIsWeb) {
-      headers['ngrok-skip-browser-warning'] = 'true';
-    }
+    // ngrok requires this header to skip the browser warning page. Always include it.
+    headers['ngrok-skip-browser-warning'] = 'true';
     return headers;
   }
 
   static Map<String, String> _publicHeaders() {
     final headers = <String, String>{'Content-Type': 'application/json'};
-    if (!kIsWeb) {
-      headers['ngrok-skip-browser-warning'] = 'true';
-    }
+    // ngrok requires this header to skip the browser warning page. Always include it.
+    headers['ngrok-skip-browser-warning'] = 'true';
     return headers;
   }
 
@@ -97,7 +95,6 @@ class ApiService {
     final mergedQuery = <String, String>{
       ...uri.queryParameters,
       ...?queryParameters,
-      if (kIsWeb) 'ngrok-skip-browser-warning': 'true',
     };
     return uri.replace(queryParameters: mergedQuery);
   }
