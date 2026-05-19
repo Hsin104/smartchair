@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../state/chair_sync_controller.dart';
 import '../services/api_service.dart';
 
@@ -118,7 +119,9 @@ class _DashboardPageState extends State<DashboardPage> {
 
         // If /me is null, show a detailed diagnostic dialog with curl commands
         if (me == null) {
-          final curlCheck = '''curl -s -H "Authorization: Token <YOUR_TOKEN>" "${ApiService.baseUrl}/me" | jq .''';
+          final rawToken = token ?? '<YOUR_TOKEN>';
+          final curlCheck =
+              'curl -s -H "Authorization: Token $rawToken" "${ApiService.baseUrl}/me" | jq .';
           // show one-time dialog
           showDialog<void>(
             context: context,
@@ -137,6 +140,22 @@ class _DashboardPageState extends State<DashboardPage> {
                 ),
               ),
               actions: [
+                TextButton(
+                  onPressed: () async {
+                    try {
+                      await Clipboard.setData(ClipboardData(text: curlCheck));
+                      if (mounted) {
+                        Navigator.of(context).pop();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('已複製 curl 指令（含 token）')),
+                        );
+                      }
+                    } catch (_) {
+                      if (mounted) Navigator.of(context).pop();
+                    }
+                  },
+                  child: const Text('複製 curl'),
+                ),
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
                   child: const Text('關閉'),
