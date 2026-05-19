@@ -96,6 +96,20 @@ class _DashboardPageState extends State<DashboardPage> {
 
     // 由控制器依後端輪詢同步資料，畫面跟著控制器狀態更新
     await widget.controller.refreshFromServer();
+    // Diagnostic: directly query backend to help debug missing data
+    try {
+      final history = await ApiService.getPostureHistory(limit: 1);
+      final pending = await ApiService.getPendingNotifications();
+      final adviceFromApi = history.isNotEmpty
+          ? (history.first['physio_advice'] as String?) ??
+              (history.first['advice'] as String?) ??
+              ''
+          : '';
+      if (mounted) {
+        final msg = 'backend: history=${history.length}, pending=${pending.length}, advice=${adviceFromApi.isNotEmpty ? 'yes' : 'no'}';
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+      }
+    } catch (_) {}
     if (!widget.isLoggedIn && mounted) {
       setState(() {
         _advice = '目前未登入，登入後可取得個人化即時姿勢資料。';
