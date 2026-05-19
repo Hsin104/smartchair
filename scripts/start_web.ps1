@@ -1,12 +1,13 @@
 # Start Web Dev with reliable Chrome connection
 # - Kills leftover dartvm processes
-# - Launches Chrome with a temporary user-data-dir and remote debugging enabled
-# - Starts `flutter run` with an auto-selected port so hot reload works
+# - Launches Chrome with a persistent user-data-dir and remote debugging enabled
+# - Starts `flutter run` with a fixed port so browser storage survives restarts
 
 param(
   [string]$ApiBaseUrl = "https://sandbar-badass-subfloor.ngrok-free.dev/api",
   [int]$DebuggingPort = 9222,
-  [int]$FixedPort = 0
+  [int]$FixedPort = 0,
+  [string]$ProfileDir = "$env:LOCALAPPDATA\smart_chair_app\chrome_profile"
 )
 
 Write-Host "Cleaning leftover dartvm processes..."
@@ -20,11 +21,9 @@ $chromePaths = @(
 $chrome = $chromePaths | Where-Object { Test-Path $_ } | Select-Object -First 1
 
 if ($null -ne $chrome) {
-  $tmpProfile = Join-Path $env:TEMP "flutter_chrome_profile_$(Get-Random)"
-  New-Item -ItemType Directory -Path $tmpProfile | Out-Null
+  New-Item -ItemType Directory -Path $ProfileDir -Force | Out-Null
   Write-Host "Launching Chrome with remote debugging on port $DebuggingPort..."
-  Start-Process -FilePath $chrome -ArgumentList "--remote-debugging-port=$DebuggingPort","--user-data-dir=$tmpProfile","about:blank"
-  Start-Sleep -Seconds 1
+  Start-Process -FilePath $chrome -ArgumentList "--remote-debugging-port=$DebuggingPort","--user-data-dir=$ProfileDir","about:blank"
 } else {
   Write-Warning "Chrome executable not found in default locations. Please start Chrome manually with --remote-debugging-port or ensure Chrome is installed."
 }
@@ -56,4 +55,4 @@ Write-Host "Starting flutter run..."
 flutter @flutterArgs
 
 # Cleanup: optional - keep profile for debugging
-Write-Host "Done. If you want to remove the temporary Chrome profile, delete: $tmpProfile"
+Write-Host "Done. Persistent Chrome profile: $ProfileDir"

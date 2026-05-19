@@ -1,1 +1,7 @@
+請用這個指令啟動 Web，才能保留登入與本地設定：
+
+powershell -ExecutionPolicy Bypass -File scripts/start_web.ps1 -FixedPort 7357 -ApiBaseUrl "https://sandbar-badass-subfloor.ngrok-free.dev/api"
+
+不要再直接使用：
+
 flutter run -d chrome --web-port 0

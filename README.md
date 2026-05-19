@@ -46,6 +46,14 @@ flutter pub get
 flutter run
 ```
 
+如果你是要啟動 Web 版本，請改用下面這條指令，才能保留登入與本地設定：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/start_web.ps1 -FixedPort 7357 -ApiBaseUrl "https://sandbar-badass-subfloor.ngrok-free.dev/api"
+```
+
+不要直接使用 `flutter run -d chrome --web-port 0`，因為它會改變瀏覽器的 origin，關閉後可能讀不到先前資料。
+
 4. （可選）檢查程式品質
 
 ```bash

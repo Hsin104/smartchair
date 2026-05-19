@@ -4,13 +4,16 @@
     {
       "label": "Flutter Web: Live Preview",
       "type": "shell",
-      "command": "flutter",
+      "command": "powershell",
       "args": [
-        "run",
-        "-d",
-        "chrome",
-        "--web-port",
-        "0"
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "scripts/start_web.ps1",
+        "-FixedPort",
+        "7357",
+        "-ApiBaseUrl",
+        "https://sandbar-badass-subfloor.ngrok-free.dev/api"
       ],
       "isBackground": true,
       "problemMatcher": []

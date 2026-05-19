@@ -117,10 +117,7 @@ POST /api/register
 .\scripts\start_web.ps1 -FixedPort 7357 -ApiBaseUrl "https://sandbar-badass-subfloor.ngrok-free.dev/api"
 ```
 
-或不固定埠（自動分配）：
-```powershell
-.\scripts\start_web.ps1 -ApiBaseUrl "https://sandbar-badass-subfloor.ngrok-free.dev/api"
-```
+請固定使用上面的指令，不要切回隨機埠；否則瀏覽器會換 origin，關閉後本地設定可能讀不到。
 
 ---
 

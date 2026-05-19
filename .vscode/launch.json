@@ -8,7 +8,7 @@
       "program": "lib/main.dart",
       "deviceId": "chrome",
       "args": [
-        "--web-port=0"
+        "--web-port=7357"
       ]
     },
     {
@@ -18,7 +18,7 @@
       "program": "lib/main.dart",
       "deviceId": "chrome",
       "args": [
-        "--web-port=0",
+        "--web-port=7357",
         "--dart-define=API_BASE_URL=${input:apiBaseUrl}"
       ]
     }
