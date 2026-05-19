@@ -102,12 +102,19 @@ class _DashboardPageState extends State<DashboardPage> {
       final pending = await ApiService.getPendingNotifications();
       final adviceFromApi = history.isNotEmpty
           ? (history.first['physio_advice'] as String?) ??
-              (history.first['advice'] as String?) ??
-              ''
+                (history.first['advice'] as String?) ??
+                ''
           : '';
+      final loggedIn = await ApiService.isLoggedIn();
+      final me = await ApiService.getMe();
+      final token = await ApiService.getToken();
+      final tokenFlag = (token != null && token.isNotEmpty) ? 'yes' : 'no';
       if (mounted) {
-        final msg = 'backend: history=${history.length}, pending=${pending.length}, advice=${adviceFromApi.isNotEmpty ? 'yes' : 'no'}';
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+        final msg =
+            'backend: history=${history.length}, pending=${pending.length}, advice=${adviceFromApi.isNotEmpty ? 'yes' : 'no'}; auth: loggedIn=$loggedIn, me=${me != null ? 'yes' : 'no'}, token=$tokenFlag';
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(msg)));
       }
     } catch (_) {}
     if (!widget.isLoggedIn && mounted) {
