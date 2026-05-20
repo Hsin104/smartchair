@@ -45,6 +45,10 @@ def _get_api_key():
     return api_key
 
 
+def _get_backup_api_key():
+    return getattr(settings, 'GEMINI_API_KEY_BACKUP', '')
+
+
 def _build_retriever():
     """載入外部知識庫並建立 FAISS 向量庫（首次建立後持久化至磁碟）。"""
     global _retriever
@@ -176,18 +180,17 @@ _SYSTEM_PROMPT = """你是專業的物理治療師 AI 助手「SC）」，專精
 
 # ── Agent 初始化 ───────────────────────────────────────────────────────────────
 
-def _build_agent():
+def _build_agent_with_key(api_key: str):
     global _agent_executor
     if _agent_executor is not None:
         return _agent_executor
 
-    api_key = _get_api_key()
     _build_retriever()
 
     llm = ChatGoogleGenerativeAI(
         model='gemini-2.5-flash',
         google_api_key=api_key,
-        temperature=0.2,  # 降低隨機性，減少幻覺產生機率
+        temperature=0.2,
     )
 
     tools = [search_knowledge_base, get_posture_history, trigger_vibration]
@@ -263,8 +266,10 @@ def get_advice(posture: str, user_id: int, user_message: str = '', trigger_actio
             f'請查詢外部知識庫後分析坐姿問題並提供改善建議。{vibration_note}'
         )
 
-    try:
-        executor = _build_agent()
+    def _invoke(api_key):
+        global _agent_executor
+        _agent_executor = None  # 強制重建 agent（切換 key 時需要）
+        executor = _build_agent_with_key(api_key)
         result = executor.invoke({'input': question})
         output = result['output']
         if isinstance(output, list):
@@ -276,6 +281,14 @@ def get_advice(posture: str, user_id: int, user_message: str = '', trigger_actio
                     parts.append(item)
             output = ''.join(parts)
         return _validate_response(output.strip())
+
+    try:
+        return _invoke(_get_api_key())
     except Exception as e:
+        if '429' in str(e) or 'RESOURCE_EXHAUSTED' in str(e):
+            backup = _get_backup_api_key()
+            if backup:
+                logger.warning('[PhysioAgent] 主 key 額度用盡，切換備用 key')
+                return _invoke(backup)
         logger.error(f'[PhysioAgent] 生成建議失敗：{e}')
         raise
