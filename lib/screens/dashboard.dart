@@ -29,6 +29,8 @@ class _DashboardPageState extends State<DashboardPage> {
   int _score = 0;
   String _risk = '尚無資料';
   String _advice = '登入後並完成同步，這裡會顯示後端回傳的最新建議。';
+  bool _adviceVisible = false;
+  bool _isFetchingAdvice = false;
   Color _color = const Color(0xFF64748B);
 
   int get _todayReminderCount => widget.controller.notifications.length;
@@ -83,7 +85,7 @@ class _DashboardPageState extends State<DashboardPage> {
       _risk = widget.controller.postureCode.isNotEmpty
           ? ApiService.toRisk(widget.controller.postureCode)
           : '尚無資料';
-      _advice = widget.controller.latestAdvice;
+      // 不在同步時自動顯示 AI 建議；改為按鈕按下時才載入/顯示
       _color = widget.controller.postureCode.isNotEmpty
           ? _postureColor(widget.controller.postureCode)
           : const Color(0xFF64748B);
@@ -358,13 +360,70 @@ class _DashboardPageState extends State<DashboardPage> {
                   ],
                 ),
                 const SizedBox(height: 12),
+                // 只在使用者按下按鈕後顯示實際建議，否則顯示提示文字
                 Text(
-                  _advice,
+                  _adviceVisible ? _advice : '按下「顯示建議」以查看 AI 建議。',
                   style: const TextStyle(
                     fontSize: 14,
                     height: 1.6,
                     color: Color(0xFF334155),
                   ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    OutlinedButton(
+                      onPressed: _isFetchingAdvice
+                          ? null
+                          : () async {
+                              if (!widget.isLoggedIn) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('請先登入以取得個人化建議。'),
+                                  ),
+                                );
+                                return;
+                              }
+                              setState(() => _isFetchingAdvice = true);
+                              try {
+                                // 觸發控制器向後端同步最新資料，並從 controller 取最新建議
+                                await widget.controller.refreshFromServer();
+                                final latest = widget.controller.latestAdvice;
+                                setState(() {
+                                  _advice = latest.isNotEmpty
+                                      ? latest
+                                      : '目前沒有可用建議。';
+                                  _adviceVisible = true;
+                                });
+                              } catch (_) {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('取得建議時發生錯誤。')),
+                                  );
+                                }
+                              } finally {
+                                if (mounted)
+                                  setState(() => _isFetchingAdvice = false);
+                              }
+                            },
+                      child: _isFetchingAdvice
+                          ? const SizedBox(
+                              width: 100,
+                              height: 18,
+                              child: Center(
+                                child: SizedBox(
+                                  width: 14,
+                                  height: 14,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                              ),
+                            )
+                          : const Text('取得建議'),
+                    ),
+                  ],
                 ),
               ],
             ),
