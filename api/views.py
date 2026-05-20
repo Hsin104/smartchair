@@ -26,6 +26,11 @@ _DL_MODEL_PATH  = os.path.join(_BASE, 'posture_model_dl.keras')
 _DL_LABEL_PATH  = os.path.join(_BASE, 'label_encoder_dl.pkl')
 _DL_SCALER_PATH = os.path.join(_BASE, 'feature_scaler_dl.pkl')
 
+# 校準模型（依 delta 特徵訓練，需先執行 python train_model_dl.py --calibrated）
+_CAL_MODEL_PATH  = os.path.join(_BASE, 'posture_model_calibrated.keras')
+_CAL_LABEL_PATH  = os.path.join(_BASE, 'label_encoder_calibrated.pkl')
+_CAL_SCALER_PATH = os.path.join(_BASE, 'feature_scaler_calibrated.pkl')
+
 # ── 啟動時載入模型 ────────────────────────────────────────────────────────────
 
 try:
@@ -37,37 +42,67 @@ except Exception as _e:
     print(f'[模型載入失敗] {_e}')
     _dl_model = _dl_encoder = _dl_scaler = None
 
+try:
+    import tensorflow as tf
+    _cal_model   = tf.keras.models.load_model(_CAL_MODEL_PATH)
+    _cal_encoder = joblib.load(_CAL_LABEL_PATH)
+    _cal_scaler  = joblib.load(_CAL_SCALER_PATH)
+except Exception:
+    _cal_model = _cal_encoder = _cal_scaler = None
+
 # ── 推論 ──────────────────────────────────────────────────────────────────────
 
-def _build_features(seat_pressure_data, back_pressure_data):
+def _build_features(seat_pressure_data, back_pressure_data,
+                    baseline_seat=None, baseline_back=None):
     seat = seat_pressure_data or {}
     back = back_pressure_data or {}
 
-    left_back    = seat.get('left_back',    0)
-    left_mid     = seat.get('left_mid',     0)
-    left_front   = seat.get('left_front',   0)
-    center_back  = seat.get('center_back',  0)
-    center_front = seat.get('center_front', 0)
-    right_back   = seat.get('right_back',   0)
-    right_mid    = seat.get('right_mid',    0)
-    right_front  = seat.get('right_front',  0)
+    if baseline_seat and baseline_back:
+        # ── 校準模式：用 delta（當前 - 基準）消除體重與個人差異 ──────────────
+        bs, bb = baseline_seat, baseline_back
+        lb = seat.get('left_back',    0) - bs.get('left_back',    0)
+        lm = seat.get('left_mid',     0) - bs.get('left_mid',     0)
+        lf = seat.get('left_front',   0) - bs.get('left_front',   0)
+        cb = seat.get('center_back',  0) - bs.get('center_back',  0)
+        cf = seat.get('center_front', 0) - bs.get('center_front', 0)
+        rb = seat.get('right_back',   0) - bs.get('right_back',   0)
+        rm = seat.get('right_mid',    0) - bs.get('right_mid',    0)
+        rf = seat.get('right_front',  0) - bs.get('right_front',  0)
+        su = back.get('spine_upper',  0) - bb.get('spine_upper',  0)
+        sm = back.get('spine_mid',    0) - bb.get('spine_mid',    0)
+        sl = back.get('spine_lower',  0) - bb.get('spine_lower',  0)
 
-    spine_upper  = back.get('spine_upper', 0)
-    spine_mid    = back.get('spine_mid',   0)
-    spine_lower  = back.get('spine_lower', 0)
+        # 區域 delta 總和（左右傾、前後傾、椎背訊號）
+        left_delta  = lb + lm + lf
+        right_delta = rb + rm + rf
+        front_delta = lf + cf + rf
+        back_delta  = lb + cb + rb
+        spine_delta = su + sm + sl
+    else:
+        # ── 未校準模式：原始絕對值 ──────────────────────────────────────────
+        lb = seat.get('left_back',    0)
+        lm = seat.get('left_mid',     0)
+        lf = seat.get('left_front',   0)
+        cb = seat.get('center_back',  0)
+        cf = seat.get('center_front', 0)
+        rb = seat.get('right_back',   0)
+        rm = seat.get('right_mid',    0)
+        rf = seat.get('right_front',  0)
+        su = back.get('spine_upper',  0)
+        sm = back.get('spine_mid',    0)
+        sl = back.get('spine_lower',  0)
 
-    seat_total   = left_back + left_mid + left_front + center_back + center_front + right_back + right_mid + right_front + 1e-6
-    spine_total  = spine_upper + spine_mid + spine_lower
-    left_ratio   = (left_back + left_mid + left_front) / seat_total
-    front_ratio  = (left_front + center_front + right_front) / seat_total
-    spine_ratio  = spine_total / (seat_total + spine_total)
+        seat_total  = lb+lm+lf+cb+cf+rb+rm+rf + 1e-6
+        spine_total = su + sm + sl
+        left_delta  = (lb + lm + lf) / seat_total        # 用比例代替絕對 delta
+        right_delta = (rb + rm + rf) / seat_total
+        front_delta = (lf + cf + rf) / seat_total
+        back_delta  = (lb + cb + rb) / seat_total
+        spine_delta = spine_total / (seat_total + spine_total)
 
     return np.array([[
-        left_back, left_mid, left_front,
-        center_back, center_front,
-        right_back, right_mid, right_front,
-        spine_upper, spine_mid, spine_lower,
-        seat_total, left_ratio, front_ratio, spine_total, spine_ratio,
+        lb, lm, lf, cb, cf, rb, rm, rf, su, sm, sl,
+        left_delta, right_delta, front_delta, back_delta, spine_delta,
     ]], dtype=np.float32)
 
 
@@ -86,16 +121,27 @@ def _check_sedentary(user, prediction):
     return 'sedentary' if was_sitting else 'normal'
 
 
-def predict_posture(seat_pressure_data, back_pressure_data):
-    """深度學習模型預測坐姿類別。"""
-    if _dl_model is None:
+def predict_posture(seat_pressure_data, back_pressure_data,
+                    baseline_seat=None, baseline_back=None):
+    """
+    深度學習模型預測坐姿類別。
+    有基準值時使用校準模型（delta 特徵），否則使用原始模型。
+    """
+    has_baseline = baseline_seat and baseline_back
+    model, encoder, scaler = (
+        (_cal_model, _cal_encoder, _cal_scaler) if (has_baseline and _cal_model)
+        else (_dl_model, _dl_encoder, _dl_scaler)
+    )
+    if model is None:
         return None
 
-    features      = _build_features(seat_pressure_data, back_pressure_data)
-    features_norm = _dl_scaler.transform(features)
-    probs         = _dl_model.predict(features_norm, verbose=0)
+    features      = _build_features(seat_pressure_data, back_pressure_data,
+                                    baseline_seat if has_baseline else None,
+                                    baseline_back if has_baseline else None)
+    features_norm = scaler.transform(features)
+    probs         = model.predict(features_norm, verbose=0)
     idx           = np.argmax(probs, axis=1)
-    return _dl_encoder.inverse_transform(idx)[0]
+    return encoder.inverse_transform(idx)[0]
 
 # ── 端點 ──────────────────────────────────────────────────────────────────────
 
@@ -178,9 +224,13 @@ def posture_create(request):
     data = request.data.copy()
 
     if not data.get('posture'):
+        baseline_seat = session.baseline_seat if session else None
+        baseline_back = session.baseline_back if session else None
         predicted = predict_posture(
             data.get('seat_pressure_data'),
             data.get('back_pressure_data'),
+            baseline_seat=baseline_seat,
+            baseline_back=baseline_back,
         )
         if predicted:
             predicted = _check_sedentary(target_user, predicted)
@@ -333,10 +383,46 @@ def chair_checkout(request):
     return Response({'status': 'checked_out'})
 
 
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def chair_calibrate(request):
+    """
+    POST /api/chair/calibrate — 記錄目前坐姿作為基準值（請保持標準坐姿再送出）。
+
+    payload: { "seat_pressure_data": {...}, "back_pressure_data": {...} }
+    回傳:    { "status": "calibrated", "calibrated": true }
+    """
+    session = ChairSession.objects.filter(is_active=True).select_related('user').first()
+    if not session or session.user != request.user:
+        return Response(
+            {'error': '請先 check-in 坐上椅子再進行校準'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    seat = request.data.get('seat_pressure_data')
+    back = request.data.get('back_pressure_data')
+    if not seat or not back:
+        return Response(
+            {'error': '請提供 seat_pressure_data 與 back_pressure_data'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    session.baseline_seat = seat
+    session.baseline_back = back
+    session.save(update_fields=['baseline_seat', 'baseline_back'])
+
+    return Response({'status': 'calibrated', 'calibrated': True})
+
+
 @api_view(['GET'])
 def chair_status(request):
     """GET /api/chair/status — 查詢目前是誰在使用椅子（不需要登入）。"""
     session = ChairSession.objects.filter(is_active=True).select_related('user').first()
     if session:
-        return Response({'active': True, 'username': session.user.username, 'since': session.started_at})
-    return Response({'active': False, 'username': None})
+        return Response({
+            'active':     True,
+            'username':   session.user.username,
+            'since':      session.started_at,
+            'calibrated': bool(session.baseline_seat),
+        })
+    return Response({'active': False, 'username': None, 'calibrated': False})

@@ -16,9 +16,10 @@ urlpatterns = [
     path('agent',           views.agent_advice,     name='agent-advice'),
 
     # 座椅佔用管理
-    path('chair/checkin',  views.chair_checkin,  name='chair-checkin'),
-    path('chair/checkout', views.chair_checkout, name='chair-checkout'),
-    path('chair/status',   views.chair_status,   name='chair-status'),
+    path('chair/checkin',   views.chair_checkin,   name='chair-checkin'),
+    path('chair/checkout',  views.chair_checkout,  name='chair-checkout'),
+    path('chair/calibrate', views.chair_calibrate, name='chair-calibrate'),
+    path('chair/status',    views.chair_status,    name='chair-status'),
 
     # 震動馬達通知（ESP32 輪詢用）
     path('notification/history', views.notification_history, name='notification-history'),

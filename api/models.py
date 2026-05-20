@@ -63,9 +63,11 @@ class Notification(models.Model):
 
 class ChairSession(models.Model):
     """記錄目前正在使用椅子的使用者（全系統只會有一筆 is_active=True）。"""
-    user       = models.ForeignKey(User, on_delete=models.CASCADE, related_name='chair_sessions')
-    started_at = models.DateTimeField(auto_now_add=True)
-    is_active  = models.BooleanField(default=True)
+    user          = models.ForeignKey(User, on_delete=models.CASCADE, related_name='chair_sessions')
+    started_at    = models.DateTimeField(auto_now_add=True)
+    is_active     = models.BooleanField(default=True)
+    baseline_seat = models.JSONField(null=True, blank=True, verbose_name='校準基準值（座墊）')
+    baseline_back = models.JSONField(null=True, blank=True, verbose_name='校準基準值（椅背）')
 
     class Meta:
         verbose_name = '座椅使用紀錄'

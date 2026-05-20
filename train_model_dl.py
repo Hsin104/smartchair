@@ -1,20 +1,11 @@
 """
 深度學習坐姿分類模型訓練腳本
 
-架構：多層感知器（MLP）
-  Input(11) → Dense(64, ReLU) → BN → Dropout(0.3)
-            → Dense(128, ReLU) → BN → Dropout(0.3)
-            → Dense(64, ReLU)  → Dropout(0.2)
-            → Dense(32, ReLU)  → Dense(num_classes, Softmax)
-
-此架構適合以特徵向量（單筆樣本）作為輸入。
-待感測器累積足夠時序資料後，可將此架構替換為 1D-CNN 或 LSTM。
-
-安裝依賴：
-    pip install tensorflow
+架構：多層感知器（MLP），16 個特徵輸入
 
 執行方式：
-    python train_model_dl.py
+    python train_model_dl.py               # 未校準模型（輸出 posture_model_dl.keras）
+    python train_model_dl.py --calibrated  # 校準模型（輸出 posture_model_calibrated.keras）
 """
 
 import os
@@ -39,19 +30,20 @@ except ImportError:
 
 from api.models import PostureRecord
 
-DL_MODEL_PATH  = 'posture_model_dl.keras'
-DL_LABEL_PATH  = 'label_encoder_dl.pkl'
-DL_SCALER_PATH = 'feature_scaler_dl.pkl'
+CALIBRATED_MODE = '--calibrated' in sys.argv
 
+DL_MODEL_PATH  = 'posture_model_calibrated.keras' if CALIBRATED_MODE else 'posture_model_dl.keras'
+DL_LABEL_PATH  = 'label_encoder_calibrated.pkl'   if CALIBRATED_MODE else 'label_encoder_dl.pkl'
+DL_SCALER_PATH = 'feature_scaler_calibrated.pkl'  if CALIBRATED_MODE else 'feature_scaler_dl.pkl'
+
+# 16 個特徵（原始值 11 個 + 區域統計 5 個）
+# 校準模式：前 11 個是 delta 值，後 5 個是 delta 區域總和
 FEATURES = [
-    # 椅墊 8 個 FSR（3-2-3）
     'left_back', 'left_mid', 'left_front',
     'center_back', 'center_front',
     'right_back', 'right_mid', 'right_front',
-    # 椅背脊椎 3 個 FSR
     'spine_upper', 'spine_mid', 'spine_lower',
-    # 衍生特徵
-    'seat_total', 'left_ratio', 'front_ratio', 'spine_total', 'spine_ratio',
+    'left_delta', 'right_delta', 'front_delta', 'back_delta', 'spine_delta',
 ]
 
 
@@ -89,12 +81,29 @@ def load_data():
 def preprocess(df):
     print('[2/4] 特徵工程與標準化準備...')
     df = df.dropna()
-    df['seat_total']  = df['left_back'] + df['left_mid'] + df['left_front'] + df['center_back'] + df['center_front'] + df['right_back'] + df['right_mid'] + df['right_front']
-    df['left_ratio']  = (df['left_back'] + df['left_mid'] + df['left_front']) / (df['seat_total'] + 1e-6)
-    df['front_ratio'] = (df['left_front'] + df['center_front'] + df['right_front']) / (df['seat_total'] + 1e-6)
-    df['spine_total'] = df['spine_upper'] + df['spine_mid'] + df['spine_lower']
-    df['spine_ratio'] = df['spine_total'] / (df['seat_total'] + df['spine_total'] + 1e-6)
+    seat_total = (df['left_back'] + df['left_mid'] + df['left_front'] +
+                  df['center_back'] + df['center_front'] +
+                  df['right_back'] + df['right_mid'] + df['right_front'])
+
+    if CALIBRATED_MODE:
+        # 校準模式：輸入已是 delta 值，計算區域 delta 總和
+        df['left_delta']  = df['left_back'] + df['left_mid'] + df['left_front']
+        df['right_delta'] = df['right_back'] + df['right_mid'] + df['right_front']
+        df['front_delta'] = df['left_front'] + df['center_front'] + df['right_front']
+        df['back_delta']  = df['left_back'] + df['center_back'] + df['right_back']
+        df['spine_delta'] = df['spine_upper'] + df['spine_mid'] + df['spine_lower']
+    else:
+        # 未校準模式：計算比例（消除體重影響）
+        seat_total_safe = seat_total + 1e-6
+        spine_total     = df['spine_upper'] + df['spine_mid'] + df['spine_lower']
+        df['left_delta']  = (df['left_back'] + df['left_mid'] + df['left_front']) / seat_total_safe
+        df['right_delta'] = (df['right_back'] + df['right_mid'] + df['right_front']) / seat_total_safe
+        df['front_delta'] = (df['left_front'] + df['center_front'] + df['right_front']) / seat_total_safe
+        df['back_delta']  = (df['left_back'] + df['center_back'] + df['right_back']) / seat_total_safe
+        df['spine_delta'] = spine_total / (seat_total_safe + spine_total)
+
     print(f'   特徵數量：{len(FEATURES)} 個，樣本數：{len(df)} 筆')
+    print(f'   模式：{"校準（delta）" if CALIBRATED_MODE else "未校準（絕對值）"}')
     return df
 
 
@@ -203,7 +212,9 @@ def main():
     model, le, scaler = train(df)
     save(model, le, scaler)
 
-    print('\n完成！執行 python manage.py runserver 啟動伺服器（DL 模型優先載入）')
+    mode_label = '校準（--calibrated）' if CALIBRATED_MODE else '未校準'
+    print(f'\n完成！{mode_label} 模型已儲存 → {DL_MODEL_PATH}')
+    print('執行 python manage.py runserver 啟動伺服器')
 
 
 if __name__ == '__main__':
