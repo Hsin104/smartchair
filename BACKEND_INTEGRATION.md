@@ -20,7 +20,8 @@
 - **POST /api/agent** — 查詢 Physio Agent 建議（posture, user_message）
 
 #### 通知（馬達提醒）
-- **GET /api/notification/pending** — 取得待處理的振動提醒通知
+- **GET /api/notification/history** — 取得通知歷史（前端通知頁顯示用）
+- **GET /api/notification/pending** — 取得待處理的振動提醒通知（ESP32 振動提醒用）
 - **POST /api/notification/ack** — 確認通知已收到
 
 #### 座椅佔用
@@ -100,7 +101,7 @@ POST /api/register
 - UI 上顯示建議內容
 
 ### 3. 振動馬達通知
-- `ChairSyncController` 定期拉取 `GET /api/notification/pending`
+- `ChairSyncController` 定期拉取 `GET /api/notification/history`
 - 收到通知後在 UI 上顯示
 - ESP32 需實現 `POST /api/notification/ack` 的對應邏輯
 

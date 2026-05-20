@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
-// no longer need foundation import here
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -9,8 +8,20 @@ class ApiService {
   // 可透過 --dart-define=API_BASE_URL=... 覆蓋，避免寫死在程式中
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'https://sandbar-badass-subfloor.ngrok-free.dev/api',
+    defaultValue: 'https://sandbar-badass-subfloor.ngrok-free.dev',
   );
+
+  static const String apiPrefix = '/api';
+
+  static String _apiBaseUrl() {
+    final trimmed = baseUrl.endsWith('/')
+        ? baseUrl.substring(0, baseUrl.length - 1)
+        : baseUrl;
+    if (trimmed.endsWith(apiPrefix)) {
+      return trimmed.substring(0, trimmed.length - apiPrefix.length);
+    }
+    return trimmed;
+  }
 
   // ── 坐姿顯示名稱對照表 ──────────────────────────────────────────
   static const Map<String, String> _displayNames = {
@@ -73,30 +84,26 @@ class ApiService {
     await prefs.remove('user_email');
   }
 
-  static Future<Map<String, String>> _authHeaders() async {
+  static Future<Map<String, String>> _headers({bool auth = false}) async {
     final token = await getToken();
     final headers = {
       'Content-Type': 'application/json',
-      if (token != null && token.isNotEmpty) 'Authorization': 'Token $token',
+      if (auth && token != null && token.isNotEmpty)
+        'Authorization': 'Token $token',
     };
-    // ngrok requires this header to skip the browser warning page. Always include it.
-    headers['ngrok-skip-browser-warning'] = 'true';
+    if (!kIsWeb) {
+      headers['ngrok-skip-browser-warning'] = 'true';
+    }
     debugPrint(
-      'ApiService._authHeaders -> tokenPresent=${token != null && token.isNotEmpty}',
+      'ApiService._headers -> tokenPresent=${token != null && token.isNotEmpty}, auth=$auth',
     );
-    debugPrint('ApiService._authHeaders -> headers=$headers');
-    return headers;
-  }
-
-  static Map<String, String> _publicHeaders() {
-    final headers = <String, String>{'Content-Type': 'application/json'};
-    // ngrok requires this header to skip the browser warning page. Always include it.
-    headers['ngrok-skip-browser-warning'] = 'true';
+    debugPrint('ApiService._headers -> headers=$headers');
     return headers;
   }
 
   static Uri _buildApiUri(String path, {Map<String, String>? queryParameters}) {
-    final uri = Uri.parse('$baseUrl/$path');
+    final normalizedPath = path.startsWith('/') ? path.substring(1) : path;
+    final uri = Uri.parse('${_apiBaseUrl()}$apiPrefix/$normalizedPath');
     final mergedQuery = <String, String>{
       ...uri.queryParameters,
       ...?queryParameters,
@@ -122,7 +129,7 @@ class ApiService {
       final res = await http
           .post(
             _buildApiUri('login'),
-            headers: _publicHeaders(),
+            headers: await _headers(),
             body: jsonEncode({'username': username, 'password': password}),
           )
           .timeout(const Duration(seconds: 10));
@@ -181,7 +188,7 @@ class ApiService {
       final res = await http
           .post(
             _buildApiUri('register'),
-            headers: _publicHeaders(),
+            headers: await _headers(),
             body: jsonEncode(body),
           )
           .timeout(const Duration(seconds: 10));
@@ -221,7 +228,7 @@ class ApiService {
   static Future<Map<String, dynamic>?> getMe() async {
     try {
       final res = await http
-          .get(_buildApiUri('me'), headers: await _authHeaders())
+          .get(_buildApiUri('me'), headers: await _headers(auth: true))
           .timeout(const Duration(seconds: 10));
 
       if (res.statusCode == 200) {
@@ -243,7 +250,7 @@ class ApiService {
       final res = await http
           .get(
             _buildApiUri('posture/history', queryParameters: {'limit': '1'}),
-            headers: await _authHeaders(),
+            headers: await _headers(auth: true),
           )
           .timeout(const Duration(seconds: 10));
 
@@ -271,7 +278,7 @@ class ApiService {
               'posture/history',
               queryParameters: {'limit': '$limit'},
             ),
-            headers: await _authHeaders(),
+            headers: await _headers(auth: true),
           )
           .timeout(const Duration(seconds: 10));
 
@@ -297,7 +304,7 @@ class ApiService {
       final res = await http
           .post(
             _buildApiUri('agent'),
-            headers: await _authHeaders(),
+            headers: await _headers(auth: true),
             body: jsonEncode({
               'posture': postureCode,
               'user_message': userMessage,
@@ -315,7 +322,9 @@ class ApiService {
   }
 
   // ── 通知 ────────────────────────────────────────────────────
-  static Future<List<Map<String, dynamic>>> getPendingNotifications() async {
+  static Future<List<Map<String, dynamic>>> getNotificationHistory({
+    int limit = 50,
+  }) async {
     try {
       if (!await isLoggedIn()) {
         return [];
@@ -323,8 +332,11 @@ class ApiService {
 
       final res = await http
           .get(
-            _buildApiUri('notification/pending'),
-            headers: await _authHeaders(),
+            _buildApiUri(
+              'notification/history',
+              queryParameters: {'limit': '$limit'},
+            ),
+            headers: await _headers(auth: true),
           )
           .timeout(const Duration(seconds: 10));
 
@@ -345,7 +357,7 @@ class ApiService {
       final res = await http
           .patch(
             _buildApiUri('me/update'),
-            headers: await _authHeaders(),
+            headers: await _headers(auth: true),
             body: jsonEncode(updates),
           )
           .timeout(const Duration(seconds: 10));
@@ -372,7 +384,10 @@ class ApiService {
   static Future<void> chairCheckin() async {
     try {
       await http
-          .post(_buildApiUri('chair/checkin'), headers: await _authHeaders())
+          .post(
+            _buildApiUri('chair/checkin'),
+            headers: await _headers(auth: true),
+          )
           .timeout(const Duration(seconds: 5));
     } catch (_) {}
   }
@@ -380,7 +395,10 @@ class ApiService {
   static Future<void> chairCheckout() async {
     try {
       await http
-          .post(_buildApiUri('chair/checkout'), headers: await _authHeaders())
+          .post(
+            _buildApiUri('chair/checkout'),
+            headers: await _headers(auth: true),
+          )
           .timeout(const Duration(seconds: 5));
     } catch (_) {}
   }

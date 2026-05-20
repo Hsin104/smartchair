@@ -99,7 +99,9 @@ class _DashboardPageState extends State<DashboardPage> {
     // Diagnostic: directly query backend to help debug missing data
     try {
       final history = await ApiService.getPostureHistory(limit: 1);
-      final pending = await ApiService.getPendingNotifications();
+      final notificationHistory = await ApiService.getNotificationHistory(
+        limit: 10,
+      );
       final adviceFromApi = history.isNotEmpty
           ? (history.first['physio_advice'] as String?) ??
                 (history.first['advice'] as String?) ??
@@ -111,7 +113,7 @@ class _DashboardPageState extends State<DashboardPage> {
       final tokenFlag = (token != null && token.isNotEmpty) ? 'yes' : 'no';
       if (mounted) {
         final msg =
-            'backend: history=${history.length}, pending=${pending.length}, advice=${adviceFromApi.isNotEmpty ? 'yes' : 'no'}; auth: loggedIn=$loggedIn, me=${me != null ? 'yes' : 'no'}, token=$tokenFlag';
+            'backend: history=${history.length}, notifications=${notificationHistory.length}, advice=${adviceFromApi.isNotEmpty ? 'yes' : 'no'}; auth: loggedIn=$loggedIn, me=${me != null ? 'yes' : 'no'}, token=$tokenFlag';
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(msg)));

@@ -132,9 +132,11 @@ class ChairSyncController extends ChangeNotifier {
 
   Future<void> _pullFromServer() async {
     try {
-      // Pull latest posture history and pending notifications
+      // Pull latest posture history and notification history
       final history = await ApiService.getPostureHistory(limit: 100);
-      final pending = await ApiService.getPendingNotifications();
+      final notificationHistory = await ApiService.getNotificationHistory(
+        limit: 50,
+      );
 
       // Map server posture entries into controller format
       postureHistory.clear();
@@ -160,19 +162,19 @@ class ChairSyncController extends ChangeNotifier {
           'score': score,
           'isGood': isGood,
           'time':
-              DateTime.tryParse(item['time']?.toString() ?? '') ??
+              DateTime.tryParse(item['timestamp']?.toString() ?? '') ??
               DateTime.now(),
         });
       }
 
       lastBackendSyncAt = DateTime.now();
 
-      // Update notifications from pending list
+      // Update notifications from history list
       notifications.clear();
-      for (final n in pending) {
+      for (final n in notificationHistory) {
         final title = n['title'] as String? ?? '通知';
-        final message = n['message'] as String? ?? n['body'] as String? ?? '';
-        final time = n['time']?.toString() ?? '';
+        final message = n['message'] as String? ?? '';
+        final time = n['timestamp']?.toString() ?? '';
         final color = _postureColor(n['posture'] as String? ?? 'normal');
         notifications.add({
           'title': title,
