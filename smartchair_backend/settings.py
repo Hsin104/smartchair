@@ -140,7 +140,15 @@ REST_FRAMEWORK = {
 }
 
 # CORS 設定（允許瀏覽器跨來源存取 API）
+from corsheaders.defaults import default_headers
+
 CORS_ALLOW_ALL_ORIGINS = True
+
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    'ngrok-skip-browser-warning',
+    'authorization',
+    'content-type',
+]
 
 # Gemini API
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
