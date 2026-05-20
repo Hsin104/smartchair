@@ -86,13 +86,12 @@ class ApiService {
 
   static Future<Map<String, String>> _headers({bool auth = false}) async {
     final token = await getToken();
-    final headers = {
+    final headers = <String, String>{
       'Content-Type': 'application/json',
-      if (auth && token != null && token.isNotEmpty)
-        'Authorization': 'Token $token',
+      'ngrok-skip-browser-warning': 'true',
     };
-    if (!kIsWeb) {
-      headers['ngrok-skip-browser-warning'] = 'true';
+    if (auth && token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Token $token';
     }
     debugPrint(
       'ApiService._headers -> tokenPresent=${token != null && token.isNotEmpty}, auth=$auth',
@@ -333,7 +332,7 @@ class ApiService {
       final res = await http
           .get(
             _buildApiUri(
-              'notification/history',
+              'notification/pending',
               queryParameters: {'limit': '$limit'},
             ),
             headers: await _headers(auth: true),
@@ -341,8 +340,15 @@ class ApiService {
           .timeout(const Duration(seconds: 10));
 
       if (res.statusCode == 200) {
-        return (jsonDecode(res.body)['notifications'] as List)
-            .cast<Map<String, dynamic>>();
+        final data = jsonDecode(res.body);
+
+        if (data is List) {
+          return data.cast<Map<String, dynamic>>();
+        }
+
+        if (data is Map && data['notifications'] is List) {
+          return (data['notifications'] as List).cast<Map<String, dynamic>>();
+        }
       }
       return [];
     } catch (_) {
@@ -406,14 +412,15 @@ class ApiService {
   static Future<Map<String, dynamic>?> getChairStatus() async {
     try {
       final res = await http
-          .get(_buildApiUri('chair/status'))
+          .get(_buildApiUri('chair/status'), headers: await _headers())
           .timeout(const Duration(seconds: 5));
 
       if (res.statusCode == 200) {
         return jsonDecode(res.body) as Map<String, dynamic>;
       }
       return null;
-    } catch (_) {
+    } catch (error) {
+      debugPrint('getChairStatus error: $error');
       return null;
     }
   }
