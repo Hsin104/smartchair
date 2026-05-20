@@ -40,6 +40,10 @@ MQTT_USE_TLS  = getattr(settings, 'MQTT_USE_TLS',  False)
 # 預設使用者（chair/pressure/01 的訊息不帶 username 時使用）
 DEFAULT_USERNAME = 'user01'
 
+# 有人坐著的最低總壓力門檻（norm 8 個感測器絕對值總和）
+# 椅子空置時 norm 幾乎全 0，此門檻過濾掉空椅訊號
+MIN_SEAT_PRESSURE = 30
+
 # 所有訂閱 Topic
 TOPICS = [
     'chair/pressure/01',
@@ -95,6 +99,13 @@ def _handle_pressure_01(payload: dict):
     支援 ESP32 格式：{"device_id":"chair_01","ts":123,"raw":[...],"norm":[...]}
     使用者需先呼叫 POST /api/chair/checkin 登記為目前座椅使用者。
     """
+    # 椅子空置檢查：norm 總壓力過低則略過
+    norm = payload.get('norm', [])
+    total_pressure = sum(abs(v) for v in norm)
+    if total_pressure < MIN_SEAT_PRESSURE:
+        print(f'[MQTT] 無人坐著（總壓力 {total_pressure} < {MIN_SEAT_PRESSURE}），略過')
+        return
+
     session = ChairSession.objects.filter(is_active=True).select_related('user').first()
     if session:
         user = session.user
