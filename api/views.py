@@ -164,12 +164,16 @@ def posture_create(request):
     """
     POST /api/posture — 儲存坐姿感測數據。
 
-    payload 包含 seat_pressure_data / back_pressure_data 時，模型自動預測坐姿後寫入；
-    payload 直接帶 posture 欄位時，略過模型直接儲存（適合標記真實樣本）。
+    優先存到目前 active ChairSession 的 user，
+    避免 ESP32 帳號與前端登入帳號不同導致前端看不到資料。
+    沒有 active session 時退回使用 request.user。
     """
     error = validate_request(request.data, POSTURE_CREATE_SCHEMA)
     if error:
         return Response({'schema_error': error}, status=status.HTTP_400_BAD_REQUEST)
+
+    session = ChairSession.objects.filter(is_active=True).select_related('user').first()
+    target_user = session.user if session else request.user
 
     data = request.data.copy()
 
@@ -179,7 +183,7 @@ def posture_create(request):
             data.get('back_pressure_data'),
         )
         if predicted:
-            predicted = _check_sedentary(request.user, predicted)
+            predicted = _check_sedentary(target_user, predicted)
             data['posture'] = predicted
         else:
             return Response(
@@ -189,20 +193,18 @@ def posture_create(request):
 
     serializer = PostureRecordSerializer(data=data)
     if serializer.is_valid():
-        serializer.save(user=request.user)
+        serializer.save(user=target_user)
         response_data = dict(serializer.data)
 
         detected_posture = data['posture']
         if detected_posture != 'normal':
-            # 自動觸發 Physio Agent（Agent 內部會呼叫 trigger_vibration 建立震動通知）
             try:
-                advice = get_advice(detected_posture, request.user.id, trigger_action=True)
+                advice = get_advice(detected_posture, target_user.id, trigger_action=True)
                 AgentLog.objects.create(
-                    user=request.user,
+                    user=target_user,
                     posture=detected_posture,
                     agent_reply=advice,
                 )
-                # 把 AI 建議存回 PostureRecord
                 PostureRecord.objects.filter(id=serializer.data['id']).update(physio_advice=advice)
                 response_data['physio_advice'] = advice
             except Exception:
@@ -277,6 +279,26 @@ def notification_pending(request):
         Notification.objects.filter(id__in=ids).update(is_sent=True)
 
     return Response({'count': len(pending), 'notifications': pending})
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def notification_history(request):
+    """GET /api/notification/history — 查詢通知歷史紀錄（前端通知頁用）。"""
+    limit = int(request.query_params.get('limit', 50))
+    notifications = Notification.objects.filter(
+        user=request.user
+    ).order_by('-timestamp')[:limit]
+    data = [
+        {
+            'id': n.id,
+            'message': n.message,
+            'timestamp': n.timestamp,
+            'is_sent': n.is_sent,
+        }
+        for n in notifications
+    ]
+    return Response({'count': len(data), 'notifications': data})
 
 
 @api_view(['POST'])

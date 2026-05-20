@@ -21,6 +21,7 @@ urlpatterns = [
     path('chair/status',   views.chair_status,   name='chair-status'),
 
     # 震動馬達通知（ESP32 輪詢用）
+    path('notification/history', views.notification_history, name='notification-history'),
     path('notification/pending', views.notification_pending, name='notification-pending'),
     path('notification/ack',     views.notification_ack,     name='notification-ack'),
 ]
