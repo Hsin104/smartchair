@@ -198,17 +198,8 @@ def posture_create(request):
 
         detected_posture = data['posture']
         if detected_posture != 'normal':
-            try:
-                advice = get_advice(detected_posture, target_user.id, trigger_action=True)
-                AgentLog.objects.create(
-                    user=target_user,
-                    posture=detected_posture,
-                    agent_reply=advice,
-                )
-                PostureRecord.objects.filter(id=serializer.data['id']).update(physio_advice=advice)
-                response_data['physio_advice'] = advice
-            except Exception:
-                pass
+            posture_name = POSTURE_DISPLAY.get(detected_posture, detected_posture)
+            Notification.objects.create(user=target_user, message=f'坐姿提醒：{posture_name}')
 
         return Response(response_data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
