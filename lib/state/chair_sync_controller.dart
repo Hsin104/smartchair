@@ -3,11 +3,14 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 
 class ChairSyncController extends ChangeNotifier {
+  ChairSyncController() : sessionOpenedAt = DateTime.now();
+
   String postureLabel = '';
   String postureCode = '';
   int postureScore = 0;
   bool isGoodPosture = false;
   String latestAdvice = '等待後端資料同步';
+  final DateTime sessionOpenedAt;
   DateTime updatedAt = DateTime.now();
   DateTime lastBackendSyncAt = DateTime.now();
 
@@ -72,9 +75,9 @@ class ChairSyncController extends ChangeNotifier {
       case '頭部前傾':
         return const Color(0xFFDC2626);
       case '身體左傾':
-        return const Color(0xFFEA580C);
+        return const Color.fromARGB(255, 248, 87, 1);
       case '身體右傾':
-        return const Color(0xFFC2410C);
+        return const Color.fromARGB(255, 218, 133, 100);
       case '過度後仰':
         return const Color(0xFF2563EB);
       case '久坐未動':
@@ -151,6 +154,12 @@ class ChairSyncController extends ChangeNotifier {
             latest['physio_advice'] as String? ??
             latest['advice'] as String? ??
             (isGoodPosture ? '目前姿勢良好，請繼續維持。' : '請依照後端建議調整姿勢。');
+      } else {
+        postureCode = '';
+        postureLabel = '無人就坐';
+        postureScore = 0;
+        isGoodPosture = false;
+        latestAdvice = '等待後端資料同步';
       }
       for (final item in history) {
         final label =
@@ -172,10 +181,15 @@ class ChairSyncController extends ChangeNotifier {
       // Update notifications from history list
       notifications.clear();
       for (final n in notificationHistory) {
-        final title = n['title'] as String? ?? '通知';
-        final message = n['message'] as String? ?? '';
-        final time = n['timestamp']?.toString() ?? '';
-        final color = _postureColor(n['posture'] as String? ?? 'normal');
+        final posture =
+            n['posture'] as String? ??
+            n['posture_code'] as String? ??
+            n['type'] as String? ??
+            'normal';
+        final title = _notificationTitle(n);
+        final message = _notificationMessage(n);
+        final time = _notificationTime(n);
+        final color = _postureColor(posture);
         notifications.add({
           'title': title,
           'time': time.isNotEmpty ? time : _formatNow(),
@@ -194,5 +208,64 @@ class ChairSyncController extends ChangeNotifier {
   String _formatNow() {
     final now = TimeOfDay.now();
     return '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+  }
+
+  String _notificationTitle(Map<String, dynamic> item) {
+    final title = item['title']?.toString().trim();
+    if (title != null && title.isNotEmpty) {
+      return title;
+    }
+
+    final level = item['level']?.toString().toLowerCase();
+    if (level == 'warning' || level == 'warn') {
+      return '偵測到警示';
+    }
+
+    final type = item['type']?.toString().toLowerCase();
+    if (type == 'notification' || type == 'alert') {
+      return '系統通知';
+    }
+
+    return '通知';
+  }
+
+  String _notificationMessage(Map<String, dynamic> item) {
+    final message =
+        item['message']?.toString().trim() ??
+        item['content']?.toString().trim() ??
+        item['description']?.toString().trim();
+    if (message != null && message.isNotEmpty) {
+      return message;
+    }
+
+    final posture =
+        item['posture']?.toString() ?? item['posture_code']?.toString() ?? '';
+    if (posture.isNotEmpty) {
+      return '目前姿勢為「${ApiService.toDisplayName(posture)}」，請調整坐姿。';
+    }
+
+    return '後端尚未提供詳細訊息。';
+  }
+
+  String _notificationTime(Map<String, dynamic> item) {
+    final raw =
+        item['timestamp']?.toString() ??
+        item['created_at']?.toString() ??
+        item['createdAt']?.toString() ??
+        item['time']?.toString() ??
+        '';
+    if (raw.isEmpty) return '';
+
+    final parsed = DateTime.tryParse(raw);
+    if (parsed == null) return raw;
+
+    final now = DateTime.now();
+    if (parsed.year == now.year &&
+        parsed.month == now.month &&
+        parsed.day == now.day) {
+      return '${parsed.hour.toString().padLeft(2, '0')}:${parsed.minute.toString().padLeft(2, '0')}';
+    }
+
+    return '${parsed.month.toString().padLeft(2, '0')}-${parsed.day.toString().padLeft(2, '0')} ${parsed.hour.toString().padLeft(2, '0')}:${parsed.minute.toString().padLeft(2, '0')}';
   }
 }

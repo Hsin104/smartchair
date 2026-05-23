@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import '../state/chair_sync_controller.dart';
 import '../services/api_service.dart';
@@ -22,9 +24,11 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPageState extends State<DashboardPage> {
   bool _isLoading = false;
+  bool _isCalibrating = false;
   late final VoidCallback _controllerListener;
+  Timer? _pageTimer;
 
-  String _postureDisplay = '等待後端資料';
+  String _postureDisplay = '無人就坐';
   String _postureCode = '';
   int _score = 0;
   String _risk = '尚無資料';
@@ -46,6 +50,22 @@ class _DashboardPageState extends State<DashboardPage> {
     return '$minutes 分鐘';
   }
 
+  String get _pageElapsedText {
+    final elapsed = DateTime.now().difference(
+      widget.controller.sessionOpenedAt,
+    );
+    final hours = elapsed.inHours;
+    final minutes = elapsed.inMinutes.remainder(60);
+    final seconds = elapsed.inSeconds.remainder(60);
+    if (hours > 0) {
+      return '$hours時${minutes.toString().padLeft(2, '0')}分${seconds.toString().padLeft(2, '0')}秒';
+    }
+    if (minutes > 0) {
+      return '$minutes分${seconds.toString().padLeft(2, '0')}秒';
+    }
+    return '$seconds秒';
+  }
+
   @override
   void initState() {
     super.initState();
@@ -53,8 +73,11 @@ class _DashboardPageState extends State<DashboardPage> {
       if (mounted) _syncFromController();
     };
     widget.controller.addListener(_controllerListener);
+    _pageTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
     _syncFromController();
-    _fetch();
+    _enterPage();
   }
 
   @override
@@ -71,15 +94,33 @@ class _DashboardPageState extends State<DashboardPage> {
 
   @override
   void dispose() {
+    _pageTimer?.cancel();
     widget.controller.removeListener(_controllerListener);
+    unawaited(ApiService.chairCheckout());
+    widget.controller.stopAutoSync();
     super.dispose();
+  }
+
+  Future<void> _enterPage() async {
+    if (!widget.isLoggedIn) return;
+
+    try {
+      await ApiService.chairCheckin();
+      widget.controller.startAutoSync();
+      await _fetch();
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('進入坐姿監測頁失敗，請稍後再試。')));
+    }
   }
 
   void _syncFromController() {
     setState(() {
       _postureDisplay = widget.controller.postureLabel.isNotEmpty
           ? widget.controller.postureLabel
-          : '等待後端資料';
+          : '無人就坐';
       _postureCode = widget.controller.postureCode;
       _score = widget.controller.postureScore;
       _risk = widget.controller.postureCode.isNotEmpty
@@ -98,31 +139,14 @@ class _DashboardPageState extends State<DashboardPage> {
 
     // 由控制器依後端輪詢同步資料，畫面跟著控制器狀態更新
     await widget.controller.refreshFromServer();
-    // Diagnostic: directly query backend to help debug missing data
-    try {
-      final history = await ApiService.getPostureHistory(limit: 1);
-      final notificationHistory = await ApiService.getNotificationHistory(
-        limit: 10,
-      );
-      final adviceFromApi = history.isNotEmpty
-          ? (history.first['physio_advice'] as String?) ??
-                (history.first['advice'] as String?) ??
-                ''
-          : '';
-      final loggedIn = await ApiService.isLoggedIn();
-      final me = await ApiService.getMe();
-      final token = await ApiService.getToken();
-      final tokenFlag = (token != null && token.isNotEmpty) ? 'yes' : 'no';
-      if (mounted) {
-        final msg =
-            'backend: history=${history.length}, notifications=${notificationHistory.length}, advice=${adviceFromApi.isNotEmpty ? 'yes' : 'no'}; auth: loggedIn=$loggedIn, me=${me != null ? 'yes' : 'no'}, token=$tokenFlag';
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(msg)));
-
-        // 診斷對話框已移除：若需要，請使用畫面上的 SnackBar 或 BACKEND_DIAGNOSIS.md 傳給後端。
-      }
-    } catch (_) {}
+    if (mounted) {
+      final message = widget.controller.postureCode.isNotEmpty
+          ? '已同步最新姿勢資料'
+          : '目前沒有後端資料，顯示無人就坐';
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    }
     if (!widget.isLoggedIn && mounted) {
       setState(() {
         _advice = '目前未登入，登入後可取得個人化即時姿勢資料。';
@@ -130,6 +154,39 @@ class _DashboardPageState extends State<DashboardPage> {
     }
 
     if (mounted) setState(() => _isLoading = false);
+  }
+
+  Future<void> _calibrateAuto() async {
+    if (_isCalibrating) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _isCalibrating = true);
+
+    try {
+      await ApiService.chairCheckin();
+      final result = await ApiService.calibrateChairAuto();
+
+      if (!mounted) return;
+
+      if (result.success) {
+        await widget.controller.refreshFromServer();
+        final samplesText = result.samples != null
+            ? '，樣本數 ${result.samples}'
+            : '';
+        messenger.showSnackBar(SnackBar(content: Text('校準成功$samplesText')));
+      } else {
+        messenger.showSnackBar(SnackBar(content: Text(result.message)));
+      }
+    } catch (_) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        const SnackBar(content: Text('校準失敗，請檢查連線與感測器資料。')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isCalibrating = false);
+      }
+    }
   }
 
   Color _postureColor(String code) {
@@ -225,15 +282,57 @@ class _DashboardPageState extends State<DashboardPage> {
                         ],
                       ),
                     ),
-                    if (_isLoading)
-                      const SizedBox(
-                        width: 22,
-                        height: 22,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        if (_isLoading)
+                          const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          ),
+                        if (_isLoading) const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.18),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.18),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              const Text(
+                                '網頁已開啟',
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                _pageElapsedText,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
+                      ],
+                    ),
                   ],
                 ),
                 const SizedBox(height: 14),
@@ -385,6 +484,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                 );
                                 return;
                               }
+                              final messenger = ScaffoldMessenger.of(context);
                               setState(() => _isFetchingAdvice = true);
                               try {
                                 // 觸發控制器向後端同步最新資料，並從 controller 取最新建議
@@ -397,14 +497,14 @@ class _DashboardPageState extends State<DashboardPage> {
                                   _adviceVisible = true;
                                 });
                               } catch (_) {
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('取得建議時發生錯誤。')),
-                                  );
-                                }
+                                if (!mounted) return;
+                                messenger.showSnackBar(
+                                  const SnackBar(content: Text('取得建議時發生錯誤。')),
+                                );
                               } finally {
-                                if (mounted)
+                                if (mounted) {
                                   setState(() => _isFetchingAdvice = false);
+                                }
                               }
                             },
                       child: _isFetchingAdvice
@@ -458,6 +558,21 @@ class _DashboardPageState extends State<DashboardPage> {
                           )
                         : const Icon(Icons.refresh),
                     label: Text(_isLoading ? '取得中...' : '手動更新資料'),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _isCalibrating ? null : _calibrateAuto,
+                    icon: _isCalibrating
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.tune_rounded),
+                    label: Text(_isCalibrating ? '校準中...' : '自動校準'),
                   ),
                 ),
               ],

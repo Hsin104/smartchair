@@ -34,7 +34,7 @@ class ApiService {
   };
 
   static const Map<String, int> _scores = {
-    'normal': 92,
+    'normal': 100,
     'forward': 60,
     'left': 70,
     'right': 68,
@@ -78,7 +78,6 @@ class ApiService {
   }
 
   static Future<void> logout() async {
-    await chairCheckout();
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('auth_token');
     await prefs.remove('user_email');
@@ -119,11 +118,95 @@ class ApiService {
     }
   }
 
+  static String? _extractErrorCode(Map<String, dynamic>? data) {
+    if (data == null) return null;
+    final candidates = [data['error_code'], data['errorCode'], data['code']];
+    for (final value in candidates) {
+      final text = value?.toString().trim();
+      if (text != null && text.isNotEmpty) {
+        return text;
+      }
+    }
+    return null;
+  }
+
+  static String _extractMessage(Map<String, dynamic>? data, String fallback) {
+    if (data == null) return fallback;
+    final candidates = [
+      data['message'],
+      data['detail'],
+      data['error'],
+      data['non_field_errors'],
+    ];
+
+    for (final value in candidates) {
+      if (value is String && value.trim().isNotEmpty) {
+        return value.trim();
+      }
+      if (value is List && value.isNotEmpty) {
+        return value.first.toString();
+      }
+    }
+
+    return fallback;
+  }
+
+  static List<Map<String, dynamic>> _decodeNotificationList(String body) {
+    try {
+      final decoded = jsonDecode(body);
+      if (decoded is List) {
+        return decoded
+            .whereType<Map>()
+            .map((item) => item.cast<String, dynamic>())
+            .toList();
+      }
+
+      if (decoded is Map) {
+        for (final key in ['notifications', 'items', 'results', 'data']) {
+          final value = decoded[key];
+          if (value is List) {
+            return value
+                .whereType<Map>()
+                .map((item) => item.cast<String, dynamic>())
+                .toList();
+          }
+        }
+      }
+    } catch (_) {
+      return [];
+    }
+
+    return [];
+  }
+
+  static Future<bool> usernameExists(String username) async {
+    try {
+      final res = await http
+          .get(
+            _buildApiUri(
+              'users/exists',
+              queryParameters: {'username': username},
+            ),
+            headers: await _headers(),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      final data = _decodeJsonMap(res.body);
+      if (res.statusCode == 200 && data != null) {
+        final exists = data['exists'];
+        if (exists is bool) return exists;
+      }
+      return false;
+    } catch (_) {
+      return false;
+    }
+  }
+
   // ── 認證 ────────────────────────────────────────────────────
-  static Future<({bool success, String message, String? email})> login(
-    String username,
-    String password,
-  ) async {
+  static Future<
+    ({bool success, String message, String? email, String? errorCode})
+  >
+  login(String username, String password) async {
     try {
       final res = await http
           .post(
@@ -140,6 +223,7 @@ class ApiService {
             success: false,
             message: '伺服器回應格式錯誤，請檢查後端 /api/login',
             email: null,
+            errorCode: null,
           );
         }
         final token = (data['token'] as String?)?.trim() ?? '';
@@ -148,27 +232,56 @@ class ApiService {
             success: false,
             message: '登入回應缺少 token，請檢查後端 /api/login',
             email: null,
+            errorCode: null,
           );
         }
         final email = (data['user']?['email'] as String?) ?? username;
         await _saveAuth(token, email);
         unawaited(chairCheckin());
-        return (success: true, message: '登入成功', email: email);
+        return (success: true, message: '登入成功', email: email, errorCode: null);
       }
-      final msg = data == null
-          ? '伺服器回應 ${res.statusCode}，內容：${res.body.isNotEmpty ? res.body.substring(0, res.body.length > 120 ? 120 : res.body.length) : '空'}'
-          : (data['non_field_errors'] as List?)?.first?.toString() ??
-                data.values.first?.toString() ??
-                '帳號或密碼錯誤';
-      return (success: false, message: msg, email: null);
+      final errorCode =
+          _extractErrorCode(data) ??
+          switch (res.statusCode) {
+            404 => 'USER_NOT_FOUND',
+            401 => 'INVALID_PASSWORD',
+            _ => null,
+          };
+      final message = switch (errorCode) {
+        'USER_NOT_FOUND' => '無此帳戶，請去註冊',
+        'INVALID_PASSWORD' => '密碼錯誤',
+        _ => _extractMessage(
+          data,
+          '伺服器回應 ${res.statusCode}，內容：${res.body.isNotEmpty ? res.body.substring(0, res.body.length > 120 ? 120 : res.body.length) : '空'}',
+        ),
+      };
+      return (
+        success: false,
+        message: message,
+        email: null,
+        errorCode: errorCode,
+      );
     } on TimeoutException {
-      return (success: false, message: '連線逾時，請確認 ngrok 與後端服務是否正常', email: null);
+      return (
+        success: false,
+        message: '連線逾時，請確認 ngrok 與後端服務是否正常',
+        email: null,
+        errorCode: null,
+      );
     } catch (error) {
-      return (success: false, message: '登入失敗：${error.toString()}', email: null);
+      return (
+        success: false,
+        message: '登入失敗：${error.toString()}',
+        email: null,
+        errorCode: null,
+      );
     }
   }
 
-  static Future<({bool success, String message, String? email})> register(
+  static Future<
+    ({bool success, String message, String? email, String? errorCode})
+  >
+  register(
     String username,
     String email,
     String password, {
@@ -193,12 +306,13 @@ class ApiService {
           .timeout(const Duration(seconds: 10));
 
       final data = _decodeJsonMap(res.body);
-      if (res.statusCode == 201) {
+      if (res.statusCode == 201 || res.statusCode == 200) {
         if (data == null) {
           return (
             success: false,
             message: '伺服器回應格式錯誤，請檢查後端 /api/register',
             email: null,
+            errorCode: null,
           );
         }
         final token = (data['token'] as String?)?.trim() ?? '';
@@ -207,20 +321,46 @@ class ApiService {
             success: false,
             message: '註冊回應缺少 token，請檢查後端 /api/register',
             email: null,
+            errorCode: null,
           );
         }
         await _saveAuth(token, email);
         unawaited(chairCheckin());
-        return (success: true, message: '註冊成功', email: email);
+        return (success: true, message: '註冊成功', email: email, errorCode: null);
       }
-      final errors = data == null
-          ? '伺服器回應 ${res.statusCode}，內容：${res.body.isNotEmpty ? res.body.substring(0, res.body.length > 120 ? 120 : res.body.length) : '空'}'
-          : data.values.expand((v) => v is List ? v : [v]).join('、');
-      return (success: false, message: errors, email: null);
+      final errorCode =
+          _extractErrorCode(data) ??
+          switch (res.statusCode) {
+            409 => 'ACCOUNT_EXISTS',
+            _ => null,
+          };
+      final message = switch (errorCode) {
+        'ACCOUNT_EXISTS' => '此帳號已被註冊',
+        _ => _extractMessage(
+          data,
+          '伺服器回應 ${res.statusCode}，內容：${res.body.isNotEmpty ? res.body.substring(0, res.body.length > 120 ? 120 : res.body.length) : '空'}',
+        ),
+      };
+      return (
+        success: false,
+        message: message,
+        email: null,
+        errorCode: errorCode,
+      );
     } on TimeoutException {
-      return (success: false, message: '連線逾時，請確認 ngrok 與後端服務是否正常', email: null);
+      return (
+        success: false,
+        message: '連線逾時，請確認 ngrok 與後端服務是否正常',
+        email: null,
+        errorCode: null,
+      );
     } catch (error) {
-      return (success: false, message: '註冊失敗：${error.toString()}', email: null);
+      return (
+        success: false,
+        message: '註冊失敗：${error.toString()}',
+        email: null,
+        errorCode: null,
+      );
     }
   }
 
@@ -329,28 +469,26 @@ class ApiService {
         return [];
       }
 
-      final res = await http
-          .get(
-            _buildApiUri(
-              'notification/pending',
-              queryParameters: {'limit': '$limit'},
-            ),
-            headers: await _headers(auth: true),
-          )
-          .timeout(const Duration(seconds: 10));
+      Future<List<Map<String, dynamic>>> fetch(String path) async {
+        final res = await http
+            .get(
+              _buildApiUri(path, queryParameters: {'limit': '$limit'}),
+              headers: await _headers(auth: true),
+            )
+            .timeout(const Duration(seconds: 10));
 
-      if (res.statusCode == 200) {
-        final data = jsonDecode(res.body);
-
-        if (data is List) {
-          return data.cast<Map<String, dynamic>>();
+        if (res.statusCode == 200) {
+          return _decodeNotificationList(res.body);
         }
-
-        if (data is Map && data['notifications'] is List) {
-          return (data['notifications'] as List).cast<Map<String, dynamic>>();
-        }
+        return [];
       }
-      return [];
+
+      final history = await fetch('notification/history');
+      if (history.isNotEmpty) {
+        return history;
+      }
+
+      return await fetch('notification/pending');
     } catch (_) {
       return [];
     }
@@ -396,6 +534,60 @@ class ApiService {
           )
           .timeout(const Duration(seconds: 5));
     } catch (_) {}
+  }
+
+  static Future<({bool success, String message, bool calibrated, int? samples})>
+  calibrateChairAuto() async {
+    try {
+      final res = await http
+          .post(
+            _buildApiUri('chair/calibrate/auto'),
+            headers: await _headers(auth: true),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      final data = _decodeJsonMap(res.body);
+      final calibrated =
+          data?['calibrated'] == true ||
+          data?['status']?.toString() == 'calibrated';
+      final samples = data?['samples'] is num
+          ? (data?['samples'] as num).toInt()
+          : null;
+
+      if (res.statusCode == 200 && calibrated) {
+        return (
+          success: true,
+          message: '校準成功',
+          calibrated: true,
+          samples: samples,
+        );
+      }
+
+      final message = _extractMessage(
+        data,
+        '伺服器回應 ${res.statusCode}，內容：${res.body.isNotEmpty ? res.body.substring(0, res.body.length > 120 ? 120 : res.body.length) : '空'}',
+      );
+      return (
+        success: false,
+        message: message,
+        calibrated: false,
+        samples: samples,
+      );
+    } on TimeoutException {
+      return (
+        success: false,
+        message: '校準逾時，請確認感測器資料是否已進來',
+        calibrated: false,
+        samples: null,
+      );
+    } catch (error) {
+      return (
+        success: false,
+        message: '校準失敗：${error.toString()}',
+        calibrated: false,
+        samples: null,
+      );
+    }
   }
 
   static Future<void> chairCheckout() async {

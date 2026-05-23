@@ -3,6 +3,8 @@ import '../services/api_service.dart';
 
 enum AuthMode { login, register }
 
+enum _LoginErrorKind { unknown, username, password }
+
 class AuthPage extends StatefulWidget {
   const AuthPage({super.key, required this.initialMode});
 
@@ -23,6 +25,8 @@ class _AuthPageState extends State<AuthPage> {
   bool _isSubmitting = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  String _usernameServerError = '';
+  String _passwordServerError = '';
 
   @override
   void initState() {
@@ -47,15 +51,31 @@ class _AuthPageState extends State<AuthPage> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _isSubmitting = true);
+    final username = _usernameController.text.trim();
+
+    if (_mode == AuthMode.login) {
+      final usernameExists = await ApiService.usernameExists(username);
+      if (!usernameExists) {
+        if (!mounted) return;
+        setState(() {
+          _usernameServerError = '無此帳戶，請去註冊';
+          _passwordServerError = '';
+          _isSubmitting = false;
+        });
+        return;
+      }
+    }
+
+    setState(() {
+      _isSubmitting = true;
+      _usernameServerError = '';
+      _passwordServerError = '';
+    });
 
     final result = _mode == AuthMode.login
-        ? await ApiService.login(
-            _usernameController.text.trim(),
-            _passwordController.text,
-          )
+        ? await ApiService.login(username, _passwordController.text)
         : await ApiService.register(
-            _usernameController.text.trim(),
+            username,
             _emailController.text.trim(),
             _passwordController.text,
           );
@@ -67,10 +87,58 @@ class _AuthPageState extends State<AuthPage> {
     if (result.success) {
       Navigator.of(context).pop(result.email);
     } else {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(result.message)));
+      if (_mode == AuthMode.login) {
+        final errorCode = result.errorCode?.toUpperCase();
+        final authError = errorCode == 'USER_NOT_FOUND'
+            ? _LoginErrorKind.username
+            : errorCode == 'INVALID_PASSWORD'
+            ? _LoginErrorKind.password
+            : _classifyLoginError(result.message);
+        setState(() {
+          _usernameServerError = authError == _LoginErrorKind.username
+              ? '無此帳戶，請去註冊'
+              : '';
+          _passwordServerError = authError == _LoginErrorKind.password
+              ? '密碼錯誤'
+              : '';
+        });
+      } else if ((result.errorCode?.toUpperCase() ?? '') == 'ACCOUNT_EXISTS') {
+        setState(() {
+          _usernameServerError = '此帳號已被註冊';
+          _passwordServerError = '';
+        });
+      } else {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(result.message)));
+      }
     }
+  }
+
+  _LoginErrorKind _classifyLoginError(String message) {
+    final normalized = message.toLowerCase();
+    if (normalized.contains('無此帳戶') ||
+        normalized.contains('無此帳號') ||
+        normalized.contains('不存在') ||
+        normalized.contains('not found') ||
+        normalized.contains('no such user') ||
+        normalized.contains('user does not exist') ||
+        normalized.contains('unknown account')) {
+      return _LoginErrorKind.username;
+    }
+
+    if (normalized.contains('密碼') ||
+        normalized.contains('password') ||
+        normalized.contains('帳號或密碼錯誤') ||
+        normalized.contains('invalid credentials') ||
+        normalized.contains('authentication failed') ||
+        normalized.contains('wrong password') ||
+        normalized.contains('incorrect password') ||
+        normalized.contains('帳號錯誤')) {
+      return _LoginErrorKind.password;
+    }
+
+    return _LoginErrorKind.unknown;
   }
 
   @override
@@ -142,6 +210,11 @@ class _AuthPageState extends State<AuthPage> {
                       // 帳號（登入 & 註冊都需要）
                       TextFormField(
                         controller: _usernameController,
+                        onChanged: (_) {
+                          if (_usernameServerError.isNotEmpty) {
+                            setState(() => _usernameServerError = '');
+                          }
+                        },
                         decoration: const InputDecoration(
                           labelText: '帳號',
                           border: OutlineInputBorder(),
@@ -149,6 +222,20 @@ class _AuthPageState extends State<AuthPage> {
                         validator: (v) =>
                             (v ?? '').trim().isEmpty ? '請輸入帳號' : null,
                       ),
+                      if (_usernameServerError.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        const Padding(
+                          padding: EdgeInsets.only(left: 4),
+                          child: Text(
+                            '無此帳號，請去註冊',
+                            style: TextStyle(
+                              color: Colors.red,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 12),
 
                       // Email（只有註冊需要）
@@ -157,13 +244,13 @@ class _AuthPageState extends State<AuthPage> {
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
                           decoration: const InputDecoration(
-                            labelText: 'Email',
+                            labelText: '電子郵件',
                             border: OutlineInputBorder(),
                           ),
                           validator: (v) {
                             final text = (v ?? '').trim();
-                            if (text.isEmpty) return '請輸入 Email';
-                            if (!text.contains('@')) return '請輸入有效 Email';
+                            if (text.isEmpty) return '請輸入電子郵件';
+                            if (!text.contains('@')) return '請輸入有效電子郵件';
                             return null;
                           },
                         ),
@@ -174,6 +261,11 @@ class _AuthPageState extends State<AuthPage> {
                       TextFormField(
                         controller: _passwordController,
                         obscureText: _obscurePassword,
+                        onChanged: (_) {
+                          if (_passwordServerError.isNotEmpty) {
+                            setState(() => _passwordServerError = '');
+                          }
+                        },
                         decoration: InputDecoration(
                           labelText: '密碼',
                           border: const OutlineInputBorder(),
@@ -197,6 +289,20 @@ class _AuthPageState extends State<AuthPage> {
                           return null;
                         },
                       ),
+                      if (_passwordServerError.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        const Padding(
+                          padding: EdgeInsets.only(left: 4),
+                          child: Text(
+                            '密碼錯誤',
+                            style: TextStyle(
+                              color: Colors.red,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 12),
 
                       // 密碼確認（只有註冊需要）
@@ -256,6 +362,8 @@ class _AuthPageState extends State<AuthPage> {
                                   // height/weight removed from registration
                                   _obscurePassword = true;
                                   _obscureConfirmPassword = true;
+                                  _usernameServerError = '';
+                                  _passwordServerError = '';
                                 }),
                           child: Text(
                             _mode == AuthMode.login ? '沒有帳號？前往註冊' : '已有帳號？前往登入',

@@ -46,12 +46,6 @@ class _HomePageState extends State<HomePage> {
           currentIndex = 0;
         }
       });
-      // Start or stop controller auto-sync based on login state
-      if (_isLoggedIn) {
-        widget.chairSyncController.startAutoSync();
-      } else {
-        widget.chairSyncController.stopAutoSync();
-      }
     }
   }
 

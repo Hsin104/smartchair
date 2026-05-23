@@ -14,6 +14,7 @@ class ReportPage extends StatelessWidget {
       builder: (context, _) {
         final history = controller.postureHistory;
         final total = history.length;
+        final hasHistory = total > 0;
 
         final goodCount = history
             .where((item) => item["isGood"] == true)
@@ -89,12 +90,14 @@ class ReportPage extends StatelessWidget {
                 const SizedBox(height: 12),
                 _buildQuickKpiRow(goodPercent, badCount),
                 const SizedBox(height: 18),
-                _buildDistributionAndStatsSection(
-                  postureCounts: postureCounts,
-                  total: total,
-                  goodCount: goodCount,
-                  badCount: badCount,
-                ),
+                hasHistory
+                    ? _buildDistributionAndStatsSection(
+                        postureCounts: postureCounts,
+                        total: total,
+                        goodCount: goodCount,
+                        badCount: badCount,
+                      )
+                    : _buildEmptyStateCard(),
               ],
             ),
           ),
@@ -214,7 +217,7 @@ class ReportPage extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            total == 0 ? '尚無坐姿資料' : '平均姿勢分數 $avgScore 分',
+            total == 0 ? '無人就坐' : '平均姿勢分數 $avgScore 分',
             style: const TextStyle(
               color: Colors.white,
               fontSize: 28,
@@ -223,8 +226,66 @@ class ReportPage extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            '目前已累積 $total 筆姿勢紀錄',
+            total == 0 ? '目前沒有任何儲存紀錄' : '目前已累積 $total 筆姿勢紀錄',
             style: const TextStyle(color: Colors.white, fontSize: 15),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyStateCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '今日姿勢分布',
+            style: TextStyle(
+              fontSize: 19,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF0F172A),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 18),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: const Column(
+              children: [
+                Icon(
+                  Icons.event_seat_rounded,
+                  size: 44,
+                  color: Color(0xFF0F766E),
+                ),
+                SizedBox(height: 10),
+                Text(
+                  '無人就坐',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+                SizedBox(height: 6),
+                Text(
+                  '後端尚未儲存任何姿勢紀錄，開始使用後這裡會自動顯示圖表與統計。',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 14, color: Colors.black54),
+                ),
+              ],
+            ),
           ),
         ],
       ),
