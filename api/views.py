@@ -2,6 +2,7 @@ import os
 from datetime import timedelta
 import numpy as np
 import joblib
+from django.contrib.auth import authenticate
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
@@ -9,9 +10,9 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 
-from .models import PostureRecord, AgentLog, Notification, ChairSession
+from .models import User, PostureRecord, AgentLog, Notification, ChairSession
 from .serializers import (
-    RegisterSerializer, LoginSerializer, UserSerializer, PostureRecordSerializer
+    RegisterSerializer, UserSerializer, PostureRecordSerializer
 )
 from .schemas import (
     REGISTER_SCHEMA, LOGIN_SCHEMA, POSTURE_CREATE_SCHEMA, AGENT_SCHEMA,
@@ -38,8 +39,9 @@ try:
     _dl_model   = tf.keras.models.load_model(_DL_MODEL_PATH)
     _dl_encoder = joblib.load(_DL_LABEL_PATH)
     _dl_scaler  = joblib.load(_DL_SCALER_PATH)
+    print(f'[模型] 未校準模型載入成功：{_DL_MODEL_PATH}')
 except Exception as _e:
-    print(f'[模型載入失敗] {_e}')
+    print(f'[模型] 未校準模型載入失敗：{_e}')
     _dl_model = _dl_encoder = _dl_scaler = None
 
 try:
@@ -47,19 +49,46 @@ try:
     _cal_model   = tf.keras.models.load_model(_CAL_MODEL_PATH)
     _cal_encoder = joblib.load(_CAL_LABEL_PATH)
     _cal_scaler  = joblib.load(_CAL_SCALER_PATH)
-except Exception:
+    print(f'[模型] 校準模型載入成功：{_CAL_MODEL_PATH}')
+except Exception as _e:
+    print(f'[模型] 校準模型載入失敗：{_e}')
     _cal_model = _cal_encoder = _cal_scaler = None
 
 # ── 推論 ──────────────────────────────────────────────────────────────────────
 
-def _build_features(seat_pressure_data, back_pressure_data,
-                    baseline_seat=None, baseline_back=None):
+def _rule_based_posture(seat_pressure_data, back_pressure_data=None):
+    """
+    絕對值快速判斷，用於極端姿勢（模型訓練資料可能未涵蓋的範圍）。
+    回傳姿勢字串，或 None 表示交由 ML 模型決定。
+    """
     seat = seat_pressure_data or {}
-    back = back_pressure_data or {}
+    left  = seat.get('left_back', 0) + seat.get('left_mid', 0) + seat.get('left_front', 0)
+    right = seat.get('right_back', 0) + seat.get('right_mid', 0) + seat.get('right_front', 0)
+    front = seat.get('left_front', 0) + seat.get('center_front', 0) + seat.get('right_front', 0)
+    back  = seat.get('left_back', 0) + seat.get('center_back', 0) + seat.get('right_back', 0)
 
-    if baseline_seat and baseline_back:
+    total = left + right + 1e-6
+    left_ratio  = left / total
+    right_ratio = right / total
+    front_ratio = front / (front + back + 1e-6)
+
+    if left_ratio > 0.68:
+        return 'left'
+    if right_ratio > 0.68:
+        return 'right'
+    if front_ratio > 0.65:
+        return 'forward'
+    if front_ratio < 0.22:
+        return 'recline'
+    return None
+
+
+def _build_features(seat_pressure_data, baseline_seat=None):
+    seat = seat_pressure_data or {}
+
+    if baseline_seat:
         # ── 校準模式：用 delta（當前 - 基準）消除體重與個人差異 ──────────────
-        bs, bb = baseline_seat, baseline_back
+        bs = baseline_seat
         lb = seat.get('left_back',    0) - bs.get('left_back',    0)
         lm = seat.get('left_mid',     0) - bs.get('left_mid',     0)
         lf = seat.get('left_front',   0) - bs.get('left_front',   0)
@@ -68,16 +97,11 @@ def _build_features(seat_pressure_data, back_pressure_data,
         rb = seat.get('right_back',   0) - bs.get('right_back',   0)
         rm = seat.get('right_mid',    0) - bs.get('right_mid',    0)
         rf = seat.get('right_front',  0) - bs.get('right_front',  0)
-        su = back.get('spine_upper',  0) - bb.get('spine_upper',  0)
-        sm = back.get('spine_mid',    0) - bb.get('spine_mid',    0)
-        sl = back.get('spine_lower',  0) - bb.get('spine_lower',  0)
 
-        # 區域 delta 總和（左右傾、前後傾、椎背訊號）
         left_delta  = lb + lm + lf
         right_delta = rb + rm + rf
         front_delta = lf + cf + rf
         back_delta  = lb + cb + rb
-        spine_delta = su + sm + sl
     else:
         # ── 未校準模式：原始絕對值 ──────────────────────────────────────────
         lb = seat.get('left_back',    0)
@@ -88,21 +112,16 @@ def _build_features(seat_pressure_data, back_pressure_data,
         rb = seat.get('right_back',   0)
         rm = seat.get('right_mid',    0)
         rf = seat.get('right_front',  0)
-        su = back.get('spine_upper',  0)
-        sm = back.get('spine_mid',    0)
-        sl = back.get('spine_lower',  0)
 
         seat_total  = lb+lm+lf+cb+cf+rb+rm+rf + 1e-6
-        spine_total = su + sm + sl
-        left_delta  = (lb + lm + lf) / seat_total        # 用比例代替絕對 delta
+        left_delta  = (lb + lm + lf) / seat_total
         right_delta = (rb + rm + rf) / seat_total
         front_delta = (lf + cf + rf) / seat_total
         back_delta  = (lb + cb + rb) / seat_total
-        spine_delta = spine_total / (seat_total + spine_total)
 
     return np.array([[
-        lb, lm, lf, cb, cf, rb, rm, rf, su, sm, sl,
-        left_delta, right_delta, front_delta, back_delta, spine_delta,
+        lb, lm, lf, cb, cf, rb, rm, rf,
+        left_delta, right_delta, front_delta, back_delta,
     ]], dtype=np.float32)
 
 
@@ -121,23 +140,26 @@ def _check_sedentary(user, prediction):
     return 'sedentary' if was_sitting else 'normal'
 
 
-def predict_posture(seat_pressure_data, back_pressure_data,
-                    baseline_seat=None, baseline_back=None):
+def predict_posture(seat_pressure_data, baseline_seat=None):
     """
     深度學習模型預測坐姿類別。
     有基準值時使用校準模型（delta 特徵），否則使用原始模型。
+    極端姿勢先由規則層攔截，避免模型對 out-of-distribution 輸入誤判。
     """
-    has_baseline = baseline_seat and baseline_back
+    rule = _rule_based_posture(seat_pressure_data)
+    if rule:
+        print(f'[規則層] 覆蓋模型 → {rule}')
+        return rule
+
     model, encoder, scaler = (
-        (_cal_model, _cal_encoder, _cal_scaler) if (has_baseline and _cal_model)
+        (_cal_model, _cal_encoder, _cal_scaler) if (baseline_seat and _cal_model)
         else (_dl_model, _dl_encoder, _dl_scaler)
     )
     if model is None:
         return None
 
-    features      = _build_features(seat_pressure_data, back_pressure_data,
-                                    baseline_seat if has_baseline else None,
-                                    baseline_back if has_baseline else None)
+    features      = _build_features(seat_pressure_data,
+                                    baseline_seat if baseline_seat else None)
     features_norm = scaler.transform(features)
     probs         = model.predict(features_norm, verbose=0)
     idx           = np.argmax(probs, axis=1)
@@ -152,33 +174,65 @@ def register(request):
     if error:
         return Response({'schema_error': error}, status=status.HTTP_400_BAD_REQUEST)
 
+    if User.objects.filter(username=request.data.get('username', '')).exists():
+        return Response({
+            'success':    False,
+            'error_code': 'ACCOUNT_EXISTS',
+            'message':    '此帳號已被註冊',
+        }, status=status.HTTP_409_CONFLICT)
+
     serializer = RegisterSerializer(data=request.data)
     if serializer.is_valid():
         user  = serializer.save()
         token, _ = Token.objects.get_or_create(user=user)
         return Response({
-            'token': token.key,
-            'user':  UserSerializer(user).data,
+            'success': True,
+            'token':   token.key,
+            'user':    UserSerializer(user).data,
         }, status=status.HTTP_201_CREATED)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    return Response({'success': False, 'errors': serializer.errors},
+                    status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['POST'])
 def login(request):
-    """POST /api/login — 登入並取得 Token。"""
+    """POST /api/login — 登入並取得 Token，區分帳號不存在與密碼錯誤。"""
     error = validate_request(request.data, LOGIN_SCHEMA)
     if error:
         return Response({'schema_error': error}, status=status.HTTP_400_BAD_REQUEST)
 
-    serializer = LoginSerializer(data=request.data)
-    if serializer.is_valid():
-        user  = serializer.validated_data['user']
-        token, _ = Token.objects.get_or_create(user=user)
+    username = request.data.get('username', '')
+    password = request.data.get('password', '')
+
+    if not User.objects.filter(username=username).exists():
         return Response({
-            'token': token.key,
-            'user':  UserSerializer(user).data,
-        })
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            'success':    False,
+            'error_code': 'USER_NOT_FOUND',
+            'message':    '無此帳戶，請去註冊',
+        }, status=status.HTTP_404_NOT_FOUND)
+
+    user = authenticate(username=username, password=password)
+    if user is None:
+        return Response({
+            'success':    False,
+            'error_code': 'INVALID_PASSWORD',
+            'message':    '密碼錯誤',
+        }, status=status.HTTP_401_UNAUTHORIZED)
+
+    token, _ = Token.objects.get_or_create(user=user)
+    return Response({
+        'success': True,
+        'token':   token.key,
+        'user':    UserSerializer(user).data,
+    })
+
+
+@api_view(['GET'])
+def user_exists(request):
+    """GET /api/users/exists?username=xxx — 查詢帳號是否已存在。"""
+    username = request.query_params.get('username', '')
+    exists   = User.objects.filter(username=username).exists() if username else False
+    return Response({'exists': exists})
 
 
 @api_view(['GET'])
@@ -225,12 +279,9 @@ def posture_create(request):
 
     if not data.get('posture'):
         baseline_seat = session.baseline_seat if session else None
-        baseline_back = session.baseline_back if session else None
         predicted = predict_posture(
             data.get('seat_pressure_data'),
-            data.get('back_pressure_data'),
             baseline_seat=baseline_seat,
-            baseline_back=baseline_back,
         )
         if predicted:
             predicted = _check_sedentary(target_user, predicted)
@@ -400,8 +451,8 @@ def chair_calibrate(request):
         )
 
     seat = request.data.get('seat_pressure_data')
-    back = request.data.get('back_pressure_data')
-    if not seat or not back:
+    back = request.data.get('back_pressure_data', {})
+    if not seat:
         return Response(
             {'error': '請提供 seat_pressure_data 與 back_pressure_data'},
             status=status.HTTP_400_BAD_REQUEST,
@@ -412,6 +463,66 @@ def chair_calibrate(request):
     session.save(update_fields=['baseline_seat', 'baseline_back'])
 
     return Response({'status': 'calibrated', 'calibrated': True})
+
+
+SEAT_KEYS = ['left_back', 'left_mid', 'left_front',
+             'center_back', 'center_front',
+             'right_back', 'right_mid', 'right_front']
+BACK_KEYS = ['spine_upper', 'spine_mid', 'spine_lower']
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def chair_calibrate_auto(request):
+    """
+    POST /api/chair/calibrate/auto — 坐正後呼叫，自動用最近 15 秒資料平均作為基準。
+
+    回傳: { "status": "calibrated", "baseline_seat": {...}, "samples": N }
+    """
+    session = ChairSession.objects.filter(is_active=True).select_related('user').first()
+    if not session or session.user != request.user:
+        return Response(
+            {'error': '請先 check-in 坐上椅子再進行校準'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    cutoff = timezone.now() - timedelta(seconds=15)
+    recent = list(
+        PostureRecord.objects.filter(
+            user=request.user,
+            seat_pressure_data__isnull=False,
+            timestamp__gte=cutoff,
+        ).order_by('-timestamp')[:10]
+    )
+
+    if not recent:
+        return Response(
+            {'error': '最近 15 秒內沒有感測器資料，請坐好後稍候再試'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    # 多筆平均，避免單筆雜訊
+    baseline_seat = {}
+    for k in SEAT_KEYS:
+        vals = [r.seat_pressure_data.get(k, 0) for r in recent if r.seat_pressure_data]
+        baseline_seat[k] = round(sum(vals) / len(vals), 2) if vals else 0
+
+    baseline_back = {}
+    back_records = [r for r in recent if r.back_pressure_data]
+    if back_records:
+        for k in BACK_KEYS:
+            vals = [r.back_pressure_data.get(k, 0) for r in back_records]
+            baseline_back[k] = round(sum(vals) / len(vals), 2)
+
+    session.baseline_seat = baseline_seat
+    session.baseline_back = baseline_back
+    session.save(update_fields=['baseline_seat', 'baseline_back'])
+
+    return Response({
+        'status':        'calibrated',
+        'calibrated':    True,
+        'samples':       len(recent),
+        'baseline_seat': baseline_seat,
+    })
 
 
 @api_view(['GET'])

@@ -120,15 +120,23 @@ def _handle_pressure_01(payload: dict):
         print(f'[MQTT] 無 active session，使用 fallback：{user.username}')
 
     seat_data, back_data = _parse_esp32_payload(payload)
-    posture = predict_posture(seat_data, back_data) or payload.get('posture', 'normal')
+
+    baseline_seat = session.baseline_seat if (session and session.baseline_seat) else None
+    mode_label = '校準' if baseline_seat else '未校準'
+
+    posture = predict_posture(
+        seat_data,
+        baseline_seat=baseline_seat,
+    ) or payload.get('posture', 'normal')
 
     PostureRecord.objects.create(
         user=user,
         posture=posture,
         seat_pressure_data=seat_data,
         back_pressure_data=back_data,
+        source='auto',
     )
-    print(f'[MQTT] 寫入資料庫 — {user.username}: {posture}')
+    print(f'[MQTT] 寫入資料庫 [{mode_label}] — {user.username}: {posture}')
 
 
 # ── paho 事件回調 ────────────────────────────────────────────────────────────

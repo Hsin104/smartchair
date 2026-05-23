@@ -1,11 +1,12 @@
 """
 深度學習坐姿分類模型訓練腳本
 
-架構：多層感知器（MLP），16 個特徵輸入
+架構：多層感知器（MLP），12 個特徵輸入（純椅墊，無背部感測器）
 
 執行方式：
-    python train_model_dl.py               # 未校準模型（輸出 posture_model_dl.keras）
-    python train_model_dl.py --calibrated  # 校準模型（輸出 posture_model_calibrated.keras）
+    python train_model_dl.py                            # 未校準模型
+    python train_model_dl.py --calibrated               # 校準模型（自動優先使用真實資料）
+    python train_model_dl.py --calibrated --real-only   # 校準模型（強制僅用真實資料）
 """
 
 import os
@@ -31,32 +32,50 @@ except ImportError:
 from api.models import PostureRecord
 
 CALIBRATED_MODE = '--calibrated' in sys.argv
+REAL_ONLY_MODE  = '--real-only'  in sys.argv
 
 DL_MODEL_PATH  = 'posture_model_calibrated.keras' if CALIBRATED_MODE else 'posture_model_dl.keras'
 DL_LABEL_PATH  = 'label_encoder_calibrated.pkl'   if CALIBRATED_MODE else 'label_encoder_dl.pkl'
 DL_SCALER_PATH = 'feature_scaler_calibrated.pkl'  if CALIBRATED_MODE else 'feature_scaler_dl.pkl'
 
-# 16 個特徵（原始值 11 個 + 區域統計 5 個）
-# 校準模式：前 11 個是 delta 值，後 5 個是 delta 區域總和
+# 12 個特徵（椅墊原始值 8 個 + 區域統計 4 個）
+# 校準模式：前 8 個是 delta 值，後 4 個是 delta 區域總和
 FEATURES = [
     'left_back', 'left_mid', 'left_front',
     'center_back', 'center_front',
     'right_back', 'right_mid', 'right_front',
-    'spine_upper', 'spine_mid', 'spine_lower',
-    'left_delta', 'right_delta', 'front_delta', 'back_delta', 'spine_delta',
+    'left_delta', 'right_delta', 'front_delta', 'back_delta',
 ]
 
 
 def load_data():
     print('[1/4] 從資料庫讀取數據...')
-    records = PostureRecord.objects.filter(
+    qs = PostureRecord.objects.filter(
         seat_pressure_data__isnull=False,
-        back_pressure_data__isnull=False,
-    ).exclude(posture='sedentary').values('posture', 'seat_pressure_data', 'back_pressure_data')
+    ).exclude(posture='sedentary')
+
+    real_count = qs.filter(source='real').count()
+    fake_count = qs.filter(source='fake').count()
+    auto_count = qs.exclude(source__in=['real', 'fake']).count()
+    print(f'   資料庫：真實 {real_count} 筆 / 假資料 {fake_count} 筆 / 自動 {auto_count} 筆')
+
+    if REAL_ONLY_MODE:
+        if real_count < 50:
+            print(f'   [Error] --real-only 需要至少 50 筆真實資料，目前只有 {real_count} 筆')
+            print(f'   請先執行 python collect_data.py 採集真實資料')
+            sys.exit(1)
+        qs = qs.filter(source='real')
+        print(f'   [real-only] 僅使用真實資料 {real_count} 筆')
+    elif real_count >= 50:
+        qs = qs.filter(source='real')
+        print(f'   [auto] 真實資料已足夠，僅使用真實資料 {real_count} 筆（略過假資料）')
+    else:
+        print(f'   [auto] 真實資料不足，使用全部資料（真實 + 假資料）')
+
+    records = qs.values('posture', 'seat_pressure_data')
     rows = []
     for r in records:
         seat = r['seat_pressure_data'] or {}
-        back = r['back_pressure_data'] or {}
         rows.append({
             'posture':      r['posture'],
             'left_back':    seat.get('left_back',    0),
@@ -67,14 +86,11 @@ def load_data():
             'right_back':   seat.get('right_back',   0),
             'right_mid':    seat.get('right_mid',    0),
             'right_front':  seat.get('right_front',  0),
-            'spine_upper':  back.get('spine_upper',  0),
-            'spine_mid':    back.get('spine_mid',    0),
-            'spine_lower':  back.get('spine_lower',  0),
         })
     df = pd.DataFrame(rows)
-    print(f'   讀取完成：{len(df)} 筆，{df["posture"].nunique()} 種坐姿')
-    if len(df) < 100:
-        print(f'   [Warning] 資料量不足，建議先執行 python generate_fake_data.py 補充假資料')
+    print(f'   訓練用資料：{len(df)} 筆，{df["posture"].nunique()} 種坐姿')
+    if len(df) < 50:
+        print(f'   [Warning] 資料量不足，請先執行 python collect_data.py 採集真實資料')
     return df
 
 
@@ -91,16 +107,13 @@ def preprocess(df):
         df['right_delta'] = df['right_back'] + df['right_mid'] + df['right_front']
         df['front_delta'] = df['left_front'] + df['center_front'] + df['right_front']
         df['back_delta']  = df['left_back'] + df['center_back'] + df['right_back']
-        df['spine_delta'] = df['spine_upper'] + df['spine_mid'] + df['spine_lower']
     else:
         # 未校準模式：計算比例（消除體重影響）
         seat_total_safe = seat_total + 1e-6
-        spine_total     = df['spine_upper'] + df['spine_mid'] + df['spine_lower']
         df['left_delta']  = (df['left_back'] + df['left_mid'] + df['left_front']) / seat_total_safe
         df['right_delta'] = (df['right_back'] + df['right_mid'] + df['right_front']) / seat_total_safe
         df['front_delta'] = (df['left_front'] + df['center_front'] + df['right_front']) / seat_total_safe
         df['back_delta']  = (df['left_back'] + df['center_back'] + df['right_back']) / seat_total_safe
-        df['spine_delta'] = spine_total / (seat_total_safe + spine_total)
 
     print(f'   特徵數量：{len(FEATURES)} 個，樣本數：{len(df)} 筆')
     print(f'   模式：{"校準（delta）" if CALIBRATED_MODE else "未校準（絕對值）"}')
@@ -213,7 +226,8 @@ def main():
     save(model, le, scaler)
 
     mode_label = '校準（--calibrated）' if CALIBRATED_MODE else '未校準'
-    print(f'\n完成！{mode_label} 模型已儲存 → {DL_MODEL_PATH}')
+    data_label = '（僅真實資料）' if REAL_ONLY_MODE else ''
+    print(f'\n完成！{mode_label}{data_label} 模型已儲存 → {DL_MODEL_PATH}')
     print('執行 python manage.py runserver 啟動伺服器')
 
 

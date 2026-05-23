@@ -7,6 +7,7 @@ urlpatterns = [
     path('login',           views.login,            name='login'),
     path('me',              views.me,               name='me'),
     path('me/update',       views.update_me,        name='me-update'),
+    path('users/exists',    views.user_exists,      name='user-exists'),
 
     # 坐姿數據
     path('posture',         views.posture_create,   name='posture-create'),
@@ -18,7 +19,8 @@ urlpatterns = [
     # 座椅佔用管理
     path('chair/checkin',   views.chair_checkin,   name='chair-checkin'),
     path('chair/checkout',  views.chair_checkout,  name='chair-checkout'),
-    path('chair/calibrate', views.chair_calibrate, name='chair-calibrate'),
+    path('chair/calibrate',      views.chair_calibrate,      name='chair-calibrate'),
+    path('chair/calibrate/auto', views.chair_calibrate_auto, name='chair-calibrate-auto'),
     path('chair/status',    views.chair_status,    name='chair-status'),
 
     # 震動馬達通知（ESP32 輪詢用）

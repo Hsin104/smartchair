@@ -30,10 +30,17 @@ class PostureRecord(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True, verbose_name='時間戳')
     posture = models.CharField(max_length=20, choices=POSTURE_CHOICES, verbose_name='坐姿類別')
 
+    SOURCE_CHOICES = [
+        ('real', '真實採集'),
+        ('fake', '假資料'),
+        ('auto', '自動預測'),
+    ]
+
     # 感測器原始數值（座墊 8 個 FSR、椅背 3 個 FSR）
     seat_pressure_data = models.JSONField(null=True, blank=True, verbose_name='座墊壓力感測數值（8點）')
     back_pressure_data = models.JSONField(null=True, blank=True, verbose_name='椅背脊椎壓力感測數值（3點）')
     physio_advice      = models.TextField(null=True, blank=True, verbose_name='AI 物理治療建議')
+    source             = models.CharField(max_length=10, choices=SOURCE_CHOICES, default='auto', verbose_name='資料來源')
 
     class Meta:
         ordering = ['-timestamp']
