@@ -1,7 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../state/chair_sync_controller.dart';
-import '../widgets/desk_pet_overlay.dart';
 import 'auth_page.dart';
 import 'dashboard.dart';
 import 'report.dart';
@@ -60,6 +60,9 @@ class _HomePageState extends State<HomePage> {
 
     if (email != null && mounted) {
       _showMsg(mode == AuthMode.login ? '登入成功' : '註冊成功');
+      if (mode == AuthMode.login) {
+        widget.chairSyncController.startSession();
+      }
       await _refreshAuthState();
       if (mounted) {
         setState(() => currentIndex = 0);
@@ -70,6 +73,7 @@ class _HomePageState extends State<HomePage> {
   Future<void> _logout() async {
     await ApiService.logout();
     if (!mounted) return;
+    widget.chairSyncController.stopSession();
     _showMsg('已登出');
     await _refreshAuthState();
   }
@@ -209,13 +213,7 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
           ),
-          Positioned(
-            right: 16,
-            bottom: 16,
-            child: SafeArea(
-              child: DeskPetOverlay(controller: widget.chairSyncController),
-            ),
-          ),
+          // 桌寵功能已移除，桌面版不再額外顯示浮動寵物
         ],
       ),
     );

@@ -27,6 +27,7 @@ class _DashboardPageState extends State<DashboardPage> {
   bool _isCalibrating = false;
   late final VoidCallback _controllerListener;
   Timer? _pageTimer;
+  final TextEditingController _userMessageController = TextEditingController();
 
   String _postureDisplay = '無人就坐';
   String _postureCode = '';
@@ -51,9 +52,10 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   String get _pageElapsedText {
-    final elapsed = DateTime.now().difference(
-      widget.controller.sessionOpenedAt,
-    );
+    final sessionOpenedAt = widget.controller.sessionOpenedAt;
+    if (sessionOpenedAt == null) return '0秒';
+
+    final elapsed = DateTime.now().difference(sessionOpenedAt);
     final hours = elapsed.inHours;
     final minutes = elapsed.inMinutes.remainder(60);
     final seconds = elapsed.inSeconds.remainder(60);
@@ -95,6 +97,7 @@ class _DashboardPageState extends State<DashboardPage> {
   @override
   void dispose() {
     _pageTimer?.cancel();
+    _userMessageController.dispose();
     widget.controller.removeListener(_controllerListener);
     unawaited(ApiService.chairCheckout());
     widget.controller.stopAutoSync();
@@ -187,6 +190,93 @@ class _DashboardPageState extends State<DashboardPage> {
         setState(() => _isCalibrating = false);
       }
     }
+  }
+
+  Future<void> _requestAgentAdvice() async {
+    if (_isFetchingAdvice) return;
+
+    if (!widget.isLoggedIn) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('請先登入以取得個人化建議。')));
+      return;
+    }
+
+    if (_postureCode.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('目前尚未取得姿勢資料，請稍後再試。')));
+      return;
+    }
+
+    final messenger = ScaffoldMessenger.of(context);
+    final safeMessage = _userMessageController.text.trim();
+
+    setState(() {
+      _isFetchingAdvice = true;
+      _adviceVisible = true;
+      _advice = 'AI 建議生成中，請稍候...';
+    });
+
+    try {
+      final result = await ApiService.getAdvice(
+        _postureCode,
+        userMessage: safeMessage,
+      );
+
+      if (!mounted) return;
+
+      if (result.success) {
+        setState(() {
+          _advice = result.advice.isNotEmpty ? result.advice : '目前沒有可用建議。';
+          _adviceVisible = true;
+        });
+      } else {
+        messenger.showSnackBar(SnackBar(content: Text(result.message)));
+        setState(() {
+          _adviceVisible = false;
+          _advice = '按下「取得 AI 建議」以查看 AI 建議。';
+        });
+      }
+    } catch (_) {
+      if (!mounted) return;
+      messenger.showSnackBar(const SnackBar(content: Text('取得 AI 建議時發生錯誤。')));
+      setState(() {
+        _adviceVisible = false;
+        _advice = '按下「取得 AI 建議」以查看 AI 建議。';
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _isFetchingAdvice = false);
+      }
+    }
+  }
+
+  Widget _buildAdviceText(String text) {
+    const baseStyle = TextStyle(
+      fontSize: 14,
+      height: 1.6,
+      color: Color(0xFF334155),
+    );
+    final boldStyle = baseStyle.copyWith(fontWeight: FontWeight.w800);
+    final spans = <InlineSpan>[];
+    final pattern = RegExp(r'\*\*(.+?)\*\*');
+    var currentIndex = 0;
+
+    for (final match in pattern.allMatches(text)) {
+      if (match.start > currentIndex) {
+        spans.add(TextSpan(text: text.substring(currentIndex, match.start)));
+      }
+
+      spans.add(TextSpan(text: match.group(1) ?? '', style: boldStyle));
+      currentIndex = match.end;
+    }
+
+    if (currentIndex < text.length) {
+      spans.add(TextSpan(text: text.substring(currentIndex)));
+    }
+
+    return Text.rich(TextSpan(style: baseStyle, children: spans));
   }
 
   Color _postureColor(String code) {
@@ -312,19 +402,20 @@ class _DashboardPageState extends State<DashboardPage> {
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
                               const Text(
-                                '網頁已開啟',
+                                '你已就座時長',
                                 style: TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 11,
+                                  color: Colors.white,
+                                  fontSize: 15,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
-                              const SizedBox(height: 2),
+                              const SizedBox(height: 4),
                               Text(
                                 _pageElapsedText,
                                 style: const TextStyle(
                                   color: Colors.white,
-                                  fontSize: 16,
+
+                                  fontSize: 22,
                                   fontWeight: FontWeight.w800,
                                 ),
                               ),
@@ -460,53 +551,47 @@ class _DashboardPageState extends State<DashboardPage> {
                 ),
                 const SizedBox(height: 12),
                 // 只在使用者按下按鈕後顯示實際建議，否則顯示提示文字
-                Text(
-                  _adviceVisible ? _advice : '按下「顯示建議」以查看 AI 建議。',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    height: 1.6,
-                    color: Color(0xFF334155),
+                _adviceVisible
+                    ? _buildAdviceText(_advice)
+                    : const Text(
+                        '按下「取得 AI 建議」以查看 AI 建議。',
+                        style: TextStyle(
+                          fontSize: 14,
+                          height: 1.6,
+                          color: Color(0xFF334155),
+                        ),
+                      ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _userMessageController,
+                  maxLength: 500,
+                  maxLines: 3,
+                  textInputAction: TextInputAction.newline,
+                  decoration: InputDecoration(
+                    labelText: '附加症狀描述（選填）',
+                    hintText: '例如：我肩膀很痠、背部緊繃',
+                    filled: true,
+                    fillColor: const Color(0xFFF8FAFC),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(color: Color(0xFF0F766E)),
+                    ),
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     OutlinedButton(
-                      onPressed: _isFetchingAdvice
-                          ? null
-                          : () async {
-                              if (!widget.isLoggedIn) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('請先登入以取得個人化建議。'),
-                                  ),
-                                );
-                                return;
-                              }
-                              final messenger = ScaffoldMessenger.of(context);
-                              setState(() => _isFetchingAdvice = true);
-                              try {
-                                // 觸發控制器向後端同步最新資料，並從 controller 取最新建議
-                                await widget.controller.refreshFromServer();
-                                final latest = widget.controller.latestAdvice;
-                                setState(() {
-                                  _advice = latest.isNotEmpty
-                                      ? latest
-                                      : '目前沒有可用建議。';
-                                  _adviceVisible = true;
-                                });
-                              } catch (_) {
-                                if (!mounted) return;
-                                messenger.showSnackBar(
-                                  const SnackBar(content: Text('取得建議時發生錯誤。')),
-                                );
-                              } finally {
-                                if (mounted) {
-                                  setState(() => _isFetchingAdvice = false);
-                                }
-                              }
-                            },
+                      onPressed: _isFetchingAdvice ? null : _requestAgentAdvice,
                       child: _isFetchingAdvice
                           ? const SizedBox(
                               width: 100,
@@ -521,7 +606,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                 ),
                               ),
                             )
-                          : const Text('取得建議'),
+                          : const Text('取得 AI 建議'),
                     ),
                   ],
                 ),

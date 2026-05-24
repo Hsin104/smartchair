@@ -431,32 +431,82 @@ class ApiService {
   }
 
   // ── AI 建議 ──────────────────────────────────────────────────
-  static Future<String> getAdvice(
-    String postureCode, {
-    String userMessage = '',
-  }) async {
+  static Future<
+    ({
+      bool success,
+      String advice,
+      String message,
+      String? postureDisplay,
+      String? posture,
+    })
+  >
+  getAdvice(String postureCode, {String userMessage = ''}) async {
     try {
       if (!await isLoggedIn()) {
-        return '';
+        return (
+          success: false,
+          advice: '',
+          message: '請先登入後再取得 AI 建議。',
+          postureDisplay: null,
+          posture: null,
+        );
       }
 
+      final safeMessage = userMessage.trim();
       final res = await http
           .post(
             _buildApiUri('agent'),
             headers: await _headers(auth: true),
             body: jsonEncode({
-              'posture': postureCode,
-              'user_message': userMessage,
+              'posture': postureCode.trim(),
+              'user_message': safeMessage.length > 500
+                  ? safeMessage.substring(0, 500)
+                  : safeMessage,
             }),
           )
           .timeout(const Duration(seconds: 30));
 
+      final data = _decodeJsonMap(res.body);
       if (res.statusCode == 200) {
-        return jsonDecode(res.body)['advice'] as String? ?? '';
+        final advice = (data?['advice'] as String?)?.trim() ?? '';
+        return (
+          success: true,
+          advice: advice,
+          message: '取得 AI 建議成功',
+          postureDisplay: data?['posture_display']?.toString(),
+          posture: data?['posture']?.toString(),
+        );
       }
-      return '';
+
+      final schemaError = data?['schema_error']?.toString().trim();
+      if (schemaError != null && schemaError.isNotEmpty) {
+        return (
+          success: false,
+          advice: '',
+          message: schemaError,
+          postureDisplay: null,
+          posture: null,
+        );
+      }
+
+      return (
+        success: false,
+        advice: '',
+        message: _extractMessage(
+          data,
+          '伺服器回應 ${res.statusCode}，內容：${res.body.isNotEmpty ? res.body.substring(0, res.body.length > 120 ? 120 : res.body.length) : '空'}',
+        ),
+        postureDisplay: null,
+        posture: null,
+      );
     } catch (_) {
-      return '';
+      return (
+        success: false,
+        advice: '',
+        message: '取得 AI 建議失敗，請稍後再試。',
+        postureDisplay: null,
+        posture: null,
+      );
     }
   }
 

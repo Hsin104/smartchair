@@ -93,3 +93,5 @@ git push -u origin feature/your-feature-name
 ## 授權
 
 目前尚未指定授權條款。若要開源，建議加入 `MIT` 或 `Apache-2.0` 授權檔案。
+
+<!-- 桌面版啟動相關說明已移除（桌寵功能已刪除） -->

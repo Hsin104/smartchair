@@ -3,14 +3,14 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 
 class ChairSyncController extends ChangeNotifier {
-  ChairSyncController() : sessionOpenedAt = DateTime.now();
+  ChairSyncController() : sessionOpenedAt = null;
 
   String postureLabel = '';
   String postureCode = '';
   int postureScore = 0;
   bool isGoodPosture = false;
   String latestAdvice = '等待後端資料同步';
-  final DateTime sessionOpenedAt;
+  DateTime? sessionOpenedAt;
   DateTime updatedAt = DateTime.now();
   DateTime lastBackendSyncAt = DateTime.now();
 
@@ -105,6 +105,16 @@ class ChairSyncController extends ChangeNotifier {
 
   void clearPostureHistory() {
     postureHistory.clear();
+    notifyListeners();
+  }
+
+  void startSession() {
+    sessionOpenedAt = DateTime.now();
+    notifyListeners();
+  }
+
+  void stopSession() {
+    sessionOpenedAt = null;
     notifyListeners();
   }
 

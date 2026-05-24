@@ -1,20 +1,49 @@
 import 'package:flutter/material.dart';
 import '../state/chair_sync_controller.dart';
 
-class NotificationPage extends StatelessWidget {
+class NotificationPage extends StatefulWidget {
   const NotificationPage({super.key, required this.controller});
 
   final ChairSyncController controller;
 
   @override
+  State<NotificationPage> createState() => _NotificationPageState();
+}
+
+class _NotificationPageState extends State<NotificationPage> {
+  String _selectedFilter = '全部';
+
+  bool _matchesFilter(Map<String, dynamic> item) {
+    if (_selectedFilter == '全部') return true;
+    final color = item['color'] as Color;
+    final category = _categoryFromColor(color);
+    return category == _selectedFilter;
+  }
+
+  String _categoryFromColor(Color color) {
+    // 大致根據顏色判定警示或提醒：
+    // 紅/橘 -> 警示，紫/藍 -> 提醒，其他 -> 其它
+    final value = color.value;
+    if (value == 0xFFDC2626 || value == 0xFFF85701 || value == 0xFFEA580C) {
+      return '警示';
+    }
+    if (value == 0xFF7C3AED || value == 0xFF2563EB || value == 0xFF0EA5E9) {
+      return '提醒';
+    }
+    return '其它';
+  }
+
+  @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: controller,
+      animation: widget.controller,
       builder: (context, _) {
-        final notifications = controller.notifications;
+        final notifications = widget.controller.notifications
+            .where(_matchesFilter)
+            .toList();
 
         return RefreshIndicator(
-          onRefresh: controller.refreshFromServer,
+          onRefresh: widget.controller.refreshFromServer,
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
@@ -51,7 +80,7 @@ class NotificationPage extends StatelessWidget {
                       alignment: Alignment.centerRight,
                       child: OutlinedButton.icon(
                         onPressed: () async {
-                          await controller.refreshFromServer();
+                          await widget.controller.refreshFromServer();
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text("已從後端重新同步通知")),
@@ -72,28 +101,7 @@ class NotificationPage extends StatelessWidget {
 
               const SizedBox(height: 12),
 
-              const Row(
-                children: [
-                  _FilterChip(label: '全部', selected: true),
-                  SizedBox(width: 8),
-                  _FilterChip(label: '警示'),
-                  SizedBox(width: 8),
-                  _FilterChip(label: '提醒'),
-                ],
-              ),
-
               const SizedBox(height: 12),
-
-              if (notifications.isEmpty)
-                const Center(
-                  child: Padding(
-                    padding: EdgeInsets.only(top: 40),
-                    child: Text(
-                      "目前尚無通知紀錄",
-                      style: TextStyle(fontSize: 16, color: Colors.black54),
-                    ),
-                  ),
-                ),
 
               ...notifications.map((item) {
                 final color = item['color'] as Color;
