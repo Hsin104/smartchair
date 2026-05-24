@@ -34,7 +34,7 @@ POSTURE_DISPLAY = {
     'sedentary': '久坐未動',
 }
 
-_retriever     = None
+_retriever      = None
 _agent_executor = None
 
 
@@ -217,7 +217,6 @@ def _validate_response(response: str) -> str:
     """驗證回覆是否包含知識庫來源引用，驗證後移除引用章節再回傳。"""
     has_citation = '📚 參考來源' in response or '參考來源' in response
 
-    # 移除參考來源章節（不對使用者顯示）
     for marker in ['📚 參考來源', '參考來源']:
         idx = response.find(marker)
         if idx != -1:
@@ -234,36 +233,21 @@ def _validate_response(response: str) -> str:
 
 # ── 對外介面 ───────────────────────────────────────────────────────────────────
 
-def get_advice(posture: str, user_id: int, user_message: str = '', trigger_action: bool = False) -> str:
-    """
-    透過 Agent 查詢外部知識庫並生成坐姿改善建議。
-
-    Args:
-        posture        : 坐姿類別（normal / left / right / forward / recline / sedentary）
-        user_id        : 使用者 ID（Agent 用於查詢歷史紀錄與觸發震動）
-        user_message   : 使用者額外自述症狀（可選）
-        trigger_action : True = 自動偵測模式（ESP32），Agent 會觸發震動提醒
-    """
+def get_advice(posture: str, user_id: int, user_message: str = '') -> str:
     posture_name = POSTURE_DISPLAY.get(posture, posture)
-
-    vibration_note = (
-        '\n請同時呼叫 trigger_vibration 工具觸發震動馬達提醒使用者。'
-        if trigger_action and posture != 'normal'
-        else ''
-    )
 
     if user_message:
         question = (
             f'使用者 ID：{user_id}\n'
             f'偵測坐姿：「{posture_name}」\n'
             f'使用者自述：{user_message}\n'
-            f'請查詢外部知識庫後提供改善建議。{vibration_note}'
+            f'請查詢外部知識庫後提供改善建議。'
         )
     else:
         question = (
             f'使用者 ID：{user_id}\n'
             f'偵測坐姿：「{posture_name}」\n'
-            f'請查詢外部知識庫後分析坐姿問題並提供改善建議。{vibration_note}'
+            f'請查詢外部知識庫後分析坐姿問題並提供改善建議。'
         )
 
     def _invoke(api_key):
@@ -282,13 +266,24 @@ def get_advice(posture: str, user_id: int, user_message: str = '', trigger_actio
             output = ''.join(parts)
         return _validate_response(output.strip())
 
+    def _is_quota_error(e):
+        msg = str(e)
+        return '429' in msg or 'RESOURCE_EXHAUSTED' in msg or 'quota' in msg.lower()
+
     try:
         return _invoke(_get_api_key())
-    except Exception as e:
-        if '429' in str(e) or 'RESOURCE_EXHAUSTED' in str(e):
+    except Exception as primary_e:
+        if _is_quota_error(primary_e):
             backup = _get_backup_api_key()
             if backup:
-                logger.warning('[PhysioAgent] 主 key 額度用盡，切換備用 key')
-                return _invoke(backup)
-        logger.error(f'[PhysioAgent] 生成建議失敗：{e}')
+                logger.warning(f'[PhysioAgent] 主 key 額度用盡，切換備用 key（原因：{primary_e}）')
+                try:
+                    return _invoke(backup)
+                except Exception as backup_e:
+                    logger.error(f'[PhysioAgent] 備用 key 也失敗：{backup_e}')
+                    raise RuntimeError('主要及備用 Gemini API 額度均已用盡，請明日再試') from backup_e
+            else:
+                logger.error('[PhysioAgent] 主 key 額度用盡，且未設定備用 key')
+                raise RuntimeError('Gemini API 額度用盡且無備用 key') from primary_e
+        logger.error(f'[PhysioAgent] 生成建議失敗：{primary_e}')
         raise
