@@ -125,19 +125,35 @@ def _build_features(seat_pressure_data, baseline_seat=None):
     ]], dtype=np.float32)
 
 
-_SEDENTARY_MINUTES = 30
+_SEDENTARY_MINUTES = 5
 
 def _check_sedentary(user, prediction):
-    """若 DL 預測為 normal，但使用者 30 分鐘前已有坐姿紀錄，則判定為久坐未動。"""
-    if prediction != 'normal':
+    """以最後一次離座為起點，持續坐超過設定時間則判定為久坐未動。"""
+    if prediction in ('empty', 'sedentary'):
         return prediction
-    window_start = timezone.now() - timedelta(minutes=_SEDENTARY_MINUTES * 3)
-    window_end   = timezone.now() - timedelta(minutes=_SEDENTARY_MINUTES)
-    was_sitting  = PostureRecord.objects.filter(
+
+    now = timezone.now()
+    cutoff = now - timedelta(minutes=_SEDENTARY_MINUTES)
+
+    # 最近 N 分鐘內有離座紀錄 → 剛坐下，不觸發
+    if PostureRecord.objects.filter(user=user, posture='empty', timestamp__gte=cutoff).exists():
+        return prediction
+
+    # 找最後一次離座時間作為就坐起點
+    last_empty = PostureRecord.objects.filter(
+        user=user, posture='empty'
+    ).order_by('-timestamp').first()
+
+    if last_empty is None or last_empty.timestamp >= cutoff:
+        return prediction
+
+    # 從上次離座到 N 分鐘前，有坐姿紀錄 → 確認連續坐了 N 分鐘以上
+    was_sitting = PostureRecord.objects.filter(
         user=user,
-        timestamp__range=(window_start, window_end),
-    ).exists()
-    return 'sedentary' if was_sitting else 'normal'
+        timestamp__range=(last_empty.timestamp, cutoff),
+    ).exclude(posture__in=['empty', 'sedentary']).exists()
+
+    return 'sedentary' if was_sitting else prediction
 
 
 def predict_posture(seat_pressure_data, baseline_seat=None):

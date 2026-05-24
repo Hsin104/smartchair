@@ -17,14 +17,17 @@ MQTT 訂閱服務
 import json
 import logging
 import ssl
+from datetime import timedelta
 
 import paho.mqtt.client as mqtt
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
+from django.utils import timezone
 
-from api.models import PostureRecord, ChairSession
-from api.views import predict_posture
+from api.models import PostureRecord, ChairSession, Notification
+from api.views import predict_posture, _check_sedentary
+from api.physio_agent import POSTURE_DISPLAY
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -54,6 +57,9 @@ TOPICS = [
 
 # 暫存緩衝區：{ username: { 'seat': ..., 'back': ... } }
 _sensor_buffer = {}
+
+# 上一次空椅狀態（True=有人, False=無人, None=初始）
+_last_occupied = None
 
 
 def _get_buffer(username):
@@ -99,12 +105,29 @@ def _handle_pressure_01(payload: dict):
     支援 ESP32 格式：{"device_id":"chair_01","ts":123,"raw":[...],"norm":[...]}
     使用者需先呼叫 POST /api/chair/checkin 登記為目前座椅使用者。
     """
-    # 椅子空置檢查：norm 總壓力過低則略過
+    global _last_occupied
+
+    # 椅子空置檢查：norm 總壓力過低則寫入 sedentary（僅在狀態轉換時寫一次）
     norm = payload.get('norm', [])
     total_pressure = sum(abs(v) for v in norm)
     if total_pressure < MIN_SEAT_PRESSURE:
-        print(f'[MQTT] 無人坐著（總壓力 {total_pressure} < {MIN_SEAT_PRESSURE}），略過')
+        if _last_occupied is not False:
+            _last_occupied = False
+            session = ChairSession.objects.filter(is_active=True).select_related('user').first()
+            if session:
+                PostureRecord.objects.create(
+                    user=session.user,
+                    posture='empty',
+                    seat_pressure_data={},
+                    back_pressure_data={},
+                    source='auto',
+                )
+                print(f'[MQTT] 無人坐著 → 寫入 empty：{session.user.username}')
+            else:
+                print(f'[MQTT] 無人坐著（總壓力 {total_pressure} < {MIN_SEAT_PRESSURE}），無 active session')
         return
+
+    _last_occupied = True
 
     session = ChairSession.objects.filter(is_active=True).select_related('user').first()
     if session:
@@ -128,6 +151,7 @@ def _handle_pressure_01(payload: dict):
         seat_data,
         baseline_seat=baseline_seat,
     ) or payload.get('posture', 'normal')
+    posture = _check_sedentary(user, posture)
 
     PostureRecord.objects.create(
         user=user,
@@ -137,6 +161,16 @@ def _handle_pressure_01(payload: dict):
         source='auto',
     )
     print(f'[MQTT] 寫入資料庫 [{mode_label}] — {user.username}: {posture}')
+
+    if posture not in ('normal', 'empty'):
+        cooldown = timezone.now() - timedelta(minutes=1)
+        already_notified = Notification.objects.filter(
+            user=user, timestamp__gte=cooldown
+        ).exists()
+        if not already_notified:
+            posture_name = POSTURE_DISPLAY.get(posture, posture)
+            Notification.objects.create(user=user, message=f'坐姿提醒：{posture_name}')
+            print(f'[MQTT] 產生通知 — {user.username}: {posture_name}')
 
 
 # ── paho 事件回調 ────────────────────────────────────────────────────────────

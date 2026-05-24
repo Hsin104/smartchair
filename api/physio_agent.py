@@ -32,6 +32,7 @@ POSTURE_DISPLAY = {
     'forward':   '頭部前傾（烏龜頸）',
     'recline':   '過度後仰',
     'sedentary': '久坐未動',
+    'empty':     '無人就坐',
 }
 
 _retriever      = None

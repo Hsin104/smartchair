@@ -52,7 +52,7 @@ def load_data():
     print('[1/4] 從資料庫讀取數據...')
     qs = PostureRecord.objects.filter(
         seat_pressure_data__isnull=False,
-    ).exclude(posture='sedentary')
+    ).exclude(posture__in=['sedentary', 'empty'])
 
     real_count = qs.filter(source='real').count()
     fake_count = qs.filter(source='fake').count()

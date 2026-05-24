@@ -1,6 +1,7 @@
 from django.contrib.auth import authenticate
 from rest_framework import serializers
 from .models import User, PostureRecord
+from .physio_agent import POSTURE_DISPLAY
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -45,7 +46,12 @@ class UserSerializer(serializers.ModelSerializer):
 
 class PostureRecordSerializer(serializers.ModelSerializer):
     """坐姿紀錄序列化器。"""
+    posture_display = serializers.SerializerMethodField()
+
+    def get_posture_display(self, obj):
+        return POSTURE_DISPLAY.get(obj.posture, obj.posture)
+
     class Meta:
         model = PostureRecord
-        fields = ['id', 'timestamp', 'posture', 'seat_pressure_data', 'back_pressure_data', 'physio_advice']
+        fields = ['id', 'timestamp', 'posture', 'posture_display', 'seat_pressure_data', 'back_pressure_data', 'physio_advice']
         read_only_fields = ['id', 'timestamp']
