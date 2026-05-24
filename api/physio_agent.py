@@ -51,7 +51,7 @@ def _build_retriever():
     if _retriever is not None:
         return _retriever
 
-    api_key = _get_api_key()
+    api_key = _get_all_keys()[0]
     embeddings = GoogleGenerativeAIEmbeddings(
         model='models/gemini-embedding-001',
         google_api_key=api_key,
