@@ -7,6 +7,7 @@ import 'dashboard.dart';
 import 'report.dart';
 import 'notification.dart';
 import 'setting.dart';
+import '../widgets/desktop_pet.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key, required this.chairSyncController});
@@ -226,7 +227,27 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
           ),
-          // 桌寵功能已移除，桌面版不再額外顯示浮動寵物
+          // 小桌寵：僅在畫面寬度縮小（例如 mobile 或視窗縮小）時顯示，
+          // 在大螢幕或全螢幕時隱藏。
+          Builder(
+            builder: (ctx) {
+              final mq = MediaQuery.of(ctx);
+              final showPet = mq.size.width < 900; // 調整閾值可更嚴格或更寬鬆
+              if (!showPet) return const SizedBox.shrink();
+
+              return
+              // 使用可拖曳的自定義桌寵元件（預設使用 assets/pet.png，可改成你自己的圖檔路徑）
+              // 若沒有圖檔，會顯示一個預設 icon
+              // 注意：DesktopPet 使用 Positioned，需放在 Scaffold 的 Stack 中
+              // 並會記住在畫面內的拖曳位置（非永久儲存）。
+              // 要改為點擊行為，請修改 onTap。
+                        DesktopPet(
+                      assetPath: 'assets/oip.jpg',
+                size: 56,
+                onTap: () => setState(() => currentIndex = 0),
+              );
+            },
+          ),
         ],
       ),
     );

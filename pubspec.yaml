@@ -30,3 +30,4 @@ flutter:
   uses-material-design: true
   assets:
     - assets/tray_icon.ico
+    - assets/oip.jpg
