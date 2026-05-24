@@ -287,7 +287,7 @@ class _DashboardPageState extends State<DashboardPage> {
       case 'left':
         return const Color(0xFFEA580C);
       case 'right':
-        return const Color(0xFFC2410C);
+        return const Color.fromARGB(255, 123, 120, 11);
       case 'recline':
         return const Color(0xFF2563EB);
       case 'sedentary':
@@ -296,7 +296,6 @@ class _DashboardPageState extends State<DashboardPage> {
         return Colors.grey;
     }
   }
-
   @override
   Widget build(BuildContext context) {
     final hasData = _postureCode.isNotEmpty;
@@ -426,24 +425,26 @@ class _DashboardPageState extends State<DashboardPage> {
                   ],
                 ),
                 const SizedBox(height: 14),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 7,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    isGood ? '目前良好，請維持這個姿勢' : '建議立即調整肩頸與背部角度',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
+                _postureDisplay == '無人就坐'
+                    ? const SizedBox.shrink()
+                    : Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 7,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          isGood ? '目前良好，請維持這個姿勢' : '建議立即調整肩頸與背部角度',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
               ],
             ),
           ),

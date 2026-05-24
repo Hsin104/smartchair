@@ -43,6 +43,7 @@ class ApiService {
     'right': 68,
     'recline': 72,
     'sedentary': 66,
+    'empty': 0,
   };
 
   static const Map<String, String> _risks = {
