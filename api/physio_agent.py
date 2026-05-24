@@ -38,15 +38,11 @@ _retriever      = None
 _agent_executor = None
 
 
-def _get_api_key():
-    api_key = settings.GEMINI_API_KEY
-    if not api_key:
-        raise ValueError('GEMINI_API_KEY 未設定，請確認 .env 檔案')
-    return api_key
-
-
-def _get_backup_api_key():
-    return getattr(settings, 'GEMINI_API_KEY_BACKUP', '')
+def _get_all_keys() -> list:
+    keys = getattr(settings, 'GEMINI_API_KEYS', [])
+    if not keys:
+        raise ValueError('未設定任何 GEMINI_API_KEY，請確認 .env 檔案')
+    return keys
 
 
 def _build_retriever():
@@ -270,20 +266,22 @@ def get_advice(posture: str, user_id: int, user_message: str = '') -> str:
         msg = str(e)
         return '429' in msg or 'RESOURCE_EXHAUSTED' in msg or 'quota' in msg.lower()
 
-    try:
-        return _invoke(_get_api_key())
-    except Exception as primary_e:
-        if _is_quota_error(primary_e):
-            backup = _get_backup_api_key()
-            if backup:
-                logger.warning(f'[PhysioAgent] 主 key 額度用盡，切換備用 key（原因：{primary_e}）')
-                try:
-                    return _invoke(backup)
-                except Exception as backup_e:
-                    logger.error(f'[PhysioAgent] 備用 key 也失敗：{backup_e}')
-                    raise RuntimeError('主要及備用 Gemini API 額度均已用盡，請明日再試') from backup_e
-            else:
-                logger.error('[PhysioAgent] 主 key 額度用盡，且未設定備用 key')
-                raise RuntimeError('Gemini API 額度用盡且無備用 key') from primary_e
-        logger.error(f'[PhysioAgent] 生成建議失敗：{primary_e}')
-        raise
+    keys = _get_all_keys()
+    last_error = None
+    for i, key in enumerate(keys):
+        try:
+            result = _invoke(key)
+            if i > 0:
+                logger.info(f'[PhysioAgent] 使用第 {i+1} 組 key 成功')
+            return result
+        except Exception as e:
+            last_error = e
+            if _is_quota_error(e) and i < len(keys) - 1:
+                logger.warning(f'[PhysioAgent] 第 {i+1} 組 key 額度用盡，切換下一組')
+                continue
+            break
+
+    logger.error(f'[PhysioAgent] 所有 key 均失敗（共 {len(keys)} 組）：{last_error}')
+    if _is_quota_error(last_error):
+        raise RuntimeError(f'全部 {len(keys)} 組 Gemini API 額度均已用盡，請明日再試或新增更多 key') from last_error
+    raise last_error

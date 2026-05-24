@@ -152,9 +152,16 @@ CORS_ALLOW_HEADERS = list(default_headers) + [
     'content-type',
 ]
 
-# Gemini API（主要 / 備用）
+# Gemini API — 所有可用的 key（依序嘗試，額度用盡自動切換）
 GEMINI_API_KEY        = os.getenv('GEMINI_API_KEY', '')
 GEMINI_API_KEY_BACKUP = os.getenv('GEMINI_API_KEY_BACKUP', '')
+GEMINI_API_KEYS = [k for k in [
+    os.getenv('GEMINI_API_KEY', ''),
+    os.getenv('GEMINI_API_KEY_BACKUP', ''),
+    os.getenv('GEMINI_API_KEY_2', ''),
+    os.getenv('GEMINI_API_KEY_3', ''),
+    os.getenv('GEMINI_API_KEY_4', ''),
+] if k]
 
 # MQTT Broker 設定
 MQTT_HOST     = os.getenv('MQTT_HOST', 'localhost')
