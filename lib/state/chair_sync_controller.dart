@@ -77,7 +77,7 @@ class ChairSyncController extends ChangeNotifier {
       case '身體左傾':
         return const Color.fromARGB(255, 248, 87, 1);
       case '身體右傾':
-        return const Color.fromARGB(255, 218, 133, 100);
+        return const Color.fromARGB(255, 123, 120, 11);
       case '過度後仰':
         return const Color(0xFF2563EB);
       case '久坐未動':
@@ -88,7 +88,7 @@ class ChairSyncController extends ChangeNotifier {
       case '左側傾斜':
         return const Color(0xFFEA580C);
       case '右側傾斜':
-        return const Color(0xFFC2410C);
+        return const Color.fromARGB(255, 123, 120, 11);
       case '後仰過多':
         return const Color(0xFF2563EB);
       case '久坐過久':
@@ -156,33 +156,48 @@ class ChairSyncController extends ChangeNotifier {
       if (history.isNotEmpty) {
         final latest = history.first;
         final code = latest['posture'] as String? ?? 'normal';
+        final displayName = ApiService.toDisplayName(code);
         postureCode = code;
-        postureLabel = ApiService.toDisplayName(code);
+        postureLabel = displayName;
         postureScore = (latest['score'] as int?) ?? ApiService.toScore(code);
         isGoodPosture = code == 'normal';
         latestAdvice =
             latest['physio_advice'] as String? ??
             latest['advice'] as String? ??
             (isGoodPosture ? '目前姿勢良好，請繼續維持。' : '請依照後端建議調整姿勢。');
+
+        // 如果最新狀態為「無人就坐」，則暫停計時（不計時）
+        // 否則：若目前沒有在計時（sessionOpenedAt 為 null），則開始計時
+        if (displayName == '無人就坐') {
+          sessionOpenedAt = null;
+        } else {
+          if (sessionOpenedAt == null) {
+            sessionOpenedAt = DateTime.now();
+          }
+        }
       } else {
         postureCode = '';
         postureLabel = '無人就坐';
         postureScore = 0;
         isGoodPosture = false;
         latestAdvice = '等待後端資料同步';
+
+        // 空的歷史視為無人就坐，暫停計時
+        sessionOpenedAt = null;
       }
       for (final item in history) {
         final label =
             item['posture'] as String? ?? item['label'] as String? ?? '未知';
         final score = (item['score'] as int?) ?? ApiService.toScore(label);
         final isGood = label == 'normal' || label == '姿勢正常';
+        final parsedTime = DateTime.tryParse(
+          item['timestamp']?.toString() ?? '',
+        )?.toLocal();
         postureHistory.add({
           'label': ApiService.toDisplayName(label),
           'score': score,
           'isGood': isGood,
-          'time':
-              DateTime.tryParse(item['timestamp']?.toString() ?? '') ??
-              DateTime.now(),
+          'time': parsedTime ?? DateTime.now(),
         });
       }
 
@@ -266,7 +281,7 @@ class ChairSyncController extends ChangeNotifier {
         '';
     if (raw.isEmpty) return '';
 
-    final parsed = DateTime.tryParse(raw);
+    final parsed = DateTime.tryParse(raw)?.toLocal();
     if (parsed == null) return raw;
 
     final now = DateTime.now();

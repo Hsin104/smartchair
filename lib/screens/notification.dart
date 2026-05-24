@@ -63,7 +63,7 @@ class _NotificationPageState extends State<NotificationPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      '通知中心',
+                      '歷史通知',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 24,
@@ -72,7 +72,7 @@ class _NotificationPageState extends State<NotificationPage> {
                     ),
                     const SizedBox(height: 4),
                     const Text(
-                      '優先處理紅色與橘色通知，避免久坐與錯誤姿勢持續。',
+                      '此處列出已記錄的通知與提醒，點擊可檢視詳情。',
                       style: TextStyle(color: Colors.white70, fontSize: 13),
                     ),
                     const SizedBox(height: 12),
@@ -135,29 +135,15 @@ class _NotificationPageState extends State<NotificationPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    item['title'] as String,
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      color: Color(0xFF0F172A),
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  ),
-                                ),
-                                Text(
-                                  item['time'] as String,
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Color(0xFF64748B),
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
+                            Text(
+                              item['title'] as String,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                color: Color(0xFF0F172A),
+                                fontWeight: FontWeight.w800,
+                              ),
                             ),
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 6),
                             Text(
                               item['message'] as String,
                               style: const TextStyle(
@@ -167,6 +153,22 @@ class _NotificationPageState extends State<NotificationPage> {
                             ),
                           ],
                         ),
+                      ),
+                      const SizedBox(width: 12),
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            item['time'] as String,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF64748B),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          // status dot removed per request
+                        ],
                       ),
                     ],
                   ),
