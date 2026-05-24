@@ -5,6 +5,8 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
+  static const Duration _aiAdviceTimeout = Duration(seconds: 90);
+
   // 可透過 --dart-define=API_BASE_URL=... 覆蓋，避免寫死在程式中
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
@@ -31,6 +33,7 @@ class ApiService {
     'right': '身體右傾',
     'recline': '過度後仰',
     'sedentary': '久坐未動',
+    'empty': '無人就坐',
   };
 
   static const Map<String, int> _scores = {
@@ -464,7 +467,7 @@ class ApiService {
                   : safeMessage,
             }),
           )
-          .timeout(const Duration(seconds: 30));
+          .timeout(_aiAdviceTimeout);
 
       final data = _decodeJsonMap(res.body);
       if (res.statusCode == 200) {
@@ -499,11 +502,19 @@ class ApiService {
         postureDisplay: null,
         posture: null,
       );
+    } on TimeoutException {
+      return (
+        success: false,
+        advice: '',
+        message: 'AI 等待超時，請稍後再試。',
+        postureDisplay: null,
+        posture: null,
+      );
     } catch (_) {
       return (
         success: false,
         advice: '',
-        message: '取得 AI 建議失敗，請稍後再試。',
+        message: '網路錯誤，無法取得 AI 建議。',
         postureDisplay: null,
         posture: null,
       );

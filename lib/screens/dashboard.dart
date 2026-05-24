@@ -99,7 +99,6 @@ class _DashboardPageState extends State<DashboardPage> {
     _pageTimer?.cancel();
     _userMessageController.dispose();
     widget.controller.removeListener(_controllerListener);
-    unawaited(ApiService.chairCheckout());
     widget.controller.stopAutoSync();
     super.dispose();
   }

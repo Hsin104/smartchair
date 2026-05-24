@@ -36,6 +36,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _refreshAuthState() async {
+    final wasLoggedIn = _isLoggedIn;
     final loggedIn = await ApiService.isLoggedIn();
     final email = await ApiService.getUserEmail();
     if (mounted) {
@@ -46,6 +47,14 @@ class _HomePageState extends State<HomePage> {
           currentIndex = 0;
         }
       });
+
+      if (loggedIn && !wasLoggedIn) {
+        widget.chairSyncController.startSession();
+        widget.chairSyncController.startAutoSync();
+      } else if (!loggedIn && wasLoggedIn) {
+        widget.chairSyncController.stopSession();
+        widget.chairSyncController.stopAutoSync();
+      }
     }
   }
 
@@ -60,9 +69,6 @@ class _HomePageState extends State<HomePage> {
 
     if (email != null && mounted) {
       _showMsg(mode == AuthMode.login ? '登入成功' : '註冊成功');
-      if (mode == AuthMode.login) {
-        widget.chairSyncController.startSession();
-      }
       await _refreshAuthState();
       if (mounted) {
         setState(() => currentIndex = 0);
@@ -71,6 +77,13 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _logout() async {
+    // 在登出前嘗試 checkout（代表使用者離開椅子）
+    try {
+      await ApiService.chairCheckout();
+    } catch (_) {
+      // 忽略 checkout 錯誤，仍然繼續登出流程
+    }
+
     await ApiService.logout();
     if (!mounted) return;
     widget.chairSyncController.stopSession();
