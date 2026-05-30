@@ -296,6 +296,7 @@ class _DashboardPageState extends State<DashboardPage> {
         return Colors.grey;
     }
   }
+
   @override
   Widget build(BuildContext context) {
     final hasData = _postureCode.isNotEmpty;

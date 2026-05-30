@@ -226,7 +226,7 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
           ),
-                // 桌寵功能已移除，桌面版不再額外顯示浮動寵物
+          // 桌寵功能已移除，桌面版不再額外顯示浮動寵物
         ],
       ),
     );
