@@ -4,8 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:screen_retriever/screen_retriever.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:system_tray/system_tray.dart';
+import 'services/api_service.dart';
 import 'state/chair_sync_controller.dart';
-import 'widgets/desk_pet_custom.dart';
+import 'widgets/desk_pet_overlay.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -95,6 +96,14 @@ class _DesktopPetAppState extends State<DesktopPetApp>
   void initState() {
     super.initState();
     chairSyncController = ChairSyncController();
+    _startSync();
+  }
+
+  Future<void> _startSync() async {
+    if (!await ApiService.isLoggedIn()) return;
+    await ApiService.chairCheckin();
+    chairSyncController.startSession();
+    chairSyncController.startAutoSync();
   }
 
   @override

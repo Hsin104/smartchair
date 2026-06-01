@@ -1,7 +1,7 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../state/chair_sync_controller.dart';
+import '../widgets/desk_pet_overlay.dart';
 import 'auth_page.dart';
 import 'dashboard.dart';
 import 'report.dart';
@@ -234,7 +234,20 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
           ),
-          // 桌寵功能已移除，桌面版不再額外顯示浮動寵物
+          Positioned(
+            right: 20,
+            bottom: 20,
+            child: Builder(
+              builder: (context) {
+                final width = MediaQuery.sizeOf(context).width;
+                if (width < 900) return const SizedBox.shrink();
+
+                return IgnorePointer(
+                  child: DeskPetOverlay(controller: widget.chairSyncController),
+                );
+              },
+            ),
+          ),
         ],
       ),
     );

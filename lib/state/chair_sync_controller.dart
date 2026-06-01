@@ -75,9 +75,9 @@ class ChairSyncController extends ChangeNotifier {
       case '頭部前傾':
         return const Color(0xFFDC2626);
       case '身體左傾':
-        return const Color.fromARGB(255, 248, 87, 1);
+        return const Color(0xFFEA580C);
       case '身體右傾':
-        return const Color.fromARGB(255, 123, 120, 11);
+        return const Color(0xFFC2410C);
       case '過度後仰':
         return const Color(0xFF2563EB);
       case '久坐未動':
@@ -88,7 +88,7 @@ class ChairSyncController extends ChangeNotifier {
       case '左側傾斜':
         return const Color(0xFFEA580C);
       case '右側傾斜':
-        return const Color.fromARGB(255, 123, 120, 11);
+        return const Color(0xFFC2410C);
       case '後仰過多':
         return const Color(0xFF2563EB);
       case '久坐過久':
@@ -171,9 +171,7 @@ class ChairSyncController extends ChangeNotifier {
         if (displayName == '無人就坐') {
           sessionOpenedAt = null;
         } else {
-          if (sessionOpenedAt == null) {
-            sessionOpenedAt = DateTime.now();
-          }
+          sessionOpenedAt ??= DateTime.now();
         }
       } else {
         postureCode = '';

@@ -49,12 +49,17 @@ class _DeskPetOverlayState extends State<DeskPetOverlay>
   }
 
   void _onSyncChanged() {
-    if (widget.controller.isGoodPosture) {
+    if (widget.controller.isGoodPosture || !_hasActivePosture) {
       _remindShakeController.stop();
       _remindShakeController.value = 0;
     } else if (!_remindShakeController.isAnimating) {
       _remindShakeController.repeat(reverse: true);
     }
+  }
+
+  bool get _hasActivePosture {
+    final code = widget.controller.postureCode;
+    return code.isNotEmpty && code != 'empty';
   }
 
   @override
@@ -76,10 +81,13 @@ class _DeskPetOverlayState extends State<DeskPetOverlay>
         _remindShakeController,
       ]),
       builder: (context, child) {
+        final hasActivePosture = _hasActivePosture;
         final posture = _PostureVisual.fromLabel(
           widget.controller.postureLabel,
         );
-        final Color accent = widget.controller.isGoodPosture
+        final Color accent = !hasActivePosture
+            ? const Color(0xFF64748B)
+            : widget.controller.isGoodPosture
             ? const Color(0xFF16A34A)
             : const Color(0xFFDC2626);
         final double breathOffset = (_breathController.value - 0.5) * 2.8;
@@ -88,7 +96,8 @@ class _DeskPetOverlayState extends State<DeskPetOverlay>
         final bool isBlinking = blink > 0.44 && blink < 0.50;
         final double eyeOpenFactor = isBlinking ? 0.22 : 1.0;
 
-        final double shakeOffset = widget.controller.isGoodPosture
+        final double shakeOffset =
+            widget.controller.isGoodPosture || !hasActivePosture
             ? 0
             : (_remindShakeController.value - 0.5) *
                   3.2 *
@@ -151,7 +160,9 @@ class _DeskPetOverlayState extends State<DeskPetOverlay>
                     RotatedBox(
                       quarterTurns: 3,
                       child: Text(
-                        widget.controller.isGoodPosture
+                        !hasActivePosture
+                            ? 'NO DATA'
+                            : widget.controller.isGoodPosture
                             ? 'GOOD POSTURE'
                             : 'FIX POSTURE',
                         style: TextStyle(
@@ -167,7 +178,9 @@ class _DeskPetOverlayState extends State<DeskPetOverlay>
               ),
               const SizedBox(height: 8),
               Text(
-                '坐姿：${widget.controller.postureLabel} (${widget.controller.postureScore} 分)',
+                hasActivePosture
+                    ? '坐姿：${widget.controller.postureLabel} (${widget.controller.postureScore} 分)'
+                    : '坐姿：無人就坐',
                 style: const TextStyle(
                   fontSize: 12.5,
                   fontWeight: FontWeight.w700,
@@ -176,7 +189,11 @@ class _DeskPetOverlayState extends State<DeskPetOverlay>
               ),
               const SizedBox(height: 8),
               Text(
-                widget.controller.isGoodPosture ? '狀態良好，繼續保持' : '偵測到不良姿勢，請微調坐姿',
+                !hasActivePosture
+                    ? '等待後端同步坐姿資料'
+                    : widget.controller.isGoodPosture
+                    ? '狀態良好，繼續保持'
+                    : '偵測到不良姿勢，請微調坐姿',
                 style: TextStyle(
                   fontSize: 11.5,
                   color: accent,

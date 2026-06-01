@@ -40,17 +40,6 @@ class _DashboardPageState extends State<DashboardPage> {
 
   int get _todayReminderCount => widget.controller.notifications.length;
 
-  String get _goodPostureDurationText {
-    final goodCount = widget.controller.postureHistory
-        .where((item) => item['isGood'] == true)
-        .length;
-    final goodSeconds = goodCount * 5;
-    final hours = goodSeconds ~/ 3600;
-    final minutes = (goodSeconds % 3600) ~/ 60;
-    if (hours > 0) return '$hours 小時 $minutes 分';
-    return '$minutes 分鐘';
-  }
-
   String get _pageElapsedText {
     final sessionOpenedAt = widget.controller.sessionOpenedAt;
     if (sessionOpenedAt == null) return '0秒';
@@ -99,7 +88,6 @@ class _DashboardPageState extends State<DashboardPage> {
     _pageTimer?.cancel();
     _userMessageController.dispose();
     widget.controller.removeListener(_controllerListener);
-    widget.controller.stopAutoSync();
     super.dispose();
   }
 
@@ -108,6 +96,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
     try {
       await ApiService.chairCheckin();
+      widget.controller.startSession();
       widget.controller.startAutoSync();
       await _fetch();
     } catch (_) {
@@ -287,7 +276,7 @@ class _DashboardPageState extends State<DashboardPage> {
       case 'left':
         return const Color(0xFFEA580C);
       case 'right':
-        return const Color.fromARGB(255, 123, 120, 11);
+        return const Color(0xFFC2410C);
       case 'recline':
         return const Color(0xFF2563EB);
       case 'sedentary':

@@ -11,7 +11,7 @@ class NotificationPage extends StatefulWidget {
 }
 
 class _NotificationPageState extends State<NotificationPage> {
-  String _selectedFilter = '全部';
+  final String _selectedFilter = '全部';
 
   bool _matchesFilter(Map<String, dynamic> item) {
     if (_selectedFilter == '全部') return true;
@@ -23,8 +23,8 @@ class _NotificationPageState extends State<NotificationPage> {
   String _categoryFromColor(Color color) {
     // 大致根據顏色判定警示或提醒：
     // 紅/橘 -> 警示，紫/藍 -> 提醒，其他 -> 其它
-    final value = color.value;
-    if (value == 0xFFDC2626 || value == 0xFFF85701 || value == 0xFFEA580C) {
+    final value = color.toARGB32();
+    if (value == 0xFFDC2626 || value == 0xFFEA580C || value == 0xFFC2410C) {
       return '警示';
     }
     if (value == 0xFF7C3AED || value == 0xFF2563EB || value == 0xFF0EA5E9) {
@@ -178,32 +178,6 @@ class _NotificationPageState extends State<NotificationPage> {
           ),
         );
       },
-    );
-  }
-}
-
-class _FilterChip extends StatelessWidget {
-  const _FilterChip({required this.label, this.selected = false});
-
-  final String label;
-  final bool selected;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-      decoration: BoxDecoration(
-        color: selected ? const Color(0xFF0F766E) : Colors.white,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-          color: selected ? Colors.white : const Color(0xFF475569),
-        ),
-      ),
     );
   }
 }
