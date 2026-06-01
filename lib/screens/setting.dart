@@ -146,20 +146,43 @@ class _SettingPageState extends State<SettingPage> {
     String? helper,
   }) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 14),
+      margin: const EdgeInsets.only(bottom: 12),
       child: TextField(
         controller: controller,
         keyboardType: TextInputType.number,
+        style: const TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w700,
+          color: Color(0xFF0F172A),
+        ),
         decoration: InputDecoration(
-          prefixIcon: Icon(icon),
+          prefixIcon: Icon(icon, color: const Color(0xFF0F766E), size: 24),
           labelText: label,
           helperText: helper,
+          helperMaxLines: 2,
           suffixText: unit,
+          suffixStyle: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF475569),
+          ),
           filled: true,
-          fillColor: Colors.white,
+          fillColor: const Color(0xFFF8FAFC),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 18,
+            vertical: 18,
+          ),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide.none,
+            borderRadius: BorderRadius.circular(18),
+            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(18),
+            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(18),
+            borderSide: const BorderSide(color: Color(0xFF0F766E), width: 1.5),
           ),
         ),
       ),
@@ -175,17 +198,111 @@ class _SettingPageState extends State<SettingPage> {
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
-      child: SwitchListTile(
-        secondary: Icon(icon, color: const Color(0xFF0F766E)),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text(subtitle),
-        value: value,
-        onChanged: onChanged,
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: const Color(0xFF0F766E).withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(icon, color: const Color(0xFF0F766E), size: 24),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF475569),
+                    height: 1.25,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Switch(
+            value: value,
+            onChanged: onChanged,
+            activeThumbColor: Colors.white,
+            activeTrackColor: const Color(0xFF0F766E),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sectionPanel({
+    required String title,
+    required IconData icon,
+    required Color accent,
+    required List<Widget> children,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(icon, color: accent, size: 24),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 21,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          ...children,
+        ],
       ),
     );
   }
@@ -247,105 +364,79 @@ class _SettingPageState extends State<SettingPage> {
             ),
           ),
 
-          // 將使用者資料與提醒設定同列顯示，提醒設定直接展開（不收合）以節省點擊成本
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                flex: 2,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final profilePanel = _sectionPanel(
+                title: '使用者資料',
+                icon: Icons.badge_rounded,
+                accent: const Color(0xFF0F766E),
+                children: [
+                  buildTextField(
+                    label: '身高',
+                    unit: 'cm',
+                    controller: heightController,
+                    icon: Icons.height_rounded,
+                    helper: '建議填寫實際身高，讓姿勢判斷更準確',
+                  ),
+                  buildTextField(
+                    label: '體重',
+                    unit: 'kg',
+                    controller: weightController,
+                    icon: Icons.monitor_weight_rounded,
+                  ),
+                ],
+              );
+
+              final reminderPanel = _sectionPanel(
+                title: '提醒設定',
+                icon: Icons.notifications_active_rounded,
+                accent: const Color(0xFF7C3AED),
+                children: [
+                  buildSwitchTile(
+                    title: '姿勢提醒',
+                    subtitle: '偵測到不良坐姿時即時通知',
+                    value: postureAlert,
+                    icon: Icons.warning_amber_rounded,
+                    onChanged: (value) => setState(() => postureAlert = value),
+                  ),
+                  buildSwitchTile(
+                    title: '久坐提醒',
+                    subtitle: '坐太久時提醒你起身活動',
+                    value: sedentaryAlert,
+                    icon: Icons.access_time_rounded,
+                    onChanged: (value) =>
+                        setState(() => sedentaryAlert = value),
+                  ),
+                  buildSwitchTile(
+                    title: '震動回饋',
+                    subtitle: '透過椅子震動提供快速提醒',
+                    value: vibrationAlert,
+                    icon: Icons.vibration_rounded,
+                    onChanged: (value) =>
+                        setState(() => vibrationAlert = value),
+                  ),
+                ],
+              );
+
+              if (constraints.maxWidth < 820) {
+                return Column(
                   children: [
-                    const Text(
-                      '使用者資料',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF0F172A),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    buildTextField(
-                      label: '身高',
-                      unit: 'cm',
-                      controller: heightController,
-                      icon: Icons.height_rounded,
-                      helper: '建議填寫實際身高，讓姿勢判斷更準確',
-                    ),
-                    buildTextField(
-                      label: '體重',
-                      unit: 'kg',
-                      controller: weightController,
-                      icon: Icons.monitor_weight_rounded,
-                    ),
+                    profilePanel,
+                    const SizedBox(height: 14),
+                    reminderPanel,
                   ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 1,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
-                      ),
-                      child: Row(
-                        children: const [
-                          Icon(
-                            Icons.notifications_active_rounded,
-                            color: Color(0xFF7C3AED),
-                          ),
-                          SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              '提醒設定',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w800,
-                                color: Color(0xFF0F172A),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    buildSwitchTile(
-                      title: '姿勢提醒',
-                      subtitle: '偵測到不良坐姿時即時通知',
-                      value: postureAlert,
-                      icon: Icons.warning_amber_rounded,
-                      onChanged: (value) =>
-                          setState(() => postureAlert = value),
-                    ),
-                    buildSwitchTile(
-                      title: '久坐提醒',
-                      subtitle: '坐太久時提醒你起身活動',
-                      value: sedentaryAlert,
-                      icon: Icons.access_time_rounded,
-                      onChanged: (value) =>
-                          setState(() => sedentaryAlert = value),
-                    ),
-                    buildSwitchTile(
-                      title: '震動回饋',
-                      subtitle: '透過椅子震動提供快速提醒',
-                      value: vibrationAlert,
-                      icon: Icons.vibration_rounded,
-                      onChanged: (value) =>
-                          setState(() => vibrationAlert = value),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+                );
+              }
+
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: profilePanel),
+                  const SizedBox(width: 18),
+                  Expanded(child: reminderPanel),
+                ],
+              );
+            },
           ),
 
           const SizedBox(height: 24),

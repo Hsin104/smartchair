@@ -135,10 +135,10 @@ class _HomePageState extends State<HomePage> {
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
                     child: Container(
-                      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                      padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(24),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withValues(alpha: 0.06),
@@ -171,10 +171,10 @@ class _HomePageState extends State<HomePage> {
                               return Expanded(
                                 child: Padding(
                                   padding: const EdgeInsets.symmetric(
-                                    horizontal: 3,
+                                    horizontal: 4,
                                   ),
                                   child: InkWell(
-                                    borderRadius: BorderRadius.circular(12),
+                                    borderRadius: BorderRadius.circular(18),
                                     onTap: () =>
                                         setState(() => currentIndex = index),
                                     child: AnimatedContainer(
@@ -182,14 +182,14 @@ class _HomePageState extends State<HomePage> {
                                         milliseconds: 180,
                                       ),
                                       padding: const EdgeInsets.symmetric(
-                                        vertical: 14,
-                                        horizontal: 12,
+                                        vertical: 18,
+                                        horizontal: 16,
                                       ),
                                       decoration: BoxDecoration(
                                         color: selected
                                             ? colorScheme.primary
                                             : const Color(0xFFF1F5F9),
-                                        borderRadius: BorderRadius.circular(14),
+                                        borderRadius: BorderRadius.circular(18),
                                       ),
                                       child: Row(
                                         mainAxisAlignment:
@@ -197,19 +197,19 @@ class _HomePageState extends State<HomePage> {
                                         children: [
                                           Icon(
                                             navItems[index]['icon'] as IconData,
-                                            size: selected ? 22 : 20,
+                                            size: selected ? 26 : 24,
                                             color: selected
                                                 ? Colors.white
                                                 : const Color(0xFF475569),
                                           ),
-                                          const SizedBox(width: 10),
+                                          const SizedBox(width: 14),
                                           Expanded(
                                             child: Text(
                                               navItems[index]['label']
                                                   as String,
                                               textAlign: TextAlign.center,
                                               style: TextStyle(
-                                                fontSize: selected ? 15 : 14,
+                                                fontSize: selected ? 18 : 17,
                                                 color: selected
                                                     ? Colors.white
                                                     : const Color(0xFF334155),
