@@ -452,7 +452,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
           const SizedBox(height: 14),
 
-          // 資訊卡片列
+          // 資訊卡片列（同一橫排顯示三張卡）
           Row(
             children: [
               _InfoCard(
@@ -468,25 +468,12 @@ class _DashboardPageState extends State<DashboardPage> {
                 icon: Icons.warning_amber_rounded,
                 accent: _color,
               ),
-            ],
-          ),
-
-          const SizedBox(height: 10),
-
-          Row(
-            children: [
+              const SizedBox(width: 10),
               _InfoCard(
                 title: '今日提醒',
                 value: '$_todayReminderCount 次',
                 icon: Icons.notifications_active_rounded,
                 accent: const Color(0xFF7C3AED),
-              ),
-              const SizedBox(width: 10),
-              _InfoCard(
-                title: '良好坐姿',
-                value: _goodPostureDurationText,
-                icon: Icons.check_circle_rounded,
-                accent: const Color(0xFF15803D),
               ),
             ],
           ),
@@ -556,12 +543,16 @@ class _DashboardPageState extends State<DashboardPage> {
                     ? _buildAdviceText(_advice)
                     : const Text(
                         '按下「取得 AI 建議」以查看 AI 建議。',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 14,
-                          height: 1.6,
+                          height: 1.0,
                           color: Color(0xFF334155),
                         ),
                       ),
+                const SizedBox(height: 14),
+
                 const SizedBox(height: 12),
                 TextField(
                   controller: _userMessageController,
@@ -713,9 +704,9 @@ class _InfoCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontSize: 13,
+                      fontSize: 16,
                       color: Color(0xFF64748B),
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),

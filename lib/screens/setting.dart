@@ -100,7 +100,6 @@ class _SettingPageState extends State<SettingPage> {
     final heightStr = heightController.text.trim();
     final weightStr = weightController.text.trim();
 
-    // 本地保存所有設定（偏好開關永遠只存在本地）
     await prefs.setString(_key('height'), heightStr);
     await prefs.setString(_key('weight'), weightStr);
     await prefs.setBool(_key('postureAlert'), postureAlert);
@@ -110,7 +109,6 @@ class _SettingPageState extends State<SettingPage> {
       '[Setting] Saved locally for scope=$_userScope: height=$heightStr, weight=$weightStr, postureAlert=$postureAlert, sedentaryAlert=$sedentaryAlert, vibrationAlert=$vibrationAlert',
     );
 
-    // 如果已登入，才把可同步的個資寫回後端；本地偏好不送後端
     if (widget.isLoggedIn) {
       try {
         final height = double.tryParse(heightStr);
@@ -248,71 +246,108 @@ class _SettingPageState extends State<SettingPage> {
               ],
             ),
           ),
-          const Text(
-            '使用者資料',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF0F172A),
-            ),
+
+          // 將使用者資料與提醒設定同列顯示，提醒設定直接展開（不收合）以節省點擊成本
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 2,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '使用者資料',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF0F172A),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    buildTextField(
+                      label: '身高',
+                      unit: 'cm',
+                      controller: heightController,
+                      icon: Icons.height_rounded,
+                      helper: '建議填寫實際身高，讓姿勢判斷更準確',
+                    ),
+                    buildTextField(
+                      label: '體重',
+                      unit: 'kg',
+                      controller: weightController,
+                      icon: Icons.monitor_weight_rounded,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 1,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Row(
+                        children: const [
+                          Icon(
+                            Icons.notifications_active_rounded,
+                            color: Color(0xFF7C3AED),
+                          ),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              '提醒設定',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF0F172A),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    buildSwitchTile(
+                      title: '姿勢提醒',
+                      subtitle: '偵測到不良坐姿時即時通知',
+                      value: postureAlert,
+                      icon: Icons.warning_amber_rounded,
+                      onChanged: (value) =>
+                          setState(() => postureAlert = value),
+                    ),
+                    buildSwitchTile(
+                      title: '久坐提醒',
+                      subtitle: '坐太久時提醒你起身活動',
+                      value: sedentaryAlert,
+                      icon: Icons.access_time_rounded,
+                      onChanged: (value) =>
+                          setState(() => sedentaryAlert = value),
+                    ),
+                    buildSwitchTile(
+                      title: '震動回饋',
+                      subtitle: '透過椅子震動提供快速提醒',
+                      value: vibrationAlert,
+                      icon: Icons.vibration_rounded,
+                      onChanged: (value) =>
+                          setState(() => vibrationAlert = value),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 12),
-          buildTextField(
-            label: '身高',
-            unit: 'cm',
-            controller: heightController,
-            icon: Icons.height_rounded,
-            helper: '建議填寫實際身高，讓姿勢判斷更準確',
-          ),
-          buildTextField(
-            label: '體重',
-            unit: 'kg',
-            controller: weightController,
-            icon: Icons.monitor_weight_rounded,
-          ),
-          const SizedBox(height: 10),
-          const Text(
-            '提醒設定',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF0F172A),
-            ),
-          ),
-          const SizedBox(height: 12),
-          buildSwitchTile(
-            title: '姿勢提醒',
-            subtitle: '偵測到不良坐姿時即時通知',
-            value: postureAlert,
-            icon: Icons.warning_amber_rounded,
-            onChanged: (value) {
-              setState(() {
-                postureAlert = value;
-              });
-            },
-          ),
-          buildSwitchTile(
-            title: '久坐提醒',
-            subtitle: '坐太久時提醒你起身活動',
-            value: sedentaryAlert,
-            icon: Icons.access_time_rounded,
-            onChanged: (value) {
-              setState(() {
-                sedentaryAlert = value;
-              });
-            },
-          ),
-          buildSwitchTile(
-            title: '震動回饋',
-            subtitle: '透過椅子震動提供快速提醒',
-            value: vibrationAlert,
-            icon: Icons.vibration_rounded,
-            onChanged: (value) {
-              setState(() {
-                vibrationAlert = value;
-              });
-            },
-          ),
+
           const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,

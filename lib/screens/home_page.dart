@@ -182,31 +182,39 @@ class _HomePageState extends State<HomePage> {
                                         milliseconds: 180,
                                       ),
                                       padding: const EdgeInsets.symmetric(
-                                        vertical: 8,
+                                        vertical: 14,
+                                        horizontal: 12,
                                       ),
                                       decoration: BoxDecoration(
                                         color: selected
                                             ? colorScheme.primary
                                             : const Color(0xFFF1F5F9),
-                                        borderRadius: BorderRadius.circular(12),
+                                        borderRadius: BorderRadius.circular(14),
                                       ),
-                                      child: Column(
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
                                         children: [
                                           Icon(
                                             navItems[index]['icon'] as IconData,
+                                            size: selected ? 22 : 20,
                                             color: selected
                                                 ? Colors.white
                                                 : const Color(0xFF475569),
                                           ),
-                                          const SizedBox(height: 2),
-                                          Text(
-                                            navItems[index]['label'] as String,
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              color: selected
-                                                  ? Colors.white
-                                                  : const Color(0xFF334155),
-                                              fontWeight: FontWeight.w700,
+                                          const SizedBox(width: 10),
+                                          Expanded(
+                                            child: Text(
+                                              navItems[index]['label']
+                                                  as String,
+                                              textAlign: TextAlign.center,
+                                              style: TextStyle(
+                                                fontSize: selected ? 15 : 14,
+                                                color: selected
+                                                    ? Colors.white
+                                                    : const Color(0xFF334155),
+                                                fontWeight: FontWeight.w800,
+                                              ),
                                             ),
                                           ),
                                         ],
