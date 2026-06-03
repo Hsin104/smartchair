@@ -178,34 +178,19 @@ class ChairSyncController extends ChangeNotifier {
       // Map server posture entries into controller format
       postureHistory.clear();
       if (history.isNotEmpty) {
-        final latest = history.first;
-        final code = latest['posture'] as String? ?? 'normal';
-        final displayName = ApiService.toDisplayName(code);
-        postureCode = code;
-        postureLabel = displayName;
-        postureScore = (latest['score'] as int?) ?? ApiService.toScore(code);
-        isGoodPosture = code == 'normal';
-        latestAdvice =
-            latest['physio_advice'] as String? ??
-            latest['advice'] as String? ??
-            (isGoodPosture ? '目前姿勢良好，請繼續維持。' : '請依照後端建議調整姿勢。');
-
-        // 如果最新狀態為「無人就坐」，則暫停計時（不計時）
-        // 否則：若目前沒有在計時（sessionOpenedAt 為 null），則開始計時
-        if (displayName == '無人就坐') {
-          sessionOpenedAt = null;
-        } else {
-          sessionOpenedAt ??= DateTime.now();
-        }
+        _applyPosturePayload(history.first);
       } else {
-        postureCode = '';
-        postureLabel = '無人就坐';
-        postureScore = 0;
-        isGoodPosture = false;
-        latestAdvice = '等待後端資料同步';
-
-        // 空的歷史視為無人就坐，暫停計時
-        sessionOpenedAt = null;
+        final chairStatus = await ApiService.getChairStatus();
+        if (chairStatus != null) {
+          _applyPosturePayload(chairStatus);
+        } else {
+          postureCode = '';
+          postureLabel = '無人就坐';
+          postureScore = 0;
+          isGoodPosture = false;
+          latestAdvice = '等待後端資料同步';
+          sessionOpenedAt = null;
+        }
       }
       for (final item in history) {
         final label =
@@ -251,6 +236,84 @@ class ChairSyncController extends ChangeNotifier {
   String _formatNow() {
     final now = TimeOfDay.now();
     return '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+  }
+
+  void _applyPosturePayload(Map<String, dynamic> payload) {
+    final source = _postureSource(payload);
+    final code = _postureCodeFrom(source);
+    final displayName = code.isEmpty ? '等待同步' : ApiService.toDisplayName(code);
+    final score = _intValue(source['score']) ?? ApiService.toScore(code);
+
+    postureCode = code;
+    postureLabel = displayName;
+    postureScore = score;
+    isGoodPosture = code == 'normal' || displayName == '姿勢正常';
+    latestAdvice =
+        source['physio_advice']?.toString() ??
+        source['advice']?.toString() ??
+        (isGoodPosture ? '目前姿勢良好，請繼續維持。' : '請依照後端建議調整姿勢。');
+
+    if (displayName == '無人就坐') {
+      sessionOpenedAt = null;
+    } else if (code.isNotEmpty) {
+      sessionOpenedAt ??= DateTime.now();
+    }
+  }
+
+  Map<String, dynamic> _postureSource(Map<String, dynamic> payload) {
+    for (final key in ['latest', 'current', 'posture_data', 'data']) {
+      final value = payload[key];
+      if (value is Map) {
+        return value.cast<String, dynamic>();
+      }
+    }
+    return payload;
+  }
+
+  String _postureCodeFrom(Map<String, dynamic> payload) {
+    final occupied =
+        payload['occupied'] ?? payload['is_occupied'] ?? payload['active'];
+    if (occupied == false) {
+      return 'empty';
+    }
+
+    for (final key in [
+      'posture',
+      'posture_code',
+      'current_posture',
+      'status',
+      'state',
+      'label',
+    ]) {
+      final value = payload[key]?.toString().trim();
+      if (value != null && value.isNotEmpty) {
+        return _normalizePostureCode(value);
+      }
+    }
+
+    return occupied == true ? '' : 'empty';
+  }
+
+  String _normalizePostureCode(String value) {
+    switch (value.toLowerCase()) {
+      case 'occupied':
+      case 'seated':
+      case 'sitting':
+        return 'normal';
+      case 'unoccupied':
+      case 'empty':
+      case 'none':
+      case 'no_data':
+        return 'empty';
+      default:
+        return value;
+    }
+  }
+
+  int? _intValue(Object? value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '');
   }
 
   String _notificationPostureLabel(Map<String, dynamic> item) {

@@ -16,6 +16,14 @@ class SmartChairApp extends StatefulWidget {
 
 class _SmartChairAppState extends State<SmartChairApp> {
   late final ChairSyncController chairSyncController;
+  static const _latinFont = 'Times New Roman';
+  static const _chineseFontFallback = [
+    '標楷體',
+    'DFKai-SB',
+    'BiauKai',
+    'KaiTi',
+    'serif',
+  ];
 
   @override
   void initState() {
@@ -41,6 +49,8 @@ class _SmartChairAppState extends State<SmartChairApp> {
       title: '智慧座椅',
       theme: ThemeData(
         useMaterial3: true,
+        fontFamily: _latinFont,
+        fontFamilyFallback: _chineseFontFallback,
         colorScheme: colorScheme,
         scaffoldBackgroundColor: const Color(0xFFF2F7FA),
         appBarTheme: const AppBarTheme(
@@ -58,7 +68,11 @@ class _SmartChairAppState extends State<SmartChairApp> {
         snackBarTheme: SnackBarThemeData(
           behavior: SnackBarBehavior.floating,
           backgroundColor: const Color(0xFF0F172A),
-          contentTextStyle: const TextStyle(color: Colors.white),
+          contentTextStyle: const TextStyle(
+            color: Colors.white,
+            fontFamily: _latinFont,
+            fontFamilyFallback: _chineseFontFallback,
+          ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),

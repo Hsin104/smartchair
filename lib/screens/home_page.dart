@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../state/chair_sync_controller.dart';
-import '../widgets/desk_pet_overlay.dart';
 import 'auth_page.dart';
 import 'dashboard.dart';
 import 'report.dart';
@@ -119,136 +118,114 @@ class _HomePageState extends State<HomePage> {
     ];
 
     return Scaffold(
-      body: Stack(
-        children: [
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Color(0xFFE9F7FC), Color(0xFFF5F8FA)],
-              ),
-            ),
-            child: SafeArea(
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
-                    child: Container(
-                      padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(24),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.06),
-                            blurRadius: 18,
-                            offset: const Offset(0, 8),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFFE9F7FC), Color(0xFFF5F8FA)],
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.06),
+                        blurRadius: 18,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          _BrandBadge(
+                            colorScheme: colorScheme,
+                            showWebTag: true,
+                            compact: false,
+                          ),
+                          const Spacer(),
+                          IconButton(
+                            onPressed: _logout,
+                            tooltip: '登出',
+                            icon: const Icon(Icons.logout_rounded),
                           ),
                         ],
                       ),
-                      child: Column(
-                        children: [
-                          Row(
-                            children: [
-                              _BrandBadge(
-                                colorScheme: colorScheme,
-                                showWebTag: true,
-                                compact: false,
+                      const SizedBox(height: 10),
+                      Row(
+                        children: List.generate(navItems.length, (index) {
+                          final bool selected = index == currentIndex;
+                          return Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
                               ),
-                              const Spacer(),
-                              IconButton(
-                                onPressed: _logout,
-                                tooltip: '登出',
-                                icon: const Icon(Icons.logout_rounded),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          Row(
-                            children: List.generate(navItems.length, (index) {
-                              final bool selected = index == currentIndex;
-                              return Expanded(
-                                child: Padding(
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(18),
+                                onTap: () =>
+                                    setState(() => currentIndex = index),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 180),
                                   padding: const EdgeInsets.symmetric(
-                                    horizontal: 4,
+                                    vertical: 18,
+                                    horizontal: 16,
                                   ),
-                                  child: InkWell(
+                                  decoration: BoxDecoration(
+                                    color: selected
+                                        ? colorScheme.primary
+                                        : const Color(0xFFF1F5F9),
                                     borderRadius: BorderRadius.circular(18),
-                                    onTap: () =>
-                                        setState(() => currentIndex = index),
-                                    child: AnimatedContainer(
-                                      duration: const Duration(
-                                        milliseconds: 180,
-                                      ),
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 18,
-                                        horizontal: 16,
-                                      ),
-                                      decoration: BoxDecoration(
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        navItems[index]['icon'] as IconData,
+                                        size: selected ? 26 : 24,
                                         color: selected
-                                            ? colorScheme.primary
-                                            : const Color(0xFFF1F5F9),
-                                        borderRadius: BorderRadius.circular(18),
+                                            ? Colors.white
+                                            : const Color(0xFF475569),
                                       ),
-                                      child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            navItems[index]['icon'] as IconData,
-                                            size: selected ? 26 : 24,
+                                      const SizedBox(width: 14),
+                                      Expanded(
+                                        child: Text(
+                                          navItems[index]['label'] as String,
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            fontSize: selected ? 18 : 17,
                                             color: selected
                                                 ? Colors.white
-                                                : const Color(0xFF475569),
+                                                : const Color(0xFF334155),
+                                            fontWeight: FontWeight.w800,
                                           ),
-                                          const SizedBox(width: 14),
-                                          Expanded(
-                                            child: Text(
-                                              navItems[index]['label']
-                                                  as String,
-                                              textAlign: TextAlign.center,
-                                              style: TextStyle(
-                                                fontSize: selected ? 18 : 17,
-                                                color: selected
-                                                    ? Colors.white
-                                                    : const Color(0xFF334155),
-                                                fontWeight: FontWeight.w800,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
+                                        ),
                                       ),
-                                    ),
+                                    ],
                                   ),
                                 ),
-                              );
-                            }),
-                          ),
-                        ],
+                              ),
+                            ),
+                          );
+                        }),
                       ),
-                    ),
+                    ],
                   ),
-                  Expanded(child: pages[currentIndex]),
-                ],
+                ),
               ),
-            ),
+              Expanded(child: pages[currentIndex]),
+            ],
           ),
-          Positioned(
-            right: 20,
-            bottom: 20,
-            child: Builder(
-              builder: (context) {
-                final width = MediaQuery.sizeOf(context).width;
-                if (width < 900) return const SizedBox.shrink();
-
-                return IgnorePointer(
-                  child: DeskPetOverlay(controller: widget.chairSyncController),
-                );
-              },
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

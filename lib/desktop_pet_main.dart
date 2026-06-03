@@ -76,7 +76,7 @@ Future<void> main() async {
       label: '退出',
       onClicked: (menuItem) async {
         await tray.destroy();
-        // 程序退出
+        // 程式退出
         exit(0);
       },
     ),
@@ -105,6 +105,9 @@ class DesktopPetApp extends StatefulWidget {
 
 class _DesktopPetAppState extends State<DesktopPetApp>
     with WidgetsBindingObserver {
+  static const _desktopUsername = String.fromEnvironment('DESKTOP_USERNAME');
+  static const _desktopPassword = String.fromEnvironment('DESKTOP_PASSWORD');
+
   late final ChairSyncController chairSyncController;
 
   @override
@@ -115,7 +118,15 @@ class _DesktopPetAppState extends State<DesktopPetApp>
   }
 
   Future<void> _startSync() async {
-    if (!await ApiService.isLoggedIn()) return;
+    if (!await ApiService.isLoggedIn() &&
+        _desktopUsername.isNotEmpty &&
+        _desktopPassword.isNotEmpty) {
+      final result = await ApiService.login(_desktopUsername, _desktopPassword);
+      if (!result.success) {
+        debugPrint('Desktop pet login failed: ${result.message}');
+      }
+    }
+
     await ApiService.chairCheckin();
     chairSyncController.startSession();
     chairSyncController.startAutoSync();

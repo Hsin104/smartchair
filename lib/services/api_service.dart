@@ -14,6 +14,7 @@ class ApiService {
   );
 
   static const String apiPrefix = '/api';
+  static const String authTokenOverride = String.fromEnvironment('AUTH_TOKEN');
 
   static String _apiBaseUrl() {
     final trimmed = baseUrl.endsWith('/')
@@ -62,7 +63,11 @@ class ApiService {
   // ── Token 管理 ──────────────────────────────────────────────
   static Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('auth_token');
+    final savedToken = prefs.getString('auth_token');
+    if (savedToken != null && savedToken.isNotEmpty) {
+      return savedToken;
+    }
+    return authTokenOverride.isNotEmpty ? authTokenOverride : null;
   }
 
   static Future<String?> getUserEmail() async {
