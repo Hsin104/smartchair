@@ -2,9 +2,16 @@ import 'package:flutter/material.dart';
 import '../state/chair_sync_controller.dart';
 
 class DeskPetOverlay extends StatefulWidget {
-  const DeskPetOverlay({super.key, required this.controller});
+  const DeskPetOverlay({
+    super.key,
+    required this.controller,
+    this.onDragStart,
+    this.onClose,
+  });
 
   final ChairSyncController controller;
+  final Future<void> Function()? onDragStart;
+  final Future<void> Function()? onClose;
 
   @override
   State<DeskPetOverlay> createState() => _DeskPetOverlayState();
@@ -103,104 +110,175 @@ class _DeskPetOverlayState extends State<DeskPetOverlay>
                   3.2 *
                   posture.reminderIntensity;
 
-        return Container(
-          width: 270,
-          padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
-          decoration: BoxDecoration(
-            color: const Color(0xFFFEFFFD),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: accent.withValues(alpha: 0.30)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.12),
-                blurRadius: 18,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      accent.withValues(alpha: 0.17),
-                      accent.withValues(alpha: 0.08),
+        return MouseRegion(
+          cursor: widget.onDragStart == null
+              ? MouseCursor.defer
+              : SystemMouseCursors.move,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onPanStart: widget.onDragStart == null
+                ? null
+                : (_) async {
+                    await widget.onDragStart?.call();
+                  },
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  width: 310,
+                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEFFFD),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: accent.withValues(alpha: 0.30)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.12),
+                        blurRadius: 18,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 28,
+                            height: 28,
+                            decoration: BoxDecoration(
+                              color: accent.withValues(alpha: 0.14),
+                              borderRadius: BorderRadius.circular(9),
+                            ),
+                            child: Icon(
+                              Icons.event_seat_rounded,
+                              color: accent,
+                              size: 18,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'SmartChair Pet',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: accent,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                          if (widget.onClose != null)
+                            GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () async {
+                                await widget.onClose?.call();
+                              },
+                              child: Container(
+                                width: 28,
+                                height: 28,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF0F172A),
+                                  borderRadius: BorderRadius.circular(9),
+                                ),
+                                child: const Icon(
+                                  Icons.close_rounded,
+                                  color: Colors.white,
+                                  size: 18,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.fromLTRB(10, 8, 10, 7),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              accent.withValues(alpha: 0.17),
+                              accent.withValues(alpha: 0.08),
+                            ],
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: _PetScene(
+                                isGoodPosture:
+                                    widget.controller.isGoodPosture,
+                                leanAngle: posture.leanAngle,
+                                leanShift: posture.leanShift + shakeOffset,
+                                forwardOffset: posture.forwardOffset,
+                                chairBackTilt: posture.chairBackTilt,
+                                showDeskHint: posture.showDeskHint,
+                                gazeX: posture.gazeX,
+                                gazeY: posture.gazeY,
+                                shoulderLift: posture.shoulderLift,
+                                neckReach: posture.neckReach,
+                                reminderIntensity: posture.reminderIntensity,
+                                breathOffset: breathOffset,
+                                eyeOpenFactor: eyeOpenFactor,
+                                showReminderMotion:
+                                    !widget.controller.isGoodPosture,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            RotatedBox(
+                              quarterTurns: 3,
+                              child: Text(
+                                !hasActivePosture
+                                    ? 'NO DATA'
+                                    : widget.controller.isGoodPosture
+                                    ? 'GOOD POSTURE'
+                                    : 'FIX POSTURE',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  color: accent,
+                                  letterSpacing: 0.8,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        hasActivePosture
+                            ? '坐姿：${widget.controller.postureLabel} (${widget.controller.postureScore} 分)'
+                            : '坐姿：無人就坐',
+                        style: const TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF1E293B),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        !hasActivePosture
+                            ? '等待後端同步坐姿資料'
+                            : widget.controller.isGoodPosture
+                            ? '狀態良好，繼續保持'
+                            : '偵測到不良姿勢，請微調坐姿',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          color: accent,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ],
                   ),
                 ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: _PetScene(
-                        isGoodPosture: widget.controller.isGoodPosture,
-                        leanAngle: posture.leanAngle,
-                        leanShift: posture.leanShift + shakeOffset,
-                        forwardOffset: posture.forwardOffset,
-                        chairBackTilt: posture.chairBackTilt,
-                        showDeskHint: posture.showDeskHint,
-                        gazeX: posture.gazeX,
-                        gazeY: posture.gazeY,
-                        shoulderLift: posture.shoulderLift,
-                        neckReach: posture.neckReach,
-                        reminderIntensity: posture.reminderIntensity,
-                        breathOffset: breathOffset,
-                        eyeOpenFactor: eyeOpenFactor,
-                        showReminderMotion: !widget.controller.isGoodPosture,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    RotatedBox(
-                      quarterTurns: 3,
-                      child: Text(
-                        !hasActivePosture
-                            ? 'NO DATA'
-                            : widget.controller.isGoodPosture
-                            ? 'GOOD POSTURE'
-                            : 'FIX POSTURE',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                          color: accent,
-                          letterSpacing: 0.8,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                hasActivePosture
-                    ? '坐姿：${widget.controller.postureLabel} (${widget.controller.postureScore} 分)'
-                    : '坐姿：無人就坐',
-                style: const TextStyle(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF1E293B),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                !hasActivePosture
-                    ? '等待後端同步坐姿資料'
-                    : widget.controller.isGoodPosture
-                    ? '狀態良好，繼續保持'
-                    : '偵測到不良姿勢，請微調坐姿',
-                style: TextStyle(
-                  fontSize: 11.5,
-                  color: accent,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },

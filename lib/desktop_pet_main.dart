@@ -15,7 +15,7 @@ Future<void> main() async {
   await windowManager.ensureInitialized();
 
   final options = WindowOptions(
-    size: const Size(300, 140),
+    size: const Size(360, 260),
     center: false,
     backgroundColor: Colors.transparent,
     skipTaskbar: true,
@@ -41,15 +41,22 @@ Future<void> main() async {
     await windowManager.focus();
   });
 
-  // 初始化系統托盤
   final tray = SystemTray();
-  String iconPath = 'assets/tray_icon.ico';
-  if (!File(iconPath).existsSync()) {
-    // 若沒有 icon，使用空白（system_tray 需要 icon，提醒使用者自行放置）
-    debugPrint(
-      'Warning: $iconPath not found. Please add an ICO file at that path for the tray icon.',
-    );
-  }
+  var trayReady = false;
+
+  runApp(
+    DesktopPetApp(
+      onClose: () async {
+        if (trayReady) {
+          await tray.destroy();
+        }
+        exit(0);
+      },
+    ),
+  );
+
+  // 初始化系統托盤
+  final iconPath = File('assets/tray_icon.ico').absolute.path;
 
   final menu = Menu();
   await menu.buildFrom([
@@ -75,14 +82,22 @@ Future<void> main() async {
     ),
   ]);
 
-  await tray.initSystemTray(iconPath: iconPath, toolTip: 'SmartChair Pet');
-  await tray.setContextMenu(menu);
-
-  runApp(const DesktopPetApp());
+  try {
+    if (!File(iconPath).existsSync()) {
+      throw FileSystemException('Tray icon not found', iconPath);
+    }
+    await tray.initSystemTray(iconPath: iconPath, toolTip: 'SmartChair Pet');
+    await tray.setContextMenu(menu);
+    trayReady = true;
+  } catch (error) {
+    debugPrint('System tray disabled: $error');
+  }
 }
 
 class DesktopPetApp extends StatefulWidget {
-  const DesktopPetApp({super.key});
+  const DesktopPetApp({super.key, required this.onClose});
+
+  final Future<void> Function() onClose;
 
   @override
   State<DesktopPetApp> createState() => _DesktopPetAppState();
@@ -116,23 +131,21 @@ class _DesktopPetAppState extends State<DesktopPetApp>
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      // 字體設定：主要使用繁體中文「標楷體」，英文與數字嘗試使用 Times New Roman 作為 fallback。
-      // 若需穩定跨平台顯示，請將字體檔加入 assets 並在 pubspec.yaml 中註冊。
       theme: ThemeData(
-        fontFamily: '標楷體',
-        fontFamilyFallback: ['Times New Roman', 'serif'],
         textTheme: Typography.material2018().black.apply(
-          fontFamily: '標楷體',
           bodyColor: const Color(0xFF0F172A),
         ),
       ),
       home: Scaffold(
         backgroundColor: Colors.transparent,
-        body: Align(
-          alignment: Alignment.bottomRight,
+        body: Center(
           child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: DeskPetOverlay(controller: chairSyncController),
+            padding: const EdgeInsets.all(14),
+            child: DeskPetOverlay(
+              controller: chairSyncController,
+              onDragStart: windowManager.startDragging,
+              onClose: widget.onClose,
+            ),
           ),
         ),
       ),
