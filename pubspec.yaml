@@ -27,6 +27,37 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  fonts:
+    - family: SmartChairTimes
+      fonts:
+        - asset: assets/fonts/times.ttf
+          weight: 400
+        - asset: assets/fonts/timesbd.ttf
+          weight: 700
+        - asset: assets/fonts/timesbd.ttf
+          weight: 800
+        - asset: assets/fonts/timesbd.ttf
+          weight: 900
+    - family: SmartChairKai
+      fonts:
+        - asset: assets/fonts/kaiu.ttf
+          weight: 100
+        - asset: assets/fonts/kaiu.ttf
+          weight: 200
+        - asset: assets/fonts/kaiu.ttf
+          weight: 300
+        - asset: assets/fonts/kaiu.ttf
+          weight: 400
+        - asset: assets/fonts/kaiu.ttf
+          weight: 500
+        - asset: assets/fonts/kaiu.ttf
+          weight: 600
+        - asset: assets/fonts/kaiu.ttf
+          weight: 700
+        - asset: assets/fonts/kaiu.ttf
+          weight: 800
+        - asset: assets/fonts/kaiu.ttf
+          weight: 900
   assets:
     - assets/tray_icon.ico
     

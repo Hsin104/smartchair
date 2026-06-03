@@ -31,6 +31,41 @@
 
   <title>smart_chair_app</title>
   <link rel="manifest" href="manifest.json">
+  <style>
+    @font-face {
+      font-family: "SmartChairTimes";
+      src: url("assets/assets/fonts/times.ttf") format("truetype"), local("Times New Roman");
+      font-weight: 400;
+      unicode-range: U+0000-00FF, U+2000-206F;
+    }
+
+    @font-face {
+      font-family: "SmartChairTimes";
+      src: url("assets/assets/fonts/timesbd.ttf") format("truetype"), local("Times New Roman Bold");
+      font-weight: 700 900;
+      unicode-range: U+0000-00FF, U+2000-206F;
+    }
+
+    @font-face {
+      font-family: "SmartChairKai";
+      src: url("assets/assets/fonts/kaiu.ttf") format("truetype"), local("DFKai-SB"), local("標楷體");
+      font-weight: 100 900;
+      unicode-range:
+        U+2E80-2EFF,
+        U+2F00-2FDF,
+        U+3000-303F,
+        U+3100-312F,
+        U+31A0-31BF,
+        U+3400-4DBF,
+        U+4E00-9FFF,
+        U+F900-FAFF,
+        U+FF00-FFEF;
+    }
+
+    html, body, flt-glass-pane {
+      font-family: "SmartChairTimes", "SmartChairKai", serif;
+    }
+  </style>
 </head>
 <body>
   <!--
