@@ -59,9 +59,9 @@ class ChairSyncController extends ChangeNotifier {
         '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
 
     notifications.insert(0, {
-      'title': '偵測到不良坐姿',
+      'title': posture,
       'time': timeText,
-      'message': '目前姿勢為「$posture」，請調整坐姿。',
+      'message': '坐姿提醒：請調整坐姿。',
       'icon': Icons.warning_amber_rounded,
       'color': _postureColor(posture),
     });
@@ -70,16 +70,40 @@ class ChairSyncController extends ChangeNotifier {
   }
 
   Color _postureColor(String label) {
+    if (label.contains('前傾')) {
+      return const Color(0xFFDC2626);
+    }
+    if (label.contains('左傾') || label.contains('左側傾斜')) {
+      return const Color(0xFFEA580C);
+    }
+    if (label.contains('右傾') || label.contains('右側傾斜')) {
+      return const Color(0xFFC2410C);
+    }
+    if (label.contains('後仰')) {
+      return const Color(0xFF2563EB);
+    }
+    if (label.contains('久坐')) {
+      return const Color(0xFF7C3AED);
+    }
+
     switch (label) {
+      case 'normal':
+      case '姿勢正常':
+        return const Color(0xFF16A34A);
+      case 'forward':
       // 中文顯示名稱（dashboard 傳入的是中文）
       case '頭部前傾':
         return const Color(0xFFDC2626);
+      case 'left':
       case '身體左傾':
         return const Color(0xFFEA580C);
+      case 'right':
       case '身體右傾':
         return const Color(0xFFC2410C);
+      case 'recline':
       case '過度後仰':
         return const Color(0xFF2563EB);
+      case 'sedentary':
       case '久坐未動':
         return const Color(0xFF7C3AED);
       // 相容舊版中文
@@ -94,7 +118,7 @@ class ChairSyncController extends ChangeNotifier {
       case '久坐過久':
         return const Color(0xFF7C3AED);
       default:
-        return Colors.red;
+        return const Color(0xFF64748B);
     }
   }
 
@@ -204,15 +228,11 @@ class ChairSyncController extends ChangeNotifier {
       // Update notifications from history list
       notifications.clear();
       for (final n in notificationHistory) {
-        final posture =
-            n['posture'] as String? ??
-            n['posture_code'] as String? ??
-            n['type'] as String? ??
-            'normal';
-        final title = _notificationTitle(n);
-        final message = _notificationMessage(n);
+        final displayPosture = _notificationPostureLabel(n);
+        final title = displayPosture;
+        final message = _notificationMessage(n, displayPosture);
         final time = _notificationTime(n);
-        final color = _postureColor(posture);
+        final color = _postureColor(displayPosture);
         notifications.add({
           'title': title,
           'time': time.isNotEmpty ? time : _formatNow(),
@@ -233,41 +253,53 @@ class ChairSyncController extends ChangeNotifier {
     return '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
   }
 
-  String _notificationTitle(Map<String, dynamic> item) {
-    final title = item['title']?.toString().trim();
-    if (title != null && title.isNotEmpty) {
-      return title;
+  String _notificationPostureLabel(Map<String, dynamic> item) {
+    for (final key in ['posture', 'posture_code', 'posture_display', 'label']) {
+      final raw = item[key]?.toString().trim();
+      if (raw != null && raw.isNotEmpty) {
+        final displayName = ApiService.toDisplayName(raw);
+        if (displayName != '姿勢正常' &&
+            displayName != 'normal' &&
+            displayName != 'notification' &&
+            displayName != 'alert') {
+          return displayName;
+        }
+      }
     }
 
-    final level = item['level']?.toString().toLowerCase();
-    if (level == 'warning' || level == 'warn') {
-      return '偵測到警示';
+    final message =
+        item['message']?.toString().trim() ??
+        item['content']?.toString().trim() ??
+        item['description']?.toString().trim() ??
+        '';
+    final parsed = RegExp(
+      r'坐姿(?:提醒|通知)\s*[:：]\s*([^，。,.]+)',
+    ).firstMatch(message);
+    if (parsed != null) {
+      return parsed.group(1)?.trim() ?? '姿勢提醒';
     }
 
-    final type = item['type']?.toString().toLowerCase();
-    if (type == 'notification' || type == 'alert') {
-      return '系統通知';
+    final quoted = RegExp(r'目前姿勢為[「"]([^」"]+)[」"]').firstMatch(message);
+    if (quoted != null) {
+      return quoted.group(1)?.trim() ?? '姿勢提醒';
     }
 
-    return '通知';
+    return '姿勢提醒';
   }
 
-  String _notificationMessage(Map<String, dynamic> item) {
+  String _notificationMessage(Map<String, dynamic> item, String postureLabel) {
     final message =
         item['message']?.toString().trim() ??
         item['content']?.toString().trim() ??
         item['description']?.toString().trim();
     if (message != null && message.isNotEmpty) {
-      return message;
+      final cleaned = message
+          .replaceAll('通知', '提醒')
+          .replaceAll(RegExp(r'^坐姿提醒\s*[:：]\s*'), '');
+      return '坐姿提醒：$cleaned';
     }
 
-    final posture =
-        item['posture']?.toString() ?? item['posture_code']?.toString() ?? '';
-    if (posture.isNotEmpty) {
-      return '目前姿勢為「${ApiService.toDisplayName(posture)}」，請調整坐姿。';
-    }
-
-    return '後端尚未提供詳細訊息。';
+    return '坐姿提醒：$postureLabel，請調整坐姿。';
   }
 
   String _notificationTime(Map<String, dynamic> item) {

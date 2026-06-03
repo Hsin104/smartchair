@@ -33,6 +33,27 @@ class _NotificationPageState extends State<NotificationPage> {
     return '其它';
   }
 
+  IconData _postureIcon(String title) {
+    switch (title) {
+      case '頭部前傾':
+      case '身體前傾':
+        return Icons.accessibility_new_rounded;
+      case '身體左傾':
+      case '身體右傾':
+      case '左側傾斜':
+      case '右側傾斜':
+        return Icons.swap_horiz_rounded;
+      case '過度後仰':
+      case '後仰過多':
+        return Icons.airline_seat_recline_extra_rounded;
+      case '久坐未動':
+      case '久坐過久':
+        return Icons.hourglass_bottom_rounded;
+      default:
+        return Icons.airline_seat_recline_normal_rounded;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
@@ -63,7 +84,7 @@ class _NotificationPageState extends State<NotificationPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      '歷史通知',
+                      '姿勢提醒紀錄',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 24,
@@ -72,7 +93,7 @@ class _NotificationPageState extends State<NotificationPage> {
                     ),
                     const SizedBox(height: 4),
                     const Text(
-                      '此處列出已記錄的通知與提醒，點擊可檢視詳情。',
+                      '此處列出已記錄的坐姿狀態，方便快速回看異常類型。',
                       style: TextStyle(color: Colors.white70, fontSize: 13),
                     ),
                     const SizedBox(height: 12),
@@ -105,50 +126,61 @@ class _NotificationPageState extends State<NotificationPage> {
 
               ...notifications.map((item) {
                 final color = item['color'] as Color;
+                final title = item['title'] as String;
 
                 return Container(
                   margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.all(14),
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: color.withValues(alpha: 0.07),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: color.withValues(alpha: 0.22)),
+                    border: Border.all(color: color.withValues(alpha: 0.35)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: color.withValues(alpha: 0.08),
+                        blurRadius: 16,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
                   ),
                   child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Container(
-                        width: 46,
-                        height: 46,
+                        width: 52,
+                        height: 52,
                         decoration: BoxDecoration(
-                          color: color.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(12),
+                          color: color.withValues(alpha: 0.16),
+                          borderRadius: BorderRadius.circular(14),
                         ),
                         child: Icon(
-                          item['icon'] as IconData,
+                          _postureIcon(title),
                           color: color,
-                          size: 24,
+                          size: 28,
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 14),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              item['title'] as String,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                color: Color(0xFF0F172A),
-                                fontWeight: FontWeight.w800,
+                              title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 24,
+                                color: color,
+                                fontWeight: FontWeight.w900,
                               ),
                             ),
                             const SizedBox(height: 6),
                             Text(
                               item['message'] as String,
                               style: const TextStyle(
-                                fontSize: 14,
+                                fontSize: 15,
                                 color: Color(0xFF334155),
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
                           ],
@@ -161,10 +193,10 @@ class _NotificationPageState extends State<NotificationPage> {
                         children: [
                           Text(
                             item['time'] as String,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Color(0xFF64748B),
-                              fontWeight: FontWeight.w600,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: color,
+                              fontWeight: FontWeight.w800,
                             ),
                           ),
                           // status dot removed per request
