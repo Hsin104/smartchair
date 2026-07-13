@@ -1,0 +1,189 @@
+{
+  "version": "1.0",
+  "description": "各坐姿問題對應的伸展動作與影片連結，供 Physio Agent 生成個人化伸展計劃時引用",
+  "exercises": [
+    {
+      "id": "chin_tuck",
+      "name": "頸部後收（Chin Tuck）",
+      "target_postures": ["forward"],
+      "target_muscles": "頸椎前側肌群、頸部深層屈肌",
+      "duration": "每次維持 5 秒，重複 10 次",
+      "steps": [
+        "坐直，雙眼平視前方",
+        "下巴水平往後收（不是低頭），感受後頸拉伸",
+        "維持 5 秒後放鬆",
+        "重複 10 次"
+      ],
+      "video_url": "https://www.youtube.com/watch?v=33R_bt_k1WY",
+      "video_title": "你也有烏龜頸嗎？3個在家就能做的姿勢調整動作"
+    },
+    {
+      "id": "neck_strengthening",
+      "name": "強化頸部四式",
+      "target_postures": ["forward"],
+      "target_muscles": "頸部周圍肌群",
+      "duration": "各方向 10 次，共 4 個方向",
+      "steps": [
+        "坐直，用手掌輕壓額頭，頸部與手掌對抗施力，維持 3 秒",
+        "手掌移至後腦，頸部向後施力對抗，維持 3 秒",
+        "手掌壓左側頭部，頸部向左施力對抗，維持 3 秒",
+        "換右側重複",
+        "每方向各做 10 次"
+      ],
+      "video_url": "https://www.youtube.com/watch?v=kCVQNqp8Rq4",
+      "video_title": "解決烏龜頸，強化脖子四種運動"
+    },
+    {
+      "id": "thoracic_extension",
+      "name": "胸椎後展",
+      "target_postures": ["forward"],
+      "target_muscles": "胸椎、胸大肌、肩膀前側",
+      "duration": "維持 10 秒，重複 5 次",
+      "steps": [
+        "坐直，雙手交扣放於頸後",
+        "手肘向外展開，身體緩緩向後仰",
+        "感受胸口打開、胸椎伸展",
+        "維持 10 秒後回正",
+        "重複 5 次"
+      ],
+      "video_url": "https://www.youtube.com/watch?v=ZkrsbgfYDY4",
+      "video_title": "有駝背、烏龜頸的困擾？4運動練好體態"
+    },
+    {
+      "id": "cat_cow",
+      "name": "貓牛式",
+      "target_postures": ["recline"],
+      "target_muscles": "脊椎周圍肌群、核心肌群",
+      "duration": "各維持 5 秒，重複 10 次",
+      "steps": [
+        "四肢跪地，手腕在肩膀正下方，膝蓋在髖部正下方",
+        "吸氣時：腹部下沉，頭部抬高，腰部向下凹（牛式）",
+        "吐氣時：拱起背部，頭部低下，腰部向上拱（貓式）",
+        "緩慢交替，各維持 5 秒",
+        "重複 10 次"
+      ],
+      "video_url": "https://www.youtube.com/watch?v=xkc1D22OUzI",
+      "video_title": "五招輕鬆解決下背痛"
+    },
+    {
+      "id": "erector_spinae_stretch",
+      "name": "豎脊肌伸展（抱膝）",
+      "target_postures": ["recline"],
+      "target_muscles": "豎脊肌、下背肌群",
+      "duration": "維持 20 秒，重複 3 次",
+      "steps": [
+        "仰躺於地板或床上",
+        "雙膝彎曲，雙手抱住膝蓋往胸口拉",
+        "感受下背部放鬆伸展",
+        "維持 20 秒後放鬆",
+        "重複 3 次"
+      ],
+      "video_url": "https://www.youtube.com/watch?v=VRh82tdjfdE",
+      "video_title": "5招簡單的伸展舒緩下背痛"
+    },
+    {
+      "id": "spinal_twist",
+      "name": "脊椎扭轉拉伸",
+      "target_postures": ["recline"],
+      "target_muscles": "脊椎旋轉肌群、腰方肌",
+      "duration": "每側維持 30 秒，左右各做",
+      "steps": [
+        "仰躺，膝蓋彎曲踩地",
+        "雙臂向兩側平展",
+        "膝蓋緩緩倒向右側，頭轉向左側",
+        "保持雙肩貼地，感受脊椎扭轉",
+        "維持 30 秒後換邊"
+      ],
+      "video_url": "https://www.youtube.com/watch?v=n1On3aUs6lA",
+      "video_title": "脊椎扭轉拉伸（睡前適用）"
+    },
+    {
+      "id": "lateral_bend",
+      "name": "脊椎側彎矯正 3 招",
+      "target_postures": ["left", "right"],
+      "target_muscles": "脊椎側邊肌群、腰方肌、肋間肌",
+      "duration": "每側維持 10 秒，重複 5 次",
+      "steps": [
+        "站直或坐直，雙腳與肩同寬",
+        "右手舉高過頭",
+        "身體緩緩向左側彎，感受右側腰部拉伸",
+        "維持 10 秒後回正",
+        "換左手舉高往右側彎",
+        "各方向重複 5 次"
+      ],
+      "video_url": "https://www.youtube.com/watch?v=KjGajBEWkzg",
+      "video_title": "3招矯正脊椎側彎"
+    },
+    {
+      "id": "scoliosis_exercises",
+      "name": "5招側彎改善運動",
+      "target_postures": ["left", "right"],
+      "target_muscles": "脊椎側邊、核心穩定肌群",
+      "duration": "每個動作維持 15 秒，重複 3 次",
+      "steps": [
+        "坐直，雙手向兩側平舉",
+        "上半身慢慢往縮短側（彎曲側）反方向伸展",
+        "配合深呼吸，吸氣時拉長，吐氣時維持",
+        "側臥伸展：躺向縮短側，讓重力輔助拉開",
+        "維持 15 秒，重複 3 次"
+      ],
+      "video_url": "https://www.youtube.com/watch?v=tbO-7fHBDb0",
+      "video_title": "5招改善脊柱側彎"
+    },
+    {
+      "id": "full_body_seated_stretch",
+      "name": "全身坐姿伸展（10 分鐘）",
+      "target_postures": ["sedentary"],
+      "target_muscles": "頸、肩、胸、腰、臀全部位",
+      "duration": "10 分鐘，建議每工作 1 小時做一次",
+      "steps": [
+        "頸部：左右側彎各 10 秒，前後各 10 秒",
+        "肩膀：向前繞圈 10 次，向後繞圈 10 次",
+        "胸口：雙手後扣，挺胸向上，維持 10 秒",
+        "腰部：坐姿扭轉，雙手放膝，上身轉向右方維持 10 秒，換左",
+        "臀部：一腳踝放另一膝蓋上，身體前傾，感受臀部伸展，各 20 秒"
+      ],
+      "video_url": "https://www.youtube.com/watch?v=VPa-SA0dAw0",
+      "video_title": "10分鐘坐姿伸展"
+    },
+    {
+      "id": "office_quick_stretch",
+      "name": "5 分鐘辦公室快速舒緩",
+      "target_postures": ["sedentary"],
+      "target_muscles": "肩頸、腰部",
+      "duration": "5 分鐘，不離座即可完成",
+      "steps": [
+        "肩頸：雙肩同時向上聳起後放下，重複 10 次",
+        "頸部：緩緩向右轉到底，維持 5 秒，換左",
+        "上背：雙手交扣向前推，拱背伸展，維持 10 秒",
+        "腰部：坐直，雙手叉腰，左右輕轉各 5 次",
+        "起立：緩緩起立再坐下，重複 5 次啟動臀肌"
+      ],
+      "video_url": "https://www.youtube.com/watch?v=e6KfzPVTyRM",
+      "video_title": "5分鐘辦公室運動"
+    },
+    {
+      "id": "spine_stretch_for_sedentary",
+      "name": "5 分鐘脊椎伸展（久坐腰痛專用）",
+      "target_postures": ["sedentary"],
+      "target_muscles": "脊椎、骨盆周圍、髖屈肌",
+      "duration": "5 分鐘",
+      "steps": [
+        "骨盆復位：坐在椅子前緣，骨盆前後各傾 5 次，找到中立位",
+        "脊椎前彎：坐直後身體慢慢向前彎，雙手垂向地板，維持 15 秒",
+        "胸椎旋轉：雙手放胸口，上半身向右轉到底，維持 10 秒，換左",
+        "髖屈肌伸展：站起，一腳向後踩，前腳弓步下沉，感受後腳髖部前側拉伸，各 20 秒"
+      ],
+      "video_url": "https://www.youtube.com/watch?v=cborst0Nai8",
+      "video_title": "5分鐘改善腰痛下背痛"
+    }
+  ],
+  "posture_exercise_map": {
+    "forward":   ["chin_tuck", "neck_strengthening", "thoracic_extension"],
+    "recline":   ["cat_cow", "erector_spinae_stretch", "spinal_twist"],
+    "left":      ["lateral_bend", "scoliosis_exercises"],
+    "right":     ["lateral_bend", "scoliosis_exercises"],
+    "sedentary": ["full_body_seated_stretch", "office_quick_stretch", "spine_stretch_for_sedentary"],
+    "normal":    ["full_body_seated_stretch"]
+  }
+}
