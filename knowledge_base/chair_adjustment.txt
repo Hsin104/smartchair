@@ -1,0 +1,30 @@
+來源機構：CCOHS / ANSI/HFES 100-2007 / Cornell University Ergonomics
+主題：辦公椅座深、扶手、椅背腰靠調整標準
+
+正確設置原則：
+- 座深（2-3指原則）：膝窩與椅面邊緣應保留約2-3指（3-5公分）的空隙，座墊過深會壓迫膝窩、影響下肢循環
+- 扶手高度：肩膀自然放鬆下垂時，扶手應恰好托住手肘下緣，前臂與上臂呈約90度
+- 椅背腰靠：腰靠支撐點應對準腰椎自然前凸處（約為皮帶線位置），過低或過高都無法有效支撐，會使骨盆向後傾
+- 椅背傾角：建議維持100-110度後傾，減少腰椎椎間盤壓力
+
+常見錯誤設置與後果：
+- 座墊太深 → 被迫駝背前移才能踩地，形成過度後仰或前傾代償姿勢
+- 腰靠位置過低 → 骨盆後傾，腰椎曲度消失，形成過度後仰
+- 扶手過高 → 聳肩，斜方肌緊繃
+
+立即改善動作：
+1. 坐滿椅子後檢查膝窩與座墊邊緣距離，超過一個拳頭則需調整椅背前移或更換椅型
+2. 站立時用手觸摸腰椎自然前凸位置，坐下後調整腰靠至同一高度
+3. 放鬆肩膀，調整扶手至恰好托住手肘
+
+長期預防：
+- 定期（每次久坐前）重新確認腰靠與座深設置，避免因移動椅子或更換使用者而失準
+- 搭配動態坐姿（微調椅背角度）減少單一姿勢的持續壓力
+
+智慧椅研究補充（學術來源）：
+- 個人化椅背與座墊感測器可即時偵測坐姿壓力分佈重心偏移，作為智慧椅回饋依據（Anwary et al., 2021）
+
+參考文獻：
+- CCOHS. Office Ergonomics - Ergonomic Chair. https://www.ccohs.ca/oshanswers/ergonomics/office/chair.html
+- Ergonomic Chair Adjustment Guide: Armrests, Headrest & Seat. https://eurekaergonomic.com/blogs/eureka-ergonomic-blog/ergonomic-chair-adjustment-guide-armrest-headrest-seat
+- Anwary, A. R. et al. (2021). Smart-Cover: A real time sitting posture monitoring system. Sensors and Actuators A, 317, 112451.

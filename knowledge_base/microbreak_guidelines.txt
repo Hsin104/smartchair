@@ -1,0 +1,30 @@
+來源機構：WHO Guidelines on Physical Activity and Sedentary Behaviour（2020）/ CDC
+主題：久坐中斷與活動休息時間建議
+
+實證建議：
+- WHO 指引：建議每靜態久坐30-60分鐘應中斷一次，並儘量限制每日長時間久坐
+- 實驗室研究顯示：每隔一段時間以短暫（約2分鐘）身體活動中斷久坐，可改善心臟代謝健康指標
+- 部分職場介入方案採每工作小時安排約10分鐘活動休息，並搭配支持策略提升參與度
+- 另有研究採用每2小時進行3-5分鐘主動休息（一天4次），同樣顯示久坐行為減少、身體活動量提升
+
+常見情境：
+- 專注工作時容易忽略時間流逝，連續久坐超過1小時而不自覺
+- 久坐未活動與心血管疾病、代謝症候群等健康風險相關
+
+立即改善動作：
+1. 設定每30-60分鐘一次的活動提醒（智慧椅可透過久坐判定自動觸發震動提醒）
+2. 起身活動2-3分鐘：走動、原地踏步或伸展皆可
+3. 短暫休息中可搭配頸肩伸展或核心啟動動作，一舉兩得
+
+長期預防：
+- 將活動休息建立為固定習慣，而非依賴當下意志力判斷
+- 搭配計步或活動量記錄，逐步建立久坐中斷的行為模式
+- 長期規律中斷久坐已被證實能降低久坐相關的不良健康結果
+
+智慧椅研究補充（學術來源）：
+- 智慧椅之久坐（sedentary）判定邏輯即依循此類每小時活動中斷建議設計，偵測到持續久坐超過閾值即觸發全部震動馬達提醒起身
+
+參考文獻：
+- WHO Guidelines on Physical Activity and Sedentary Behaviour. NCBI Bookshelf NBK566046. https://www.ncbi.nlm.nih.gov/books/NBK566046/
+- CDC. Physical Activity Breaks for the Workplace Resource Guide (2021). https://www.cdc.gov/workplace-health-promotion/media/pdfs/2024/06/Workplace-Physical-Activity-Break-Guide-508.pdf
+- The effect of computer prompt in breaks of sedentary behaviour among office workers: a systematic review and meta-analysis. PMC12164069. https://www.ncbi.nlm.nih.gov/pmc/articles/PMC12164069/

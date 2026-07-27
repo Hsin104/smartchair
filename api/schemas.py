@@ -85,9 +85,41 @@ POSTURE_CREATE_SCHEMA = {
 UPDATE_ME_SCHEMA = {
     "type": "object",
     "properties": {
-        "height": {"type": "number", "minimum": 50,  "maximum": 250},
-        "weight": {"type": "number", "minimum": 20,  "maximum": 300},
-        "email":  {"type": "string"},
+        "height":       {"type": "number", "minimum": 50,  "maximum": 250},
+        "weight":       {"type": "number", "minimum": 20,  "maximum": 300},
+        "email":        {"type": "string"},
+        "display_name": {"type": "string", "maxLength": 100},
+        "avatar_url":   {"type": "string", "maxLength": 500},
+    },
+    "additionalProperties": False,
+}
+
+CHANGE_PASSWORD_SCHEMA = {
+    "type": "object",
+    "required": ["current_password", "new_password"],
+    "properties": {
+        "current_password": {"type": "string", "minLength": 1},
+        "new_password":     {"type": "string", "minLength": 6},
+    },
+    "additionalProperties": False,
+}
+
+FORGOT_PASSWORD_SCHEMA = {
+    "type": "object",
+    "required": ["username", "email", "new_password"],
+    "properties": {
+        "username":     {"type": "string", "minLength": 1},
+        "email":        {"type": "string", "minLength": 1},
+        "new_password": {"type": "string", "minLength": 6},
+    },
+    "additionalProperties": False,
+}
+
+AVATAR_SCHEMA = {
+    "type": "object",
+    "required": ["avatar_url"],
+    "properties": {
+        "avatar_url": {"type": "string", "minLength": 1, "maxLength": 500},
     },
     "additionalProperties": False,
 }
@@ -101,6 +133,18 @@ AGENT_SCHEMA = {
             "enum": ["normal", "left", "right", "forward", "recline", "sedentary"],
         },
         "user_message": {"type": "string", "maxLength": 500},
+    },
+    "additionalProperties": False,
+}
+
+MOTOR_TRIGGER_SCHEMA = {
+    "type": "object",
+    "required": ["posture"],
+    "properties": {
+        "posture": {
+            "type": "string",
+            "enum": ["normal", "left", "right", "forward", "recline", "sedentary", "empty"],
+        },
     },
     "additionalProperties": False,
 }

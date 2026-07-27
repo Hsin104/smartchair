@@ -3,14 +3,17 @@ Physio Agent — 完整 Agent 架構（四大核心模組）
 
 大腦（LLM）  : Gemini 2.5 Flash + 領域專精 Prompt 設計
 記憶（Memory）: 外部知識庫（knowledge_base/*.txt）→ FAISS 向量庫（持久化至磁碟）
-工具（Tools） : Function Calling — 知識庫搜尋、歷史查詢、震動觸發
-行動（Action）: Agent 自主決定是否觸發震動馬達通知
+工具（Tools） : Function Calling — 知識庫搜尋、歷史查詢、震動觸發（含馬達指令回饋）
+行動（Action）: ReAct 迴圈 — Thought→Action→Observation→Thought，含觸發後坐姿驗證
 """
 
 import logging
+from collections import Counter
 from pathlib import Path
 
 from django.conf import settings
+from django.utils import timezone
+from datetime import timedelta
 from langchain_community.document_loaders import DirectoryLoader, TextLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
@@ -33,6 +36,17 @@ POSTURE_DISPLAY = {
     'recline':   '過度後仰',
     'sedentary': '久坐未動',
     'empty':     '無人就坐',
+}
+
+# 坐姿對應震動馬達（M1=左手軸, M2=右手軸, M3=左腰, M4=右腰）
+_MOTOR_MAP = {
+    'forward':   ['M1', 'M2'],              # 前傾：左右手軸提醒抬頭
+    'recline':   ['M3', 'M4'],              # 後仰：左右腰部提醒坐直
+    'left':      ['M2', 'M4'],              # 左傾：右手軸+右腰（對側矯正）
+    'right':     ['M1', 'M3'],              # 右傾：左手軸+左腰（對側矯正）
+    'sedentary': ['M1', 'M2', 'M3', 'M4'], # 久坐：全部馬達提醒起身
+    'normal':    [],
+    'empty':     [],
 }
 
 _retriever      = None
@@ -108,52 +122,130 @@ def search_knowledge_base(query: str) -> str:
 
 @tool
 def get_posture_history(user_id: int) -> str:
-    """查詢指定使用者最近 5 筆坐姿紀錄，用於判斷是否持續不良或已有改善。"""
-    from .models import PostureRecord
-    records = PostureRecord.objects.filter(user_id=user_id).order_by('-timestamp')[:5]
-    if not records.exists():
-        return '沒有歷史坐姿紀錄。'
-    lines = [f'- {r.timestamp.strftime("%H:%M")} → {r.posture}' for r in records]
-    return '最近 5 筆坐姿紀錄：\n' + '\n'.join(lines)
+    """
+    查詢指定使用者的個人化背景資料，用於提供更貼合個人的建議：
+    - 身高體重（BMI）：體型差異會影響人體工學建議的施力與角度
+    - 最近 5 筆坐姿紀錄：用於判斷是否持續不良或已有改善
+    - 近 7 天壞坐姿統計：用於判斷哪種坐姿問題最頻繁，建議應優先處理
+    """
+    from .models import PostureRecord, User
+
+    parts = []
+
+    # ── 身高體重 ──
+    try:
+        user = User.objects.get(id=user_id)
+        if user.height and user.weight:
+            bmi = round(user.weight / ((user.height / 100) ** 2), 1)
+            parts.append(f'使用者身高 {user.height:.0f}cm、體重 {user.weight:.0f}kg（BMI {bmi}）。')
+        else:
+            parts.append('使用者尚未填寫身高體重。')
+    except User.DoesNotExist:
+        parts.append('查無此使用者。')
+
+    # ── 最近 5 筆坐姿紀錄（趨勢判斷）──
+    recent = PostureRecord.objects.filter(user_id=user_id).order_by('-timestamp')[:5]
+    if recent.exists():
+        lines = [f'- {r.timestamp.strftime("%H:%M")} → {r.posture}' for r in recent]
+        parts.append('最近 5 筆坐姿紀錄：\n' + '\n'.join(lines))
+    else:
+        parts.append('沒有近期坐姿紀錄。')
+
+    # ── 近 7 天壞坐姿統計（頻率判斷）──
+    cutoff = timezone.now() - timedelta(days=7)
+    week_records = PostureRecord.objects.filter(
+        user_id=user_id, timestamp__gte=cutoff,
+    ).exclude(posture__in=['normal', 'empty'])
+    total = week_records.count()
+    if total:
+        counts = Counter(week_records.values_list('posture', flat=True))
+        stat_lines = [
+            f'- {POSTURE_DISPLAY.get(p, p)}：{c} 次（{round(c / total * 100)}%）'
+            for p, c in counts.most_common()
+        ]
+        parts.append(f'近 7 天壞坐姿統計（共 {total} 筆）：\n' + '\n'.join(stat_lines))
+    else:
+        parts.append('近 7 天無不良坐姿紀錄。')
+
+    return '\n\n'.join(parts)
 
 
 @tool
-def trigger_vibration(user_id: int, reason: str) -> str:
-    """觸發震動馬達提醒使用者調整坐姿。reason 為提醒原因（如：身體左傾）。"""
-    from .models import Notification
+def trigger_vibration(user_id: int, posture: str, reason: str) -> str:
+    """觸發震動馬達提醒使用者調整坐姿，並回傳已啟動的馬達清單。
+    posture: 當前坐姿類別（forward/recline/left/right/sedentary/normal）
+    reason: 提醒原因說明（中文）
+    回傳值包含啟動馬達清單，請在收到回覆後呼叫 get_posture_history 確認坐姿是否改善。
+    """
+    from .models import Notification, MotorLog
+    motors = _MOTOR_MAP.get(posture, [])
     Notification.objects.create(user_id=user_id, message=f'坐姿提醒：{reason}')
-    logger.info(f'[PhysioAgent] 震動提醒已建立 user_id={user_id} reason={reason}')
-    return f'已建立震動提醒通知：{reason}'
+    if motors:
+        MotorLog.objects.create(
+            user_id=user_id,
+            posture=posture,
+            motors=motors,
+            reason=reason,
+        )
+    logger.info(f'[PhysioAgent] 震動提醒已建立 user_id={user_id} motors={motors} reason={reason}')
+    if motors:
+        return (
+            f'【震動馬達已觸發】啟動馬達：{", ".join(motors)} | 原因：{reason}\n'
+            f'→ 請呼叫 get_posture_history(user_id={user_id}) 觀察坐姿是否在最新紀錄中出現改善。'
+        )
+    return f'【提醒已送出（{posture} 無需震動）】原因：{reason}'
 
 
 # ── System Prompt ──────────────────────────────────────────────────────────────
 
-_SYSTEM_PROMPT = """你是專業的物理治療師 AI 助手「SC）」，專精辦公室人體工學與職業傷害預防。
+_SYSTEM_PROMPT = """你是專業的物理治療師 AI 助手「SmartChair」，專精辦公室人體工學與職業傷害預防。
+
+【ReAct 執行流程 — 必須依序執行，不可跳過】
+Step 1 — 呼叫 get_posture_history(user_id)
+  → 觀察（Observation）：使用者身高體重（BMI）、最近 5 筆坐姿趨勢、近 7 天壞坐姿統計，
+    判斷「哪一種坐姿問題最頻繁」及「是持續不良或偶發」
+Step 2 — 呼叫 search_knowledge_base(query)
+  → 觀察（Observation）：針對 Step 1 判斷出的最頻繁坐姿問題查詢對應醫學文獻，作為建議依據
+Step 3 — 若偵測到非正常坐姿，呼叫 trigger_vibration(user_id, posture, reason)
+  → 觀察（Observation）：確認啟動馬達清單（M1~M4），回覆中會提示下一步驗證
+Step 4 — 再次呼叫 get_posture_history(user_id)
+  → 觀察（Observation）：比對 Step 1 與 Step 4 的最新紀錄，判斷坐姿是否有改善跡象
+Step 5 — 根據 Step 1~4 的完整觀察結果，產生個人化建議回覆（結合 7 天統計出的優先問題與 BMI 體型差異）
+
+【工具說明】
+• search_knowledge_base(query)   — 查詢醫學文獻知識庫，回答任何建議前必須先呼叫
+• get_posture_history(user_id)   — 查詢身高體重（BMI）、最近 5 筆坐姿紀錄、近 7 天壞坐姿統計，
+  用於個人化建議、趨勢判斷與改善驗證
+• trigger_vibration(user_id, posture, reason) — 觸發震動馬達並記錄 MotorLog；
+  回傳啟動馬達清單，收到後必須呼叫 get_posture_history 進行雙向回授驗證
 
 【核心規則 — 防幻覺機制】
 1. 【強制查詢】回答任何問題前，必須先呼叫 search_knowledge_base 工具查詢知識庫。
-2. 【嚴格知識邊界】只能根據 search_knowledge_base 返回的文獻內容回答，嚴禁引用知識庫以外的任何資訊，即使聽起來合理也不可加入。
-3. 【不知道規則】若問題涉及以下範疇，必須直接回覆以下句子並停止，不可嘗試回答：
+2. 【嚴格知識邊界】只能根據 search_knowledge_base 返回的文獻內容回答，嚴禁引用知識庫以外的任何資訊。
+3. 【不知道規則】若問題涉及以下範疇，必須直接回覆以下句子並停止：
    「根據目前知識庫，我無法回答此問題，建議諮詢專業醫師或物理治療師。」
-   不可回答的範疇：藥物、手術、注射治療、疾病診斷或病情評估、飲食與營養補充品、
+   不可回答的範疇：藥物、手術、注射治療、疾病診斷、飲食與營養補充品、
    非辦公室坐姿相關的健康問題（如血壓、體重、懷孕、精神健康）。
 4. 【強制引用】每則回覆最後必須有「📚 參考來源」章節，列出實際查詢到的 .txt 檔名。
    若查無相關文獻，請寫「（無相關知識庫文獻）」並拒絕提供建議。
-5. 【震動提醒】偵測到非正常坐姿時，必須呼叫 trigger_vibration 工具。
-6. 【歷史查詢】可呼叫 get_posture_history 了解使用者過往坐姿，提供個人化建議。
+5. 【震動提醒】偵測到非正常坐姿時，必須呼叫 trigger_vibration，posture 欄位填入英文坐姿代碼。
+6. 【雙向驗證】每次呼叫 trigger_vibration 後，必須再次呼叫 get_posture_history 觀察改善結果。
+7. 【個人化但不評估體重】get_posture_history 回傳的身高體重僅可用於「人體工學建議」的個人化調整
+   （例如提醒依身高調整螢幕高度、椅子座深），嚴禁用於評估體位、健康風險或給予體重管理建議，
+   若使用者詢問體重相關健康問題，仍依規則3回覆「無法回答」。
 
 【嚴禁行為（任何違反均屬幻覺輸出）】
 ✗ 引用知識庫文獻以外的醫學數據或研究
 ✗ 診斷任何疾病或評估病情嚴重程度
 ✗ 推薦任何藥物、手術或補充品
 ✗ 捏造具體數字（百分比、角度、時間），除非直接引用自文獻
-✗ 在知識庫無依據下提供「聽起來合理」的建議
 
 【可回答的主題（知識庫涵蓋範圍）】
 ✓ 辦公室六種坐姿：正常坐姿、頭部前傾、身體左傾、身體右傾、過度後仰、久坐未動
-✓ 辦公室人體工學（螢幕高度、椅子設定、鍵盤滑鼠位置）
-✓ 坐姿相關肌肉骨骼問題的自主改善動作
-✓ 辦公室伸展運動與簡易預防訓練
+✓ 辦公室人體工學（螢幕高度、椅子座深/扶手/腰靠調整、鍵盤滑鼠位置與手腕中立姿勢）
+✓ 坐姿相關肌肉骨骼問題的自主改善動作（含下背痛、核心穩定、胸椎活動度與呼吸）
+✓ 辦公室伸展運動與簡易預防訓練（含辦公室瑜伽、坐站交替、久坐中斷活動建議）
+✓ 穿戴式／智慧椅震動回饋對坐姿矯正的實證效果
 
 【回答格式】（繁體中文，語氣友善而專業）
 
@@ -201,7 +293,7 @@ def _build_agent_with_key(api_key: str):
     agent = create_tool_calling_agent(llm, tools, prompt)
     _agent_executor = AgentExecutor(
         agent=agent, tools=tools,
-        verbose=True, max_iterations=5,
+        verbose=True, max_iterations=8,
     )
 
     logger.info('[PhysioAgent] Agent 初始化完成')

@@ -1,0 +1,29 @@
+來源機構：Systematic Review（Sage Journals）/ ScienceDirect / PubMed
+主題：坐站交替辦公桌實證研究
+
+健康效益與實證：
+- 系統性回顧顯示：介入組全天久坐時間平均減少 3個月68.7分鐘/天、6個月77.7分鐘/天、12個月62.1分鐘/天（相較對照組）
+- 6篇研究中有3篇顯示坐站桌能顯著降低使用者主觀不適感（討論部位包含下背與頸部）
+- 效果對「行為改變」（減少久坐時間）證據一致且穩定，但對臨床疼痛指標的效果不一致，部分研究顯示改善有限
+- 合併教育介入或主動訓練（active component）時，症狀改善效果更明顯
+
+常見使用建議：
+- 每30-60分鐘切換一次坐姿與站姿，避免單一姿勢持續過久
+- 站立時應維持頭頸軀幹一直線，雙腳略微分開，避免鎖死膝蓋
+- 站立辦公桌高度應使手肘呈90度、螢幕與坐姿時等高，避免另一種不良姿勢
+
+立即改善動作：
+1. 若無升降桌，可每小時起身站立2-3分鐘，搭配輕度伸展
+2. 站立時比照坐姿人體工學原則重新確認螢幕、鍵盤高度
+3. 坐站切換初期建議先以短時間（10-15分鐘）漸進適應，避免久站疲勞
+
+長期預防：
+- 坐站交替非取代運動，仍建議搭配規律的伸展與活動休息
+- 长期使用建議搭配多元介入（教育、主動訓練）以達到最佳效果
+
+智慧椅研究補充（學術來源）：
+- 智慧椅可作為坐站交替之外的補充方案，透過久坐偵測（sedentary未動判定）主動提醒使用者起身活動，強化行為改變效果
+
+參考文獻：
+- Silva, H. et al. (2025). The Impact of Sit-Stand Desks on Full-Day and Work-Based Sedentary Behavior of Office Workers: A Systematic Review. https://journals.sagepub.com/doi/abs/10.1177/00187208241305591
+- Sit-stand workstations and impact on low back discomfort: a systematic review and meta-analysis. PubMed 29115188. https://pubmed.ncbi.nlm.nih.gov/29115188/

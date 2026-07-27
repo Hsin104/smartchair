@@ -1,0 +1,25 @@
+來源機構：MDPI 系統性回顧 / JMIR / PMC 試點研究
+主題：穿戴式／智慧椅震動回饋矯正坐姿實證研究
+
+健康效益與實證：
+- 系統性回顧（隨機與準實驗研究）證實：穿戴式姿勢矯正裝置對改善使用者坐姿具有實證效果
+- 一項智慧穿戴裝置研究顯示：坐姿分類準確率達90%，震動提醒能有效鼓勵使用者建立更健康的坐姿習慣
+- 83位學生參與的智慧椅試點研究顯示：坐姿偵測準確率達94.78%，97.59%的使用者收到提醒後會主動調整坐姿，平均反應時間僅3.27秒
+- 多重感官回饋（Postural SmartVest）研究顯示，有回饋組與無回饋組在維持正確姿勢時間上具統計顯著差異（P<.001）
+
+回饋機制設計重點：
+- 即時性：回饋須在姿勢偏移後1-3秒內給出，延遲過長會降低矯正效果
+- 避免習慣化：固定不變的震動模式會在3-5天內被大腦「過濾」而失效；有效系統會依使用者反應調整震動強度、節奏或位置
+- 個人化：依偵測到的坐姿類別給予對應部位的震動提醒（如前傾提醒上肢、後仰提醒腰部），比單一無差別提醒更有效
+
+長期使用建議：
+- 定期檢視震動提醒的反應率，若使用者反應時間逐漸拉長，代表可能出現習慣化，需調整提醒模式
+- 搭配歷史坐姿統計，讓使用者了解長期改善趨勢，強化行為改變的正向回饋
+
+智慧椅研究補充（學術來源）：
+- 智慧椅之馬達觸發規則依坐姿類別分派對應馬達（前傾→手軸、後仰→腰部、久坐→全部觸發），即依循「部位對應式回饋優於無差別提醒」之實證原則設計
+
+參考文獻：
+- Effectiveness of Wearable Devices for Posture Correction: A Systematic Review of Evidence from Randomized and Quasi-Experimental Studies. MDPI Applied Sciences. https://www.mdpi.com/2076-3417/16/1/81
+- Wearable Smartphone-Based Multisensory Feedback System for Torso Posture Correction: Iterative Design and Within-Subjects Study. JMIR Aging. https://aging.jmir.org/2025/1/e55455
+- Ergonomic Innovation: A Modular Smart Chair for Enhanced Workplace Health and Wellness. PMC12252288. https://pmc.ncbi.nlm.nih.gov/articles/PMC12252288/

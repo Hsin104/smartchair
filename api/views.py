@@ -1,5 +1,8 @@
 import os
+import json
+from collections import Counter
 from datetime import timedelta
+from pathlib import Path
 import numpy as np
 import joblib
 from django.contrib.auth import authenticate
@@ -10,15 +13,39 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 
-from .models import User, PostureRecord, AgentLog, Notification, ChairSession
+from .models import User, PostureRecord, AgentLog, Notification, ChairSession, MotorLog
 from .serializers import (
     RegisterSerializer, UserSerializer, PostureRecordSerializer
 )
 from .schemas import (
     REGISTER_SCHEMA, LOGIN_SCHEMA, POSTURE_CREATE_SCHEMA, AGENT_SCHEMA,
-    UPDATE_ME_SCHEMA, validate_request,
+    UPDATE_ME_SCHEMA, CHANGE_PASSWORD_SCHEMA, FORGOT_PASSWORD_SCHEMA,
+    AVATAR_SCHEMA, MOTOR_TRIGGER_SCHEMA, validate_request,
 )
 from .physio_agent import get_advice, POSTURE_DISPLAY
+
+# ── 伸展計劃資料（lazy load） ──────────────────────────────────────────────────
+
+_STRETCH_MAP = None
+
+def _get_stretch_map():
+    global _STRETCH_MAP
+    if _STRETCH_MAP is None:
+        map_path = Path(__file__).resolve().parent.parent / 'knowledge_base' / 'stretch_video_map.json'
+        with open(map_path, encoding='utf-8') as f:
+            _STRETCH_MAP = json.load(f)
+    return _STRETCH_MAP
+
+# 坐姿 → 馬達觸發規則（對應 PPT 第 11 頁馬達觸發控制表）
+MOTOR_TRIGGER_MAP = {
+    'forward':   ['M1', 'M2'],        # 前傾：左右手軸
+    'recline':   ['M3', 'M4'],        # 後仰：左右腰部
+    'left':      ['M2', 'M4'],        # 左傾：右手軸 + 右腰（對側矯正）
+    'right':     ['M1', 'M3'],        # 右傾：左手軸 + 左腰（對側矯正）
+    'sedentary': ['M1', 'M2', 'M3', 'M4'],  # 久坐：全部震動提醒起身
+    'normal':    [],
+    'empty':     [],
+}
 
 # ── 模型路徑 ──────────────────────────────────────────────────────────────────
 
@@ -261,17 +288,85 @@ def me(request):
 @api_view(['PATCH'])
 @permission_classes([IsAuthenticated])
 def update_me(request):
-    """PATCH /api/me/update — 更新身高、體重、Email。"""
+    """PATCH /api/me/update — 更新個人資料（部分更新，不傳的欄位不覆寫）。"""
     error = validate_request(request.data, UPDATE_ME_SCHEMA)
     if error:
         return Response({'schema_error': error}, status=status.HTTP_400_BAD_REQUEST)
 
     user = request.user
-    for field in ('height', 'weight', 'email'):
+    for field in ('height', 'weight', 'email', 'display_name', 'avatar_url'):
         if field in request.data:
             setattr(user, field, request.data[field])
     user.save()
     return Response(UserSerializer(user).data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def change_password(request):
+    """POST /api/auth/change-password — 已登入狀態下修改密碼。"""
+    error = validate_request(request.data, CHANGE_PASSWORD_SCHEMA)
+    if error:
+        return Response({'schema_error': error}, status=status.HTTP_400_BAD_REQUEST)
+
+    user = authenticate(
+        username=request.user.username,
+        password=request.data['current_password'],
+    )
+    if user is None:
+        return Response({
+            'success':    False,
+            'error_code': 'INVALID_PASSWORD',
+            'message':    '目前密碼錯誤',
+        }, status=status.HTTP_401_UNAUTHORIZED)
+
+    request.user.set_password(request.data['new_password'])
+    request.user.save()
+    return Response({'success': True, 'message': '密碼已更新'})
+
+
+@api_view(['POST'])
+def forgot_password(request):
+    """POST /api/auth/forgot-password — 以帳號 + Email 驗證後直接重設密碼。"""
+    error = validate_request(request.data, FORGOT_PASSWORD_SCHEMA)
+    if error:
+        return Response({'schema_error': error}, status=status.HTTP_400_BAD_REQUEST)
+
+    username = request.data['username']
+    email    = request.data['email']
+
+    try:
+        user = User.objects.get(username=username)
+    except User.DoesNotExist:
+        return Response({
+            'success':    False,
+            'error_code': 'USER_NOT_FOUND',
+            'message':    '帳號不存在',
+        }, status=status.HTTP_404_NOT_FOUND)
+
+    if user.email.lower() != email.lower():
+        return Response({
+            'success':    False,
+            'error_code': 'EMAIL_MISMATCH',
+            'message':    'Email 與帳號不符',
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    user.set_password(request.data['new_password'])
+    user.save()
+    return Response({'success': True, 'message': '密碼已重設，請重新登入'})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def update_avatar(request):
+    """POST /api/me/avatar — 更新頭像 URL。"""
+    error = validate_request(request.data, AVATAR_SCHEMA)
+    if error:
+        return Response({'schema_error': error}, status=status.HTTP_400_BAD_REQUEST)
+
+    request.user.avatar_url = request.data['avatar_url']
+    request.user.save(update_fields=['avatar_url'])
+    return Response(UserSerializer(request.user).data)
 
 
 @api_view(['POST'])
@@ -553,3 +648,127 @@ def chair_status(request):
             'calibrated': bool(session.baseline_seat),
         })
     return Response({'active': False, 'username': None, 'calibrated': False})
+
+
+# ── 伸展計劃 ───────────────────────────────────────────────────────────────────
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def stretch_plan(request):
+    """
+    GET /api/agent/stretch-plan — 依近 7 天壞坐姿頻率推薦伸展動作清單。
+
+    回傳:
+        period_days:               查詢天數（固定 7）
+        total_bad_posture_records: 不良坐姿總筆數
+        posture_stats:             各坐姿頻率統計（count、ratio、display）
+        recommended_exercises:     建議伸展動作清單（最多 10 個，含 YouTube URL）
+    """
+    cutoff  = timezone.now() - timedelta(days=7)
+    records = PostureRecord.objects.filter(
+        user=request.user,
+        timestamp__gte=cutoff,
+    ).exclude(posture__in=['normal', 'empty'])
+
+    total = records.count()
+    if total == 0:
+        return Response({
+            'period_days':               7,
+            'total_bad_posture_records': 0,
+            'posture_stats':             {},
+            'recommended_exercises':     [],
+            'message':                   '近 7 天無不良坐姿紀錄，繼續保持良好坐姿！',
+        })
+
+    posture_counts = Counter(records.values_list('posture', flat=True))
+    posture_stats  = {
+        p: {
+            'count':   c,
+            'ratio':   round(c / total, 3),
+            'display': POSTURE_DISPLAY.get(p, p),
+        }
+        for p, c in posture_counts.most_common()
+    }
+
+    stretch_map     = _get_stretch_map()
+    exercises_by_id = {ex['id']: ex for ex in stretch_map['exercises']}
+    posture_ex_map  = stretch_map['posture_exercise_map']
+
+    seen_ids    = set()
+    recommended = []
+    for posture, _ in posture_counts.most_common():
+        for ex_id in posture_ex_map.get(posture, []):
+            if ex_id not in seen_ids:
+                seen_ids.add(ex_id)
+                ex = exercises_by_id.get(ex_id)
+                if ex:
+                    recommended.append({
+                        'id':             ex['id'],
+                        'name':           ex['name'],
+                        'target_muscles': ex['target_muscles'],
+                        'reps':           ex['reps'],
+                        'duration_sec':   ex['duration_sec'],
+                        'youtube_url':    ex['youtube_url'],
+                        'youtube_title':  ex['youtube_title'],
+                        'description':    ex['description'],
+                        'triggered_by':   POSTURE_DISPLAY.get(posture, posture),
+                    })
+
+    return Response({
+        'period_days':               7,
+        'total_bad_posture_records': total,
+        'posture_stats':             posture_stats,
+        'recommended_exercises':     recommended[:10],
+    })
+
+
+# ── 馬達觸發 ───────────────────────────────────────────────────────────────────
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def motor_trigger(request):
+    """
+    POST /api/motor/trigger — 依坐姿觸發對應馬達震動並寫入 MotorLog。
+
+    payload: { "posture": "left" }
+    回傳:    { "posture": "left", "motors": ["M2","M4"], "triggered": true }
+
+    觸發規則（同 PPT 第 11 頁）：
+        前傾 → M1 M2 | 後仰 → M3 M4
+        左傾 → M2 M4 | 右傾 → M1 M3 | 久坐 → M1 M2 M3 M4
+    """
+    error = validate_request(request.data, MOTOR_TRIGGER_SCHEMA)
+    if error:
+        return Response({'schema_error': error}, status=status.HTTP_400_BAD_REQUEST)
+
+    posture = request.data['posture']
+    motors  = MOTOR_TRIGGER_MAP.get(posture, [])
+
+    if not motors:
+        return Response({
+            'posture':         posture,
+            'posture_display': POSTURE_DISPLAY.get(posture, posture),
+            'motors':          [],
+            'triggered':       False,
+            'reason':          '標準坐姿或無人就坐，無需觸發馬達',
+        })
+
+    posture_name = POSTURE_DISPLAY.get(posture, posture)
+    motor_str    = '、'.join(motors)
+    message      = f'馬達觸發：{posture_name}（{motor_str}）'
+
+    Notification.objects.create(user=request.user, message=message)
+    MotorLog.objects.create(
+        user=request.user,
+        posture=posture,
+        motors=motors,
+        reason=posture_name,
+    )
+
+    return Response({
+        'posture':         posture,
+        'posture_display': posture_name,
+        'motors':          motors,
+        'triggered':       True,
+        'message':         message,
+    })

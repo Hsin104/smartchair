@@ -1,0 +1,30 @@
+來源機構：Cochrane Back Review Group / PMC 系統性文獻回顧
+主題：下背痛預防與腰椎支撐實證
+
+健康風險與機制：
+- 久坐時腰椎間盤承受壓力持續增加，骨盆後傾會使腰椎自然前凸消失，加重下背負擔
+- 系統性回顧顯示：單純使用腰靠護具（lumbar support/back belt）對於「首次預防」下背痛的效果證據有限，對無病史者效益不明顯
+- 相對而言，職場運動介入（workplace physical exercise）在改善下背痛各項指標上效果最佳，尤其是有教練指導或影片輔助的訓練方案
+
+常見原因：
+- 長時間靜態坐姿，缺乏姿勢變化
+- 骨盆後傾、腰椎曲度消失（常見於椅背腰靠不足或座深過深）
+- 核心與下背肌群缺乏訓練，難以維持脊椎穩定
+
+立即改善動作：
+1. 貓牛式（椅上版）：坐姿下骨盆前傾（腰前凸）與後傾（腰後縮）交替 × 10次，喚醒腰椎活動度
+2. 站立後仰伸展：雙手扶腰，身體緩慢後仰維持10秒，舒緩久坐後的腰椎壓力
+3. 髖屈肌伸展：單腳向後跨步呈弓箭步，維持15秒，換邊，緩解久坐縮短的髖屈肌
+
+長期預防：
+- 每工作1小時安排短暫站立或走動，中斷持續受壓的靜態姿勢
+- 規律進行職場運動介入（如伸展、核心訓練），證據顯示比單純依賴腰靠護具更有效
+- 個人化人體工學調整（椅子、桌面）搭配運動訓練效果最佳
+
+智慧椅研究補充（學術來源）：
+- 智慧椅可透過壓力感測即時偵測骨盆後傾造成的過度後仰坐姿，並在早期給予震動提醒，避免長時間累積壓力
+
+參考文獻：
+- Lumbar supports for prevention and treatment of low back pain. PubMed 18425875. https://pubmed.ncbi.nlm.nih.gov/18425875/
+- Physical Exercise Is Confirmed to Reduce Low Back Pain Symptoms in Office Workers: A Systematic Review. PMC7739349. https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7739349/
+- Interventions for preventing back pain among office workers – a systematic review and network meta-analysis. PMC10549919. https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10549919/

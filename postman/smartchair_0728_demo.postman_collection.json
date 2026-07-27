@@ -1,0 +1,232 @@
+{
+  "info": {
+    "name": "SmartChair 7/28 Demo",
+    "description": "7/28 Meeting demo：伸展計劃 + 馬達觸發 + Physio Agent 個人化，展示前後對比",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8000/api" },
+    { "key": "token", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0. Setup（demo 前先跑一次）",
+      "item": [
+        {
+          "name": "Register demo01",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"username\":\"demo01\",\"password\":\"test1234\"}"
+            },
+            "url": { "raw": "{{base_url}}/register", "host": ["{{base_url}}"], "path": ["register"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    const data = pm.response.json();",
+                  "    if (data.token) { pm.collectionVariables.set('token', data.token); }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login demo01（若帳號已存在就用這個）",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"username\":\"demo01\",\"password\":\"test1234\"}"
+            },
+            "url": { "raw": "{{base_url}}/login", "host": ["{{base_url}}"], "path": ["login"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const data = pm.response.json();",
+                  "    if (data.token) { pm.collectionVariables.set('token', data.token); }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Height/Weight (170cm/65kg)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Token {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"height\":170,\"weight\":65}"
+            },
+            "url": { "raw": "{{base_url}}/me/update", "host": ["{{base_url}}"], "path": ["me", "update"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. 灌7天壞坐姿資料（demo 前先跑4~7次建立統計）",
+      "item": [
+        {
+          "name": "Posture - Create (forward) ×4",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Token {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"posture\":\"forward\"}" },
+            "url": { "raw": "{{base_url}}/posture", "host": ["{{base_url}}"], "path": ["posture"] }
+          }
+        },
+        {
+          "name": "Posture - Create (left)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Token {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"posture\":\"left\"}" },
+            "url": { "raw": "{{base_url}}/posture", "host": ["{{base_url}}"], "path": ["posture"] }
+          }
+        },
+        {
+          "name": "Posture - Create (recline)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Token {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"posture\":\"recline\"}" },
+            "url": { "raw": "{{base_url}}/posture", "host": ["{{base_url}}"], "path": ["posture"] }
+          }
+        },
+        {
+          "name": "Posture - Create (sedentary)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Token {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"posture\":\"sedentary\"}" },
+            "url": { "raw": "{{base_url}}/posture", "host": ["{{base_url}}"], "path": ["posture"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. 現場展示（Demo 當下依序點擊）",
+      "item": [
+        {
+          "name": "STEP A - 伸展計劃統計（展示「前」：壞坐姿統計+建議）",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Token {{token}}" }],
+            "url": { "raw": "{{base_url}}/agent/stretch-plan", "host": ["{{base_url}}"], "path": ["agent", "stretch-plan"] }
+          }
+        },
+        {
+          "name": "STEP B - 馬達觸發（展示「後」：系統自動判斷觸發馬達）",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Token {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"posture\":\"forward\"}" },
+            "url": { "raw": "{{base_url}}/motor/trigger", "host": ["{{base_url}}"], "path": ["motor", "trigger"] }
+          }
+        },
+        {
+          "name": "STEP C - Agent 個人化建議（切到終端機看 ReAct log）",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json; charset=utf-8" },
+              { "key": "Authorization", "value": "Token {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"posture\":\"forward\",\"user_message\":\"我這禮拜常常頭前傾，該怎麼辦？\"}"
+            },
+            "url": { "raw": "{{base_url}}/agent", "host": ["{{base_url}}"], "path": ["agent"] }
+          }
+        },
+        {
+          "name": "STEP D - 新知識庫主題測試（椅子扶手腰靠）",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json; charset=utf-8" },
+              { "key": "Authorization", "value": "Token {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"posture\":\"recline\",\"user_message\":\"我的椅子扶手跟腰靠應該怎麼調整比較好？\"}"
+            },
+            "url": { "raw": "{{base_url}}/agent", "host": ["{{base_url}}"], "path": ["agent"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3.（備用）更多新知識庫主題問答",
+      "item": [
+        {
+          "name": "久坐多久該起來一次",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json; charset=utf-8" },
+              { "key": "Authorization", "value": "Token {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"posture\":\"sedentary\",\"user_message\":\"我久坐多久應該要起來活動一次？\"}" },
+            "url": { "raw": "{{base_url}}/agent", "host": ["{{base_url}}"], "path": ["agent"] }
+          }
+        },
+        {
+          "name": "辦公室有推薦的瑜伽動作嗎",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json; charset=utf-8" },
+              { "key": "Authorization", "value": "Token {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"posture\":\"normal\",\"user_message\":\"辦公室有推薦的瑜伽或伸展動作嗎？\"}" },
+            "url": { "raw": "{{base_url}}/agent", "host": ["{{base_url}}"], "path": ["agent"] }
+          }
+        },
+        {
+          "name": "坐站交替辦公桌有效嗎",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json; charset=utf-8" },
+              { "key": "Authorization", "value": "Token {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"posture\":\"normal\",\"user_message\":\"坐站交替辦公桌真的有用嗎？\"}" },
+            "url": { "raw": "{{base_url}}/agent", "host": ["{{base_url}}"], "path": ["agent"] }
+          }
+        }
+      ]
+    }
+  ]
+}

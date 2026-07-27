@@ -5,3 +5,25 @@
 [5] Nguyen, T. M. H., Vo, Q. B., Nguyen, T. H., & Huynh, Q. L. (2024). A smart chair for health monitoring in daily life. arXiv. https://arxiv.org/abs/2410.01459
 [6] Anwary, A. R., Cetinkaya, D., Vassallo, M., & Bouchachia, H. (2021). Smart-Cover: A real time sitting posture monitoring system. Sensors and Actuators A: Physical, 317, 112451. https://doi.org/10.1016/j.sna.2020.112451
 [7] Mariettou, S., Shahbandi, S., Triantafyllou, V., & Koutsojannis, C. (2026). Conversational AI agents in physical rehabilitation: A scoping review of design, applications, and future directions for Greek physiotherapy (Preprint). Preprints.org. https://doi.org/10.20944/preprints202602.1769.v1
+
+--- 07/22 新增（伸展/人體工學文獻補充）---
+[8] Mayo Clinic. Office ergonomics: Your how-to guide. https://www.mayoclinic.org/healthy-lifestyle/adult-health/in-depth/office-ergonomics/art-20046169
+[9] CCOHS. Office Ergonomics - How to Adjust Office Chairs / Ergonomic Chair. https://www.ccohs.ca/oshanswers/ergonomics/office/chair_adjusting.html
+[10] Interventions for preventing back pain among office workers – a systematic review and network meta-analysis (2023). PMC10549919. https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10549919/
+[11] Carpal tunnel syndrome due to keyboarding and mouse tasks: a review. ScienceDirect. https://www.sciencedirect.com/science/article/abs/pii/S0169814102001804
+[12] Lumbar supports for prevention and treatment of low back pain. PubMed 18425875. https://pubmed.ncbi.nlm.nih.gov/18425875/
+[13] Physical Exercise Is Confirmed to Reduce Low Back Pain Symptoms in Office Workers: A Systematic Review (2020). PMC7739349. https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7739349/
+[14] Silva, H., Ramos, P. G. F., Teno, S. C., & Júdice, P. B. (2025). The Impact of Sit-Stand Desks on Full-Day and Work-Based Sedentary Behavior of Office Workers: A Systematic Review. https://journals.sagepub.com/doi/abs/10.1177/00187208241305591
+[15] Sit-stand workstations and impact on low back discomfort: a systematic review and meta-analysis. PubMed 29115188. https://pubmed.ncbi.nlm.nih.gov/29115188/
+[16] WHO Guidelines on Physical Activity and Sedentary Behaviour (2020). NCBI Bookshelf NBK566046. https://www.ncbi.nlm.nih.gov/books/NBK566046/
+[17] The effect of computer prompt in breaks of sedentary behaviour among office workers: a systematic review and meta-analysis. PMC12164069. https://www.ncbi.nlm.nih.gov/pmc/articles/PMC12164069/
+[18] Pain reduction, physical performance, and psychological status compared between Hatha yoga and stretching exercise... (2023). PubMed 37863244. https://pubmed.ncbi.nlm.nih.gov/37863244/
+[19] The Efficacy of Ruesi Dadton and Yoga on Reducing Neck and Shoulder Pain in Office Workers. PMC10824298. https://pmc.ncbi.nlm.nih.gov/articles/PMC10824298/
+[20] A Comprehensive Workplace Exercise Intervention to Reduce Musculoskeletal Pain and Improve Functional Capacity in Office Workers. PMC11083576. https://www.ncbi.nlm.nih.gov/pmc/articles/PMC11083576/
+[21] Trunk stability and breathing exercises superior to foam rolling for restoring postural stability after core muscle fatigue in sedentary employees (2025). Scientific Reports. https://www.nature.com/articles/s41598-025-98284-6
+[22] The Effect of Core Stabilization Exercise with the Abdominal Drawing-in Maneuver Technique on Stature Change during Prolonged Sitting in Sedentary Workers with Chronic Low Back Pain. PMC8835683. https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8835683/
+[23] The Effect of Posture on the Diaphragm. Physiopedia. https://www.physio-pedia.com/The_Effect_of_Posture_on_the_Diaphragm
+[24] Diaphragmatic breathing exercises in recovery from fatigue-induced changes in spinal mobility and postural stability: a study protocol. PMC10340528. https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10340528/
+[25] Effectiveness of Wearable Devices for Posture Correction: A Systematic Review of Evidence from Randomized and Quasi-Experimental Studies (2025). MDPI Applied Sciences, 16(1), 81. https://www.mdpi.com/2076-3417/16/1/81
+[26] Wearable Smartphone-Based Multisensory Feedback System for Torso Posture Correction: Iterative Design and Within-Subjects Study (2025). JMIR Aging. https://aging.jmir.org/2025/1/e55455
+[27] Ergonomic Innovation: A Modular Smart Chair for Enhanced Workplace Health and Wellness. PMC12252288. https://pmc.ncbi.nlm.nih.gov/articles/PMC12252288/

@@ -41,7 +41,7 @@ class UserSerializer(serializers.ModelSerializer):
     """回傳使用者基本資料（不含密碼）。"""
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'height', 'weight']
+        fields = ['id', 'username', 'email', 'display_name', 'avatar_url', 'height', 'weight']
 
 
 class PostureRecordSerializer(serializers.ModelSerializer):

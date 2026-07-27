@@ -4,8 +4,10 @@ from django.db import models
 
 class User(AbstractUser):
     """使用者帳號，繼承 Django 內建的 AbstractUser（含帳號、密碼、Email）。"""
-    height = models.FloatField(null=True, blank=True, verbose_name='身高(cm)')
-    weight = models.FloatField(null=True, blank=True, verbose_name='體重(kg)')
+    height       = models.FloatField(null=True, blank=True, verbose_name='身高(cm)')
+    weight       = models.FloatField(null=True, blank=True, verbose_name='體重(kg)')
+    display_name = models.CharField(max_length=100, null=True, blank=True, verbose_name='顯示名稱')
+    avatar_url   = models.CharField(max_length=500, null=True, blank=True, verbose_name='頭像 URL')
 
     def __str__(self):
         return self.username
@@ -100,3 +102,22 @@ class AgentLog(models.Model):
 
     def __str__(self):
         return f'{self.user.username} - {self.posture} - {self.timestamp}'
+
+
+class MotorLog(models.Model):
+    """馬達觸發紀錄，記錄每次震動馬達的觸發坐姿與啟動清單。"""
+
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='motor_logs', verbose_name='使用者'
+    )
+    timestamp = models.DateTimeField(auto_now_add=True, verbose_name='時間戳')
+    posture   = models.CharField(max_length=20, verbose_name='觸發坐姿')
+    motors    = models.JSONField(verbose_name='啟動馬達清單')  # e.g. ['M1', 'M2']
+    reason    = models.CharField(max_length=100, verbose_name='觸發原因')
+
+    class Meta:
+        ordering = ['-timestamp']
+        verbose_name = '馬達觸發紀錄'
+
+    def __str__(self):
+        return f'{self.user.username} — {self.posture} — {",".join(self.motors)}'

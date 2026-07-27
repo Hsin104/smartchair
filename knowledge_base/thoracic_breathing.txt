@@ -1,0 +1,27 @@
+來源機構：Physiopedia / PMC 研究文獻
+主題：胸椎活動度與橫隔膜呼吸
+
+健康風險與機制：
+- 久坐辦公族群常見胸椎活動度不足，肇因於長時間駝背前彎姿勢，表現為圓肩、手臂難以高舉過頭、呼吸淺短
+- 頭部前傾與胸椎後凸（駝背）會影響呼吸力學：降低胸廓擴張幅度、減少肺泡通氣量、降低橫膈膜下降幅度
+- 胸椎活動度下降時，肋廓無法充分擴張，迫使身體改以「淺胸式呼吸」代償，長期加重頸肩肌群負擔
+
+常見原因：
+- 長時間螢幕前圓肩駝背姿勢
+- 呼吸習慣偏向胸式呼吸，橫膈膜參與度低
+
+立即改善動作：
+1. 橫隔膜呼吸練習：一手放胸口、一手放腹部，吸氣時感覺腹部手上升、胸口手盡量不動，維持5秒後緩慢吐氣，重複10次
+2. 胸椎伸展（椅上開卷式）：雙手交扣舉高過頭，身體緩慢後仰並擴胸，維持10秒
+3. 開肩胸廓伸展：雙手於背後交扣，挺胸夾肩胛，維持15秒
+
+長期預防：
+- 每日安排橫隔膜呼吸練習，可於久坐工作間歇時執行，有助恢復呼吸效率與姿勢穩定
+- 規律的胸椎活動度訓練可預防駝背進一步惡化，並間接改善頭部前傾問題
+
+智慧椅研究補充（學術來源）：
+- 深呼吸訓練被證實有助於恢復因軀幹疲勞而受影響的姿勢穩定性，與核心穩定訓練合併執行效果更佳（參見 core_stability.txt）
+
+參考文獻：
+- The Effect of Posture on the Diaphragm. Physiopedia. https://www.physio-pedia.com/The_Effect_of_Posture_on_the_Diaphragm
+- Diaphragmatic breathing exercises in recovery from fatigue-induced changes in spinal mobility and postural stability: a study protocol. PMC10340528. https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10340528/

@@ -3,18 +3,25 @@ from . import views
 
 urlpatterns = [
     # 使用者認證
-    path('register',        views.register,        name='register'),
-    path('login',           views.login,            name='login'),
-    path('me',              views.me,               name='me'),
-    path('me/update',       views.update_me,        name='me-update'),
-    path('users/exists',    views.user_exists,      name='user-exists'),
+    path('register',               views.register,         name='register'),
+    path('login',                  views.login,             name='login'),
+    path('me',                     views.me,                name='me'),
+    path('me/update',              views.update_me,         name='me-update'),
+    path('me/avatar',              views.update_avatar,     name='me-avatar'),
+    path('auth/change-password',   views.change_password,   name='change-password'),
+    path('auth/forgot-password',   views.forgot_password,   name='forgot-password'),
+    path('users/exists',           views.user_exists,       name='user-exists'),
 
     # 坐姿數據
     path('posture',         views.posture_create,   name='posture-create'),
     path('posture/history', views.posture_history,  name='posture-history'),
 
     # Physio Agent
-    path('agent',           views.agent_advice,     name='agent-advice'),
+    path('agent',                views.agent_advice, name='agent-advice'),
+    path('agent/stretch-plan',   views.stretch_plan, name='stretch-plan'),
+
+    # 馬達觸發
+    path('motor/trigger',        views.motor_trigger, name='motor-trigger'),
 
     # 座椅佔用管理
     path('chair/checkin',   views.chair_checkin,   name='chair-checkin'),

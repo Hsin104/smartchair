@@ -1,0 +1,32 @@
+來源機構：Mayo Clinic / CCOHS / OSHA
+主題：桌面人體工學設置（螢幕高度、鍵盤滑鼠位置）
+
+正確設置原則：
+- 螢幕上緣應與視線齊平或略低，避免抬頭或低頭視物
+- 螢幕距離眼睛約一個手臂長（50-65公分）
+- 鍵盤置於身體正前方，打字時手肘呈約90度，上臂貼近身體
+- 滑鼠與鍵盤放在同一水平面，避免過度伸手取用
+- 打字時手腕應保持中立（不上翹、不下垂），與前臂呈一直線
+- 椅子高度應使雙腳能平貼地面或踩穩腳踏墊，大腿與地面平行
+
+常見錯誤設置與後果：
+- 螢幕過低或過遠 → 誘發頭部前傾（烏龜頸）
+- 鍵盤位置過高 → 肩膀聳起、斜方肌緊繃
+- 滑鼠距離過遠 → 需伸手取用，造成肩部旋轉肌群負擔
+
+立即改善動作：
+1. 調整螢幕高度：以書本或升降架墊高，使螢幕上緣與眼睛等高
+2. 檢查手肘角度：坐姿下手肘應自然呈90度，非90度則調整椅子或桌面高度
+3. 每次重新入座時，花10秒檢查「螢幕-鍵盤-滑鼠-椅子」四個基準點
+
+長期預防：
+- 建議每3-6個月重新檢視一次工作站設置，體態與工作習慣改變時同步調整
+- 站立式工作或坐站交替可搭配桌面設置一併規劃
+
+智慧椅研究補充（學術來源）：
+- 個人化人體工學介入（individualized ergonomic intervention）已被證實能改善工作相關姿勢，並降低下背痛盛行率（Interventions for preventing back pain among office workers, PMC, 2023）
+
+參考文獻：
+- Mayo Clinic. Office ergonomics: Your how-to guide. https://www.mayoclinic.org/healthy-lifestyle/adult-health/in-depth/office-ergonomics/art-20046169
+- CCOHS. Office Ergonomics - How to Adjust Office Chairs. https://www.ccohs.ca/oshanswers/ergonomics/office/chair_adjusting.html
+- Interventions for preventing back pain among office workers – a systematic review and network meta-analysis. PMC10549919. https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10549919/
