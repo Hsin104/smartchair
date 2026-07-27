@@ -36,3 +36,7 @@ Thumbs.db
 
 # FAISS 向量庫（由 physio_agent.py 自動從 knowledge_base/ 重建）
 faiss_index/
+
+# 簡報檔案（不納入版控）
+*.pptx
+*_ppt.py
