@@ -137,18 +137,21 @@ def collect_baseline(collector_ref: list, client):
     print('    請坐正，保持標準坐姿，準備好後按 Enter...')
     input()
 
-    samples = []
+    seat_samples = []
+    back_samples = []
     done = threading.Event()
 
     def _handler(payload):
         norm = payload.get('norm', [])
         if sum(abs(v) for v in norm) < MIN_PRESSURE:
             return
-        seat, _ = _parse_norm(payload)
-        if seat and len(samples) < 5:
-            samples.append(seat)
-            print(f'  基準採集 {len(samples)}/5', end='\r')
-        if len(samples) >= 5:
+        seat, back = _parse_norm(payload)
+        if seat and len(seat_samples) < 5:
+            seat_samples.append(seat)
+            if back:
+                back_samples.append(back)
+            print(f'  基準採集 {len(seat_samples)}/5', end='\r')
+        if len(seat_samples) >= 5:
             done.set()
 
     client._baseline_handler = _handler
@@ -156,16 +159,23 @@ def collect_baseline(collector_ref: list, client):
     done.wait(timeout=60)
     client._baseline_handler = None
 
-    if len(samples) < 3:
+    if len(seat_samples) < 3:
         print('\n[Error] 採集失敗，請確認 MQTT 有資料傳入')
         sys.exit(1)
 
     # 取平均
-    keys = list(samples[0].keys())
-    baseline_seat = {k: round(sum(s.get(k, 0) for s in samples) / len(samples), 2) for k in keys}
-    baseline_back = {}  # 椅背感測器如有資料可補充
+    keys = list(seat_samples[0].keys())
+    baseline_seat = {k: round(sum(s.get(k, 0) for s in seat_samples) / len(seat_samples), 2) for k in keys}
 
-    print(f'\n  基準採集完成：{baseline_seat}')
+    baseline_back = {}
+    if back_samples:
+        back_keys = list(back_samples[0].keys())
+        baseline_back = {k: round(sum(b.get(k, 0) for b in back_samples) / len(back_samples), 2) for k in back_keys}
+    else:
+        print('  [警告] 未收到椅背感測器資料，baseline_back 留空（採集到的椅背 delta 將為 0）')
+
+    print(f'\n  基準採集完成：seat={baseline_seat}')
+    print(f'                 back={baseline_back}')
     return baseline_seat, baseline_back
 
 

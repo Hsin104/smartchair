@@ -83,6 +83,12 @@ except Exception as _e:
 
 # ── 推論 ──────────────────────────────────────────────────────────────────────
 
+SEAT_KEYS = ['left_back', 'left_mid', 'left_front',
+             'center_back', 'center_front',
+             'right_back', 'right_mid', 'right_front']
+BACK_KEYS = ['spine_upper', 'spine_mid', 'spine_lower']
+
+
 def _rule_based_posture(seat_pressure_data, back_pressure_data=None):
     """
     絕對值快速判斷，用於極端姿勢（模型訓練資料可能未涵蓋的範圍）。
@@ -110,8 +116,25 @@ def _rule_based_posture(seat_pressure_data, back_pressure_data=None):
     return None
 
 
-def _build_features(seat_pressure_data, baseline_seat=None):
+def _spine_features(su, sm, sl, seat_total):
+    """椅背 5 個衍生特徵，delta（可正可負）與絕對值兩種模式共用同一組公式。"""
+    spine_total = su + sm + sl
+    denom_spine = spine_total if abs(spine_total) > 1e-6 else 1e-6
+    denom_all   = seat_total + spine_total
+    denom_all   = denom_all if abs(denom_all) > 1e-6 else 1e-6
+
+    spine_ratio             = spine_total / denom_all
+    spine_upper_ratio       = su / denom_spine
+    spine_lower_ratio       = sl / denom_spine
+    spine_upper_lower_delta = su - sl
+
+    return spine_total, spine_ratio, spine_upper_ratio, spine_lower_ratio, spine_upper_lower_delta
+
+
+def _build_features(seat_pressure_data, back_pressure_data=None,
+                     baseline_seat=None, baseline_back=None):
     seat = seat_pressure_data or {}
+    back = back_pressure_data or {}
 
     if baseline_seat:
         # ── 校準模式：用 delta（當前 - 基準）消除體重與個人差異 ──────────────
@@ -129,6 +152,16 @@ def _build_features(seat_pressure_data, baseline_seat=None):
         right_delta = rb + rm + rf
         front_delta = lf + cf + rf
         back_delta  = lb + cb + rb
+
+        # 本次沒有椅背讀數時（back 為空）視為無資料，delta 一律為 0，
+        # 避免誤把「缺值」算成「相對基準大幅下降」而誤判為 forward。
+        bb = baseline_back or {}
+        if back:
+            su = back.get('spine_upper', 0) - bb.get('spine_upper', 0)
+            sm = back.get('spine_mid',   0) - bb.get('spine_mid',   0)
+            sl = back.get('spine_lower', 0) - bb.get('spine_lower', 0)
+        else:
+            su = sm = sl = 0
     else:
         # ── 未校準模式：原始絕對值 ──────────────────────────────────────────
         lb = seat.get('left_back',    0)
@@ -146,9 +179,20 @@ def _build_features(seat_pressure_data, baseline_seat=None):
         front_delta = (lf + cf + rf) / seat_total
         back_delta  = (lb + cb + rb) / seat_total
 
+        su = back.get('spine_upper', 0)
+        sm = back.get('spine_mid',   0)
+        sl = back.get('spine_lower', 0)
+
+    seat_total_raw = lb + lm + lf + cb + cf + rb + rm + rf
+    spine_total, spine_ratio, spine_upper_ratio, spine_lower_ratio, spine_ud_delta = (
+        _spine_features(su, sm, sl, seat_total_raw)
+    )
+
     return np.array([[
         lb, lm, lf, cb, cf, rb, rm, rf,
         left_delta, right_delta, front_delta, back_delta,
+        su, sm, sl,
+        spine_total, spine_ratio, spine_upper_ratio, spine_lower_ratio, spine_ud_delta,
     ]], dtype=np.float32)
 
 
@@ -183,13 +227,14 @@ def _check_sedentary(user, prediction):
     return 'sedentary' if was_sitting else prediction
 
 
-def predict_posture(seat_pressure_data, baseline_seat=None):
+def predict_posture(seat_pressure_data, back_pressure_data=None,
+                     baseline_seat=None, baseline_back=None):
     """
-    深度學習模型預測坐姿類別。
+    深度學習模型預測坐姿類別（20 特徵：椅墊 12 個 + 椅背 8 個）。
     有基準值時使用校準模型（delta 特徵），否則使用原始模型。
     極端姿勢先由規則層攔截，避免模型對 out-of-distribution 輸入誤判。
     """
-    rule = _rule_based_posture(seat_pressure_data)
+    rule = _rule_based_posture(seat_pressure_data, back_pressure_data)
     if rule:
         print(f'[規則層] 覆蓋模型 → {rule}')
         return rule
@@ -201,8 +246,9 @@ def predict_posture(seat_pressure_data, baseline_seat=None):
     if model is None:
         return None
 
-    features      = _build_features(seat_pressure_data,
-                                    baseline_seat if baseline_seat else None)
+    features      = _build_features(seat_pressure_data, back_pressure_data,
+                                     baseline_seat if baseline_seat else None,
+                                     baseline_back if baseline_seat else None)
     features_norm = scaler.transform(features)
     probs         = model.predict(features_norm, verbose=0)
     idx           = np.argmax(probs, axis=1)
@@ -390,9 +436,12 @@ def posture_create(request):
 
     if not data.get('posture'):
         baseline_seat = session.baseline_seat if session else None
+        baseline_back = session.baseline_back if session else None
         predicted = predict_posture(
             data.get('seat_pressure_data'),
+            back_pressure_data=data.get('back_pressure_data'),
             baseline_seat=baseline_seat,
+            baseline_back=baseline_back,
         )
         if predicted:
             predicted = _check_sedentary(target_user, predicted)
@@ -575,11 +624,6 @@ def chair_calibrate(request):
 
     return Response({'status': 'calibrated', 'calibrated': True})
 
-
-SEAT_KEYS = ['left_back', 'left_mid', 'left_front',
-             'center_back', 'center_front',
-             'right_back', 'right_mid', 'right_front']
-BACK_KEYS = ['spine_upper', 'spine_mid', 'spine_lower']
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])

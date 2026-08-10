@@ -147,9 +147,13 @@ def _handle_pressure_01(payload: dict):
     baseline_seat = session.baseline_seat if (session and session.baseline_seat) else None
     mode_label = '校準' if baseline_seat else '未校準'
 
+    baseline_back = session.baseline_back if (session and session.baseline_back) else None
+
     posture = predict_posture(
         seat_data,
+        back_pressure_data=back_data,
         baseline_seat=baseline_seat,
+        baseline_back=baseline_back,
     ) or payload.get('posture', 'normal')
     posture = _check_sedentary(user, posture)
 

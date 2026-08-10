@@ -29,12 +29,19 @@ USERS = [
 ]
 
 # ── 模式 A：原始絕對值（未校準模型用）─────────────────────────────────────────
+# back：椅背 3 個脊椎 FSR（spine_upper/spine_mid/spine_lower）
+#   forward（前傾）→ 身體離開椅背，壓力趨近 0
+#   recline（後仰）→ 用力壓向椅背，壓力偏高且上背 > 下背
+#   left/right（側傾）→ 椅背感測器僅垂直分布，測不到左右，維持中等接觸
 POSTURE_PROFILES = {
     'normal': {
         'seat': {
             'left_back': (40, 60), 'left_mid': (40, 60), 'left_front': (38, 58),
             'center_back': (38, 55), 'center_front': (38, 55),
             'right_back': (40, 60), 'right_mid': (40, 60), 'right_front': (38, 58),
+        },
+        'back': {
+            'spine_upper': (20, 35), 'spine_mid': (20, 35), 'spine_lower': (18, 32),
         },
     },
     'left': {
@@ -43,12 +50,18 @@ POSTURE_PROFILES = {
             'center_back': (30, 48), 'center_front': (28, 45),
             'right_back': (8, 22), 'right_mid': (8, 20), 'right_front': (8, 20),
         },
+        'back': {
+            'spine_upper': (14, 28), 'spine_mid': (14, 28), 'spine_lower': (12, 25),
+        },
     },
     'right': {
         'seat': {
             'left_back': (8, 22), 'left_mid': (8, 20), 'left_front': (8, 20),
             'center_back': (28, 45), 'center_front': (28, 45),
             'right_back': (60, 80), 'right_mid': (55, 75), 'right_front': (55, 75),
+        },
+        'back': {
+            'spine_upper': (14, 28), 'spine_mid': (14, 28), 'spine_lower': (12, 25),
         },
     },
     'forward': {
@@ -57,12 +70,18 @@ POSTURE_PROFILES = {
             'center_back': (5, 15), 'center_front': (55, 72),
             'right_back': (5, 18), 'right_mid': (20, 38), 'right_front': (55, 75),
         },
+        'back': {
+            'spine_upper': (2, 10), 'spine_mid': (2, 10), 'spine_lower': (2, 8),
+        },
     },
     'recline': {
         'seat': {
             'left_back': (52, 72), 'left_mid': (30, 50), 'left_front': (5, 18),
             'center_back': (55, 72), 'center_front': (5, 18),
             'right_back': (52, 72), 'right_mid': (30, 50), 'right_front': (5, 18),
+        },
+        'back': {
+            'spine_upper': (60, 85), 'spine_mid': (55, 78), 'spine_lower': (45, 68),
         },
     },
 }
@@ -74,6 +93,7 @@ DELTA_PROFILES = {
         'seat': {k: (-5, 5) for k in ['left_back','left_mid','left_front',
                                         'center_back','center_front',
                                         'right_back','right_mid','right_front']},
+        'back': {k: (-4, 4) for k in ['spine_upper', 'spine_mid', 'spine_lower']},
     },
     'left': {
         'seat': {
@@ -81,6 +101,7 @@ DELTA_PROFILES = {
             'center_back': (-5, 5), 'center_front': (-5, 5),
             'right_back': (-25, -10), 'right_mid': (-22, -8), 'right_front': (-22, -8),
         },
+        'back': {k: (-6, 4) for k in ['spine_upper', 'spine_mid', 'spine_lower']},
     },
     'right': {
         'seat': {
@@ -88,6 +109,7 @@ DELTA_PROFILES = {
             'center_back': (-5, 5), 'center_front': (-5, 5),
             'right_back': (15, 30), 'right_mid': (12, 28), 'right_front': (12, 28),
         },
+        'back': {k: (-6, 4) for k in ['spine_upper', 'spine_mid', 'spine_lower']},
     },
     'forward': {
         'seat': {
@@ -95,12 +117,18 @@ DELTA_PROFILES = {
             'center_back': (-20, -8), 'center_front': (15, 30),
             'right_back': (-20, -8), 'right_mid': (-8, 5), 'right_front': (15, 30),
         },
+        'back': {
+            'spine_upper': (-30, -15), 'spine_mid': (-30, -15), 'spine_lower': (-25, -12),
+        },
     },
     'recline': {
         'seat': {
             'left_back': (12, 25), 'left_mid': (-5, 8), 'left_front': (-22, -8),
             'center_back': (12, 25), 'center_front': (-22, -8),
             'right_back': (12, 25), 'right_mid': (-5, 8), 'right_front': (-22, -8),
+        },
+        'back': {
+            'spine_upper': (30, 50), 'spine_mid': (25, 45), 'spine_lower': (18, 35),
         },
     },
 }
@@ -114,12 +142,14 @@ def rand(lo, hi):
 
 def generate_absolute(profile):
     seat = {k: rand(*v) for k, v in profile['seat'].items()}
-    return seat
+    back = {k: rand(*v) for k, v in profile['back'].items()}
+    return seat, back
 
 
 def generate_delta(delta_profile):
     seat = {k: rand(*v) for k, v in delta_profile['seat'].items()}
-    return seat
+    back = {k: rand(*v) for k, v in delta_profile['back'].items()}
+    return seat, back
 
 
 def run_mode_a(users):
@@ -130,10 +160,11 @@ def run_mode_a(users):
         for posture, profile in POSTURE_PROFILES.items():
             records = []
             for _ in range(SAMPLES_PER_POSTURE):
-                seat = generate_absolute(profile)
+                seat, back = generate_absolute(profile)
                 records.append(PostureRecord(
                     user=user, posture=posture,
                     seat_pressure_data=seat,
+                    back_pressure_data=back,
                     source='fake',
                 ))
             PostureRecord.objects.bulk_create(records)
@@ -151,10 +182,11 @@ def run_mode_b(users):
         for posture, delta_profile in DELTA_PROFILES.items():
             records = []
             for _ in range(SAMPLES_PER_POSTURE):
-                seat = generate_delta(delta_profile)
+                seat, back = generate_delta(delta_profile)
                 records.append(PostureRecord(
                     user=user, posture=posture,
                     seat_pressure_data=seat,
+                    back_pressure_data=back,
                     source='fake',
                 ))
             PostureRecord.objects.bulk_create(records)

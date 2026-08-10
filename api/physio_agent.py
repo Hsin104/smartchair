@@ -86,14 +86,17 @@ def _build_retriever():
             loader_kwargs={'encoding': 'utf-8'},
         )
         docs = loader.load()
-        splitter = RecursiveCharacterTextSplitter(chunk_size=400, chunk_overlap=50)
+        # 排除純參考文獻清單（只有作者/期刊/URL，無實際建議內容，會稀釋檢索品質）
+        docs = [d for d in docs if not Path(d.metadata.get('source', '')).stem == '參考資料']
+        # chunk_size 拉大到可涵蓋知識庫文件的完整小節（原 400 常把「立即改善動作」清單從中切斷）
+        splitter = RecursiveCharacterTextSplitter(chunk_size=700, chunk_overlap=100)
         split_docs = splitter.split_documents(docs)
         vs = FAISS.from_documents(split_docs, embeddings)
         FAISS_DIR.mkdir(parents=True, exist_ok=True)
         vs.save_local(str(FAISS_DIR))
         logger.info(f'[PhysioAgent] FAISS 已儲存至磁碟：{FAISS_DIR}')
 
-    _retriever = vs.as_retriever(search_kwargs={'k': 3})
+    _retriever = vs.as_retriever(search_type='mmr', search_kwargs={'k': 4, 'fetch_k': 10})
     return _retriever
 
 
