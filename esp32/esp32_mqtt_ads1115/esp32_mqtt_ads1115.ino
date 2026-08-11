@@ -153,11 +153,14 @@ bool extractIntField(const String& text, const char* key, int& outValue) {
 }
 
 bool extractStringField(const String& text, const char* key, String& outValue) {
-  String token = String("\"") + key + "\":\"";
+  String token = String("\"") + key + "\":";
   int start = text.indexOf(token);
   if (start < 0) return false;
 
   start += token.length();
+  while (start < (int)text.length() && (text[start] == ' ' || text[start] == '\t')) start++;
+  if (start >= (int)text.length() || text[start] != '"') return false;
+  start++;
   int end = text.indexOf('"', start);
   if (end < 0) return false;
 

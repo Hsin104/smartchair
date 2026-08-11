@@ -1,4 +1,4 @@
-//用來測試馬達震動
+#用來測試馬達震動
 import json
 import ssl
 import sys
@@ -12,6 +12,7 @@ MQTT_BROKER = "d8806e09.ala.eu-central-1.emqxsl.com"
 MQTT_PORT = 8883
 MQTT_TOPIC_CMD = "chair/vibration/01/cmd"
 MQTT_TOPIC_ACK = "chair/vibration/01/ack"
+MQTT_TOPIC_STATE = "chair/vibration/01/state"
 MQTT_TOPIC_STATUS = "chair/vibration/01/status"
 MQTT_USER = "xiao"
 MQTT_PASS = "zxzcindy1"
@@ -27,9 +28,11 @@ STAGGER_MAX_MS = 500
 state = {
     "connected": False,
     "last_ack": None,
+    "last_state": None,
     "last_status": None,
 }
 ack_event = threading.Event()
+state_event = threading.Event()
 
 
 def clamp_int(value, min_value, max_value):
@@ -62,6 +65,7 @@ def parse_int(prompt, min_value, max_value):
 def on_connect(client, userdata, flags, reason_code, properties=None):
     state["connected"] = True
     client.subscribe(MQTT_TOPIC_ACK)
+    client.subscribe(MQTT_TOPIC_STATE)
     client.subscribe(MQTT_TOPIC_STATUS)
     print(f"MQTT 已連線 (code={reason_code})")
 
@@ -81,6 +85,9 @@ def on_message(client, userdata, msg):
     if msg.topic == MQTT_TOPIC_ACK:
         state["last_ack"] = data if isinstance(data, dict) else {"raw": payload_text}
         ack_event.set()
+    elif msg.topic == MQTT_TOPIC_STATE:
+        state["last_state"] = data if isinstance(data, dict) else {"raw": payload_text}
+        state_event.set()
     elif msg.topic == MQTT_TOPIC_STATUS:
         state["last_status"] = data if isinstance(data, dict) else {"raw": payload_text}
 
@@ -102,15 +109,28 @@ def build_client():
 
 def publish_and_wait_ack(client, payload, timeout_sec=3.0):
     ack_event.clear()
+    state_event.clear()
     state["last_ack"] = None
 
-    payload_text = json.dumps(payload, ensure_ascii=False)
+    payload_text = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
     client.publish(MQTT_TOPIC_CMD, payload_text)
     print(f"已送出 CMD -> {payload_text}")
 
     if ack_event.wait(timeout=timeout_sec):
         print("收到 ACK:")
         print(json.dumps(state["last_ack"], ensure_ascii=False))
+
+        # Show latest motor state quickly to distinguish scheduling vs hardware issues.
+        if state_event.wait(timeout=1.2) and isinstance(state.get("last_state"), dict):
+            motors = state["last_state"].get("motors", [])
+            running_ids = [str(m.get("id")) for m in motors if m.get("running")]
+            event_name = state["last_state"].get("event", "unknown")
+            if running_ids:
+                print(f"STATE event={event_name}, 運轉中馬達: {', '.join(running_ids)}")
+            else:
+                print(f"STATE event={event_name}, 目前無馬達運轉")
+        else:
+            print("尚未收到 STATE 回報（可能裝置還沒發布或網路延遲）")
     else:
         print("等待 ACK 超時（可能網路延遲或裝置離線）")
 
@@ -203,6 +223,7 @@ def main():
         print(f"Broker: {MQTT_BROKER}:{MQTT_PORT}")
         print(f"CMD Topic: {MQTT_TOPIC_CMD}")
         print(f"ACK Topic: {MQTT_TOPIC_ACK}")
+        print(f"STATE Topic: {MQTT_TOPIC_STATE}")
 
         while True:
             print_menu()
