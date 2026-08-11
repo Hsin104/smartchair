@@ -1,0 +1,233 @@
+{
+  "info": {
+    "name": "SmartChair 8/11 Demo",
+    "description": "8/11 Meeting demo：運作腳本一「偵測即時坐姿與觸發馬達提醒」— 椅背感測器整合（20特徵）+ 馬達觸發",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8000/api" },
+    { "key": "token", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0. Setup（demo 前先跑一次）",
+      "item": [
+        {
+          "name": "Register demo0811",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"username\":\"demo0811\",\"password\":\"test1234\"}"
+            },
+            "url": { "raw": "{{base_url}}/register", "host": ["{{base_url}}"], "path": ["register"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    const data = pm.response.json();",
+                  "    if (data.token) { pm.collectionVariables.set('token', data.token); }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login demo0811（若帳號已存在就用這個）",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"username\":\"demo0811\",\"password\":\"test1234\"}"
+            },
+            "url": { "raw": "{{base_url}}/login", "host": ["{{base_url}}"], "path": ["login"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const data = pm.response.json();",
+                  "    if (data.token) { pm.collectionVariables.set('token', data.token); }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Height/Weight (170cm/65kg)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Token {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"height\":170,\"weight\":65}"
+            },
+            "url": { "raw": "{{base_url}}/me/update", "host": ["{{base_url}}"], "path": ["me", "update"] }
+          }
+        },
+        {
+          "name": "Check-in（成為目前座椅使用者）",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Token {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{}" },
+            "url": { "raw": "{{base_url}}/chair/checkin", "host": ["{{base_url}}"], "path": ["chair", "checkin"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. 現場展示：運作腳本一（偵測即時坐姿與觸發馬達提醒）",
+      "item": [
+        {
+          "name": "STEP A - 送出感測數值（前傾，含椅背3點）→ 系統自動預測坐姿",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Token {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"seat_pressure_data\": {\n    \"left_back\": 11, \"left_mid\": 29, \"left_front\": 65,\n    \"center_back\": 10, \"center_front\": 63,\n    \"right_back\": 11, \"right_mid\": 29, \"right_front\": 65\n  },\n  \"back_pressure_data\": {\n    \"spine_upper\": 6, \"spine_mid\": 6, \"spine_lower\": 5\n  }\n}"
+            },
+            "url": { "raw": "{{base_url}}/posture", "host": ["{{base_url}}"], "path": ["posture"] }
+          }
+        },
+        {
+          "name": "STEP B - 查詢待處理通知（展示系統已自動建立提醒）",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Token {{token}}" }],
+            "url": { "raw": "{{base_url}}/notification/pending", "host": ["{{base_url}}"], "path": ["notification", "pending"] }
+          }
+        },
+        {
+          "name": "STEP C - 馬達觸發（依偵測坐姿觸發對應馬達）",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Token {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"posture\":\"forward\"}" },
+            "url": { "raw": "{{base_url}}/motor/trigger", "host": ["{{base_url}}"], "path": ["motor", "trigger"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2.（備用）其他坐姿範例（含椅背感測值，臨場可多展示幾種）",
+      "item": [
+        {
+          "name": "Posture - Create (recline，椅背高壓力)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Token {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"seat_pressure_data\": {\n    \"left_back\": 62, \"left_mid\": 40, \"left_front\": 11,\n    \"center_back\": 63, \"center_front\": 11,\n    \"right_back\": 62, \"right_mid\": 40, \"right_front\": 11\n  },\n  \"back_pressure_data\": {\n    \"spine_upper\": 72, \"spine_mid\": 66, \"spine_lower\": 56\n  }\n}"
+            },
+            "url": { "raw": "{{base_url}}/posture", "host": ["{{base_url}}"], "path": ["posture"] }
+          }
+        },
+        {
+          "name": "Motor Trigger (recline)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Token {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"posture\":\"recline\"}" },
+            "url": { "raw": "{{base_url}}/motor/trigger", "host": ["{{base_url}}"], "path": ["motor", "trigger"] }
+          }
+        },
+        {
+          "name": "Posture - Create (left)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Token {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"seat_pressure_data\": {\n    \"left_back\": 70, \"left_mid\": 65, \"left_front\": 65,\n    \"center_back\": 39, \"center_front\": 36,\n    \"right_back\": 15, \"right_mid\": 14, \"right_front\": 14\n  },\n  \"back_pressure_data\": {\n    \"spine_upper\": 21, \"spine_mid\": 21, \"spine_lower\": 18\n  }\n}"
+            },
+            "url": { "raw": "{{base_url}}/posture", "host": ["{{base_url}}"], "path": ["posture"] }
+          }
+        },
+        {
+          "name": "Motor Trigger (left)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Token {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"posture\":\"left\"}" },
+            "url": { "raw": "{{base_url}}/motor/trigger", "host": ["{{base_url}}"], "path": ["motor", "trigger"] }
+          }
+        },
+        {
+          "name": "Posture - Create (right)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Token {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"seat_pressure_data\": {\n    \"left_back\": 15, \"left_mid\": 14, \"left_front\": 14,\n    \"center_back\": 36, \"center_front\": 36,\n    \"right_back\": 70, \"right_mid\": 65, \"right_front\": 65\n  },\n  \"back_pressure_data\": {\n    \"spine_upper\": 21, \"spine_mid\": 21, \"spine_lower\": 18\n  }\n}"
+            },
+            "url": { "raw": "{{base_url}}/posture", "host": ["{{base_url}}"], "path": ["posture"] }
+          }
+        },
+        {
+          "name": "Motor Trigger (right)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Token {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"posture\":\"right\"}" },
+            "url": { "raw": "{{base_url}}/motor/trigger", "host": ["{{base_url}}"], "path": ["motor", "trigger"] }
+          }
+        },
+        {
+          "name": "Motor Trigger (sedentary)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Token {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"posture\":\"sedentary\"}" },
+            "url": { "raw": "{{base_url}}/motor/trigger", "host": ["{{base_url}}"], "path": ["motor", "trigger"] }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -181,6 +181,7 @@ def trigger_vibration(user_id: int, posture: str, reason: str) -> str:
     回傳值包含啟動馬達清單，請在收到回覆後呼叫 get_posture_history 確認坐姿是否改善。
     """
     from .models import Notification, MotorLog
+    from .mqtt_publisher import publish_motor_command
     motors = _MOTOR_MAP.get(posture, [])
     Notification.objects.create(user_id=user_id, message=f'坐姿提醒：{reason}')
     if motors:
@@ -190,6 +191,7 @@ def trigger_vibration(user_id: int, posture: str, reason: str) -> str:
             motors=motors,
             reason=reason,
         )
+        publish_motor_command(motors)
     logger.info(f'[PhysioAgent] 震動提醒已建立 user_id={user_id} motors={motors} reason={reason}')
     if motors:
         return (

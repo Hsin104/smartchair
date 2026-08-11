@@ -9,6 +9,7 @@ MQTT 訂閱服務
 
 訂閱的 Topic：
     chair/pressure/01          — 壓力感測數值（EMQX Cloud，組員裝置）
+    chair/vibration/01/ack     — 馬達指令執行回覆（對應 mqtt_publisher.py 發布的指令）
     smartchair/sensor/seat     — 椅墊 8 個 FSR 數值（本機測試用）
     smartchair/sensor/back     — 椅背 3 個 FSR 數值（本機測試用）
     smartchair/result/posture  — 坐姿辨識結果（含 username）
@@ -28,6 +29,7 @@ from django.utils import timezone
 from api.models import PostureRecord, ChairSession, Notification
 from api.views import predict_posture, _check_sedentary
 from api.physio_agent import POSTURE_DISPLAY
+from api.sensor_adapter import parse_esp32_payload, total_pressure
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -50,6 +52,7 @@ MIN_SEAT_PRESSURE = 30
 # 所有訂閱 Topic
 TOPICS = [
     'chair/pressure/01',
+    'chair/vibration/01/ack',
     'smartchair/sensor/seat',
     'smartchair/sensor/back',
     'smartchair/result/posture',
@@ -68,36 +71,6 @@ def _get_buffer(username):
     return _sensor_buffer[username]
 
 
-def _parse_esp32_payload(payload: dict):
-    """
-    將 ESP32 的 norm 陣列（8個值）轉換為後端需要的 seat_pressure_data 格式。
-
-    實際感測器佈局（對應 norm 索引）：
-        [左後 S8][中後 S4][右後 S1]
-        [左中 S7][中中 S5][右中 S2]
-        [左前 S6]         [右前 S3]
-
-    norm[0]=S1(右後), norm[1]=S2(右中), norm[2]=S3(右前), norm[3]=S4(中後),
-    norm[4]=S5(中中),  norm[5]=S6(左前), norm[6]=S7(左中), norm[7]=S8(左後)
-    """
-    norm = payload.get('norm', [])
-    if len(norm) >= 8:
-        seat_data = {
-            'right_back':   norm[0],  # S1
-            'right_mid':    norm[1],  # S2
-            'right_front':  norm[2],  # S3
-            'center_back':  norm[3],  # S4
-            'center_front': norm[4],  # S5
-            'left_front':   norm[5],  # S6
-            'left_mid':     norm[6],  # S7
-            'left_back':    norm[7],  # S8
-        }
-    else:
-        seat_data = payload.get('seat') or {}
-    back_data = payload.get('back') or {}
-    return seat_data, back_data
-
-
 def _handle_pressure_01(payload: dict):
     """
     處理 chair/pressure/01 的訊息，自動預測坐姿後寫入資料庫。
@@ -107,10 +80,9 @@ def _handle_pressure_01(payload: dict):
     """
     global _last_occupied
 
-    # 椅子空置檢查：norm 總壓力過低則寫入 sedentary（僅在狀態轉換時寫一次）
-    norm = payload.get('norm', [])
-    total_pressure = sum(abs(v) for v in norm)
-    if total_pressure < MIN_SEAT_PRESSURE:
+    # 椅子空置檢查：norm/raw 總壓力過低則寫入 sedentary（僅在狀態轉換時寫一次）
+    pressure = total_pressure(payload)
+    if pressure < MIN_SEAT_PRESSURE:
         if _last_occupied is not False:
             _last_occupied = False
             session = ChairSession.objects.filter(is_active=True).select_related('user').first()
@@ -124,7 +96,7 @@ def _handle_pressure_01(payload: dict):
                 )
                 print(f'[MQTT] 無人坐著 → 寫入 empty：{session.user.username}')
             else:
-                print(f'[MQTT] 無人坐著（總壓力 {total_pressure} < {MIN_SEAT_PRESSURE}），無 active session')
+                print(f'[MQTT] 無人坐著（總壓力 {pressure} < {MIN_SEAT_PRESSURE}），無 active session')
         return
 
     _last_occupied = True
@@ -142,7 +114,7 @@ def _handle_pressure_01(payload: dict):
             print(f'[MQTT] 自動建立使用者：{username}（密碼：changeme，請盡快修改）')
         print(f'[MQTT] 無 active session，使用 fallback：{user.username}')
 
-    seat_data, back_data = _parse_esp32_payload(payload)
+    seat_data, back_data = parse_esp32_payload(payload)
 
     baseline_seat = session.baseline_seat if (session and session.baseline_seat) else None
     mode_label = '校準' if baseline_seat else '未校準'
@@ -204,6 +176,12 @@ def on_message(client, userdata, msg):
     # ── chair/pressure/01（EMQX Cloud，組員裝置）───────────────────────────
     if topic == 'chair/pressure/01':
         _handle_pressure_01(payload)
+        return
+
+    # ── chair/vibration/01/ack（馬達指令執行回覆，對應 mqtt_publisher.py）────
+    if topic == 'chair/vibration/01/ack':
+        print(f'[MQTT] 馬達 ACK — cmd_id={payload.get("cmd_id")} '
+              f'status={payload.get("status")} message={payload.get("message")}')
         return
 
     # ── 原本的本機 Topics ─────────────────────────────────────────────────

@@ -23,6 +23,7 @@ from .schemas import (
     AVATAR_SCHEMA, MOTOR_TRIGGER_SCHEMA, validate_request,
 )
 from .physio_agent import get_advice, POSTURE_DISPLAY
+from .mqtt_publisher import publish_motor_command
 
 # ── 伸展計劃資料（lazy load） ──────────────────────────────────────────────────
 
@@ -809,10 +810,14 @@ def motor_trigger(request):
         reason=posture_name,
     )
 
+    # 發布真實馬達指令到硬體（chair/vibration/01/cmd）；硬體未連線時安靜失敗，不影響本次回應
+    published = publish_motor_command(motors)
+
     return Response({
         'posture':         posture,
         'posture_display': posture_name,
         'motors':          motors,
         'triggered':       True,
         'message':         message,
+        'mqtt_published':  published is not None,
     })

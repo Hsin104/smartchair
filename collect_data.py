@@ -25,6 +25,7 @@ import paho.mqtt.client as mqtt
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from api.models import PostureRecord
+from api.sensor_adapter import parse_esp32_payload
 
 User = get_user_model()
 
@@ -50,21 +51,10 @@ MIN_PRESSURE        = 30   # 低於此值視為空椅，略過
 
 
 def _parse_norm(payload: dict):
-    norm = payload.get('norm', [])
-    if len(norm) < 8:
+    arr = payload.get('norm') or payload.get('raw') or []
+    if len(arr) < 8:
         return None, None
-    seat = {
-        'right_back':   norm[0],
-        'right_mid':    norm[1],
-        'right_front':  norm[2],
-        'center_back':  norm[3],
-        'center_front': norm[4],
-        'left_front':   norm[5],
-        'left_mid':     norm[6],
-        'left_back':    norm[7],
-    }
-    back = payload.get('back') or {}
-    return seat, back
+    return parse_esp32_payload(payload)
 
 
 def _compute_delta(seat: dict, back: dict, baseline_seat: dict, baseline_back: dict):
