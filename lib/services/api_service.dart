@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -646,6 +646,7 @@ class ApiService {
   }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 <<<<<<< HEAD
   static Future<({bool success, String message})> requestPasswordReset(
@@ -662,6 +663,9 @@ class ApiService {
 =======
 >>>>>>> 7e6bd56 (feat: 忘記密碼改用 Email 驗證碼兩階段流程)
   /// 忘記密碼第一步：驗證帳號＋Email 後，請後端寄出 6 碼驗證碼到信箱。
+=======
+/// 忘記密碼第一步：驗證帳號＋Email 後，請後端寄出 6 碼驗證碼到信箱。
+>>>>>>> dd021e3 (fix: cleanup forgot-password conflict residue and finalize auth payload validation)
   static Future<({bool success, String message})> requestPasswordResetCode({
     required String username,
     required String email,
@@ -672,12 +676,16 @@ class ApiService {
     } on StateError catch (e) {
       return (success: false, message: e.message);
 <<<<<<< HEAD
+<<<<<<< HEAD
     }
     if (safeNewPassword.length < 6) {
       return (success: false, message: '新密碼至少需要 6 碼');
     }
 =======
 >>>>>>> ff7b618 (feat: 忘記密碼改用 Email 驗證碼兩階段流程)
+=======
+
+>>>>>>> dd021e3 (fix: cleanup forgot-password conflict residue and finalize auth payload validation)
     }
 >>>>>>> 7e6bd56 (feat: 忘記密碼改用 Email 驗證碼兩階段流程)
 
@@ -940,3 +948,4 @@ class ApiService {
     }
   }
 }
+
