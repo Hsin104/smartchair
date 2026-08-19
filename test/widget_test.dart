@@ -28,41 +28,67 @@ void main() {
     );
   });
 
-  test('forgot password requires username, email and a new password', () {
-    final validPayload = ApiService.forgotPasswordPayload(
+  test('forgot password step 1 requires username and email', () {
+    final validPayload = ApiService.forgotPasswordRequestPayload(
       username: 'alice',
       email: 'user@example.com',
-      newPassword: 'newpass123',
     );
 
-    expect(validPayload, {
-      'email': 'user@example.com',
-      'username': 'alice',
-      'new_password': 'newpass123',
-    });
+    expect(validPayload, {'email': 'user@example.com', 'username': 'alice'});
     expect(
-      () => ApiService.forgotPasswordPayload(
+      () => ApiService.forgotPasswordRequestPayload(
         username: 'alice',
         email: '',
-        newPassword: 'newpass123',
       ),
       throwsA(isA<StateError>()),
     );
     expect(
-      () => ApiService.forgotPasswordPayload(
+      () => ApiService.forgotPasswordRequestPayload(
         username: '',
         email: 'user@example.com',
-        newPassword: 'newpass123',
-      ),
-      throwsA(isA<StateError>()),
-    );
-    expect(
-      () => ApiService.forgotPasswordPayload(
-        username: 'alice',
-        email: 'user@example.com',
-        newPassword: '123',
       ),
       throwsA(isA<StateError>()),
     );
   });
+
+  test(
+    'forgot password step 2 requires a 6-digit code and a new password',
+    () {
+      final validPayload = ApiService.forgotPasswordVerifyPayload(
+        username: 'alice',
+        code: '123456',
+        newPassword: 'newpass123',
+      );
+
+      expect(validPayload, {
+        'username': 'alice',
+        'code': '123456',
+        'new_password': 'newpass123',
+      });
+      expect(
+        () => ApiService.forgotPasswordVerifyPayload(
+          username: 'alice',
+          code: '123',
+          newPassword: 'newpass123',
+        ),
+        throwsA(isA<StateError>()),
+      );
+      expect(
+        () => ApiService.forgotPasswordVerifyPayload(
+          username: '',
+          code: '123456',
+          newPassword: 'newpass123',
+        ),
+        throwsA(isA<StateError>()),
+      );
+      expect(
+        () => ApiService.forgotPasswordVerifyPayload(
+          username: 'alice',
+          code: '123456',
+          newPassword: '123',
+        ),
+        throwsA(isA<StateError>()),
+      );
+    },
+  );
 }
