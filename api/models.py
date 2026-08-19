@@ -104,6 +104,24 @@ class AgentLog(models.Model):
         return f'{self.user.username} - {self.posture} - {self.timestamp}'
 
 
+class PasswordResetCode(models.Model):
+    """忘記密碼用的一次性驗證碼，寄送到使用者註冊時填寫的 Email。"""
+
+    user       = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='password_reset_codes', verbose_name='使用者'
+    )
+    code       = models.CharField(max_length=6, verbose_name='驗證碼')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='建立時間')
+    is_used    = models.BooleanField(default=False, verbose_name='是否已使用')
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = '密碼重設驗證碼'
+
+    def __str__(self):
+        return f'{self.user.username} - {self.code} - {"已使用" if self.is_used else "未使用"}'
+
+
 class MotorLog(models.Model):
     """馬達觸發紀錄，記錄每次震動馬達的觸發坐姿與啟動清單。"""
 

@@ -1,11 +1,14 @@
 import os
 import json
+import secrets
 from collections import Counter
 from datetime import timedelta
 from pathlib import Path
 import numpy as np
 import joblib
 from django.contrib.auth import authenticate
+from django.core.mail import send_mail
+from django.conf import settings as django_settings
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
@@ -13,13 +16,17 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 
-from .models import User, PostureRecord, AgentLog, Notification, ChairSession, MotorLog
+from .models import (
+    User, PostureRecord, AgentLog, Notification, ChairSession, MotorLog,
+    PasswordResetCode,
+)
 from .serializers import (
     RegisterSerializer, UserSerializer, PostureRecordSerializer
 )
 from .schemas import (
     REGISTER_SCHEMA, LOGIN_SCHEMA, POSTURE_CREATE_SCHEMA, AGENT_SCHEMA,
-    UPDATE_ME_SCHEMA, CHANGE_PASSWORD_SCHEMA, FORGOT_PASSWORD_SCHEMA,
+    UPDATE_ME_SCHEMA, CHANGE_PASSWORD_SCHEMA,
+    FORGOT_PASSWORD_REQUEST_SCHEMA, FORGOT_PASSWORD_VERIFY_SCHEMA,
     AVATAR_SCHEMA, MOTOR_TRIGGER_SCHEMA, validate_request,
 )
 from .physio_agent import get_advice, POSTURE_DISPLAY
@@ -372,10 +379,21 @@ def change_password(request):
     return Response({'success': True, 'message': '密碼已更新'})
 
 
+_RESET_CODE_TTL_MINUTES = 10
+_RESET_CODE_RESEND_COOLDOWN_SECONDS = 60
+
+
+def _generate_reset_code():
+    return ''.join(secrets.choice('0123456789') for _ in range(6))
+
+
 @api_view(['POST'])
-def forgot_password(request):
-    """POST /api/auth/forgot-password — 以帳號 + Email 驗證後直接重設密碼。"""
-    error = validate_request(request.data, FORGOT_PASSWORD_SCHEMA)
+def forgot_password_request(request):
+    """
+    POST /api/auth/forgot-password/request — 驗證帳號與 Email 相符後，
+    寄送 6 碼驗證碼到使用者註冊時填寫的信箱（10 分鐘內有效）。
+    """
+    error = validate_request(request.data, FORGOT_PASSWORD_REQUEST_SCHEMA)
     if error:
         return Response({'schema_error': error}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -391,14 +409,82 @@ def forgot_password(request):
             'message':    '帳號不存在',
         }, status=status.HTTP_404_NOT_FOUND)
 
-    if user.email.lower() != email.lower():
+    if not user.email or user.email.lower() != email.lower():
         return Response({
             'success':    False,
             'error_code': 'EMAIL_MISMATCH',
             'message':    'Email 與帳號不符',
         }, status=status.HTTP_400_BAD_REQUEST)
 
-    user.set_password(request.data['new_password'])
+    cooldown_cutoff = timezone.now() - timedelta(seconds=_RESET_CODE_RESEND_COOLDOWN_SECONDS)
+    already_sent_recently = PasswordResetCode.objects.filter(
+        user=user, is_used=False, created_at__gte=cooldown_cutoff,
+    ).exists()
+    if already_sent_recently:
+        return Response({'success': True, 'message': '驗證碼已寄出，請查收信箱（1 分鐘內請勿重複請求）'})
+
+    code = _generate_reset_code()
+    PasswordResetCode.objects.create(user=user, code=code)
+
+    try:
+        send_mail(
+            subject='智慧座椅｜密碼重設驗證碼',
+            message=(
+                f'您的密碼重設驗證碼為：{code}\n'
+                f'此驗證碼將於 {_RESET_CODE_TTL_MINUTES} 分鐘後失效，請勿提供給他人。'
+            ),
+            from_email=django_settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            fail_silently=False,
+        )
+    except Exception as e:
+        return Response({
+            'success':    False,
+            'error_code': 'EMAIL_SEND_FAILED',
+            'message':    f'驗證信寄送失敗，請稍後再試：{str(e)}',
+        }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+    return Response({'success': True, 'message': '驗證碼已寄出，請查收信箱'})
+
+
+@api_view(['POST'])
+def forgot_password_verify(request):
+    """
+    POST /api/auth/forgot-password/verify — 驗證碼正確且未過期、未使用時，重設密碼。
+    """
+    error = validate_request(request.data, FORGOT_PASSWORD_VERIFY_SCHEMA)
+    if error:
+        return Response({'schema_error': error}, status=status.HTTP_400_BAD_REQUEST)
+
+    username     = request.data['username']
+    code         = request.data['code']
+    new_password = request.data['new_password']
+
+    try:
+        user = User.objects.get(username=username)
+    except User.DoesNotExist:
+        return Response({
+            'success':    False,
+            'error_code': 'USER_NOT_FOUND',
+            'message':    '帳號不存在',
+        }, status=status.HTTP_404_NOT_FOUND)
+
+    ttl_cutoff = timezone.now() - timedelta(minutes=_RESET_CODE_TTL_MINUTES)
+    reset_code = PasswordResetCode.objects.filter(
+        user=user, code=code, is_used=False, created_at__gte=ttl_cutoff,
+    ).order_by('-created_at').first()
+
+    if reset_code is None:
+        return Response({
+            'success':    False,
+            'error_code': 'INVALID_CODE',
+            'message':    '驗證碼錯誤或已過期，請重新請求驗證碼',
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    reset_code.is_used = True
+    reset_code.save(update_fields=['is_used'])
+
+    user.set_password(new_password)
     user.save()
     return Response({'success': True, 'message': '密碼已重設，請重新登入'})
 

@@ -104,12 +104,22 @@ CHANGE_PASSWORD_SCHEMA = {
     "additionalProperties": False,
 }
 
-FORGOT_PASSWORD_SCHEMA = {
+FORGOT_PASSWORD_REQUEST_SCHEMA = {
     "type": "object",
-    "required": ["username", "email", "new_password"],
+    "required": ["username", "email"],
+    "properties": {
+        "username": {"type": "string", "minLength": 1},
+        "email":    {"type": "string", "minLength": 1},
+    },
+    "additionalProperties": False,
+}
+
+FORGOT_PASSWORD_VERIFY_SCHEMA = {
+    "type": "object",
+    "required": ["username", "code", "new_password"],
     "properties": {
         "username":     {"type": "string", "minLength": 1},
-        "email":        {"type": "string", "minLength": 1},
+        "code":         {"type": "string", "minLength": 6, "maxLength": 6},
         "new_password": {"type": "string", "minLength": 6},
     },
     "additionalProperties": False,

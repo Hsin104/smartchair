@@ -169,3 +169,13 @@ MQTT_PORT     = int(os.getenv('MQTT_PORT', 1883))
 MQTT_USERNAME = os.getenv('MQTT_USERNAME', '')
 MQTT_PASSWORD = os.getenv('MQTT_PASSWORD', '')
 MQTT_USE_TLS  = os.getenv('MQTT_USE_TLS', 'false').lower() == 'true'
+
+# Email 設定（忘記密碼驗證碼信，使用 Gmail SMTP）
+# EMAIL_HOST_PASSWORD 需為 Gmail「應用程式密碼」，而非一般登入密碼
+EMAIL_BACKEND       = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST          = 'smtp.gmail.com'
+EMAIL_PORT          = 587
+EMAIL_USE_TLS       = True
+EMAIL_HOST_USER     = os.getenv('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
+DEFAULT_FROM_EMAIL  = os.getenv('EMAIL_HOST_USER', '')

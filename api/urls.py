@@ -9,7 +9,8 @@ urlpatterns = [
     path('me/update',              views.update_me,         name='me-update'),
     path('me/avatar',              views.update_avatar,     name='me-avatar'),
     path('auth/change-password',   views.change_password,   name='change-password'),
-    path('auth/forgot-password',   views.forgot_password,   name='forgot-password'),
+    path('auth/forgot-password/request', views.forgot_password_request, name='forgot-password-request'),
+    path('auth/forgot-password/verify',  views.forgot_password_verify,  name='forgot-password-verify'),
     path('users/exists',           views.user_exists,       name='user-exists'),
 
     # 坐姿數據
