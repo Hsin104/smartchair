@@ -586,20 +586,42 @@ class ApiService {
     }
   }
 
+  static Map<String, String> forgotPasswordPayload({
+    required String username,
+    required String email,
+  }) {
+    final safeUsername = username.trim();
+    final safeEmail = email.trim();
+
+    if (safeUsername.isEmpty || safeEmail.isEmpty) {
+      throw StateError('請同時填寫電子郵件與使用者名稱');
+    }
+
+    return {'email': safeEmail, 'username': safeUsername};
+  }
+
   static Future<({bool success, String message})> requestPasswordReset(
+    String username,
     String email,
   ) async {
+    final safeUsername = username.trim();
     final safeEmail = email.trim();
-    if (safeEmail.isEmpty) {
-      return (success: false, message: '請輸入電子郵件');
+
+    if (safeUsername.isEmpty || safeEmail.isEmpty) {
+      return (success: false, message: '請同時填寫電子郵件與使用者名稱');
     }
+
+    final payload = forgotPasswordPayload(
+      username: safeUsername,
+      email: safeEmail,
+    );
 
     try {
       final res = await http
           .post(
             _buildApiUri('auth/forgot-password'),
             headers: await _headers(),
-            body: jsonEncode({'email': safeEmail}),
+            body: jsonEncode(payload),
           )
           .timeout(const Duration(seconds: 10));
 

@@ -10,6 +10,16 @@ class AuthPage extends StatefulWidget {
 
   final AuthMode initialMode;
 
+  static String usernameValidationMessage({
+    required bool isRegisterMode,
+    required bool usernameExists,
+  }) {
+    if (isRegisterMode && usernameExists) {
+      return '此帳號已存在';
+    }
+    return '';
+  }
+
   @override
   State<AuthPage> createState() => _AuthPageState();
 }
@@ -19,6 +29,7 @@ class _AuthPageState extends State<AuthPage> {
   final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
   final _forgotPasswordEmailController = TextEditingController();
+  final _forgotPasswordUsernameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
@@ -40,6 +51,7 @@ class _AuthPageState extends State<AuthPage> {
     _usernameController.dispose();
     _emailController.dispose();
     _forgotPasswordEmailController.dispose();
+    _forgotPasswordUsernameController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -61,6 +73,20 @@ class _AuthPageState extends State<AuthPage> {
         if (!mounted) return;
         setState(() {
           _usernameServerError = '無此帳戶，請去註冊';
+          _passwordServerError = '';
+          _isSubmitting = false;
+        });
+        return;
+      }
+    } else {
+      final usernameExists = await ApiService.usernameExists(username);
+      if (usernameExists) {
+        if (!mounted) return;
+        setState(() {
+          _usernameServerError = AuthPage.usernameValidationMessage(
+            isRegisterMode: true,
+            usernameExists: true,
+          );
           _passwordServerError = '';
           _isSubmitting = false;
         });
@@ -106,7 +132,10 @@ class _AuthPageState extends State<AuthPage> {
         });
       } else if ((result.errorCode?.toUpperCase() ?? '') == 'ACCOUNT_EXISTS') {
         setState(() {
-          _usernameServerError = '此帳號已被註冊';
+          _usernameServerError = AuthPage.usernameValidationMessage(
+            isRegisterMode: true,
+            usernameExists: true,
+          );
           _passwordServerError = '';
         });
       } else {
@@ -119,6 +148,7 @@ class _AuthPageState extends State<AuthPage> {
 
   Future<void> _showForgotPasswordDialog() async {
     _forgotPasswordEmailController.text = _emailController.text.trim();
+    _forgotPasswordUsernameController.text = _usernameController.text.trim();
 
     final submitted = await showDialog<bool>(
       context: context,
@@ -129,13 +159,21 @@ class _AuthPageState extends State<AuthPage> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('輸入註冊時使用的電子郵件，我們會嘗試送出重設密碼請求。'),
+              const Text('請同時輸入註冊時使用的電子郵件與使用者名稱，兩者都正確才可送出重設密碼請求。'),
               const SizedBox(height: 16),
               TextField(
                 controller: _forgotPasswordEmailController,
                 keyboardType: TextInputType.emailAddress,
                 decoration: const InputDecoration(
                   labelText: '電子郵件',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _forgotPasswordUsernameController,
+                decoration: const InputDecoration(
+                  labelText: '使用者名稱',
                   border: OutlineInputBorder(),
                 ),
               ),
@@ -160,6 +198,7 @@ class _AuthPageState extends State<AuthPage> {
     }
 
     final result = await ApiService.requestPasswordReset(
+      _forgotPasswordUsernameController.text,
       _forgotPasswordEmailController.text,
     );
 
@@ -279,11 +318,11 @@ class _AuthPageState extends State<AuthPage> {
                       ),
                       if (_usernameServerError.isNotEmpty) ...[
                         const SizedBox(height: 6),
-                        const Padding(
-                          padding: EdgeInsets.only(left: 4),
+                        Padding(
+                          padding: const EdgeInsets.only(left: 4),
                           child: Text(
-                            '無此帳號，請去註冊',
-                            style: TextStyle(
+                            _usernameServerError,
+                            style: const TextStyle(
                               color: Colors.red,
                               fontSize: 16,
                               fontWeight: FontWeight.w800,
