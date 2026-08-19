@@ -159,7 +159,6 @@ class _AuthPageState extends State<AuthPage> {
     _forgotPasswordNewPasswordController.clear();
     _forgotPasswordConfirmPasswordController.clear();
 
-    // step 1 = 輸入帳號＋Email 索取驗證碼；step 2 = 輸入驗證碼＋新密碼完成重設
     var step = 1;
     var isBusy = false;
     var dialogError = '';
