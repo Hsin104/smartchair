@@ -30,6 +30,8 @@ class _AuthPageState extends State<AuthPage> {
   final _emailController = TextEditingController();
   final _forgotPasswordEmailController = TextEditingController();
   final _forgotPasswordUsernameController = TextEditingController();
+  final _forgotPasswordNewPasswordController = TextEditingController();
+  final _forgotPasswordConfirmPasswordController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
@@ -52,6 +54,8 @@ class _AuthPageState extends State<AuthPage> {
     _emailController.dispose();
     _forgotPasswordEmailController.dispose();
     _forgotPasswordUsernameController.dispose();
+    _forgotPasswordNewPasswordController.dispose();
+    _forgotPasswordConfirmPasswordController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -149,35 +153,57 @@ class _AuthPageState extends State<AuthPage> {
   Future<void> _showForgotPasswordDialog() async {
     _forgotPasswordEmailController.text = _emailController.text.trim();
     _forgotPasswordUsernameController.text = _usernameController.text.trim();
+    _forgotPasswordNewPasswordController.clear();
+    _forgotPasswordConfirmPasswordController.clear();
 
     final submitted = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
           title: const Text('忘記密碼'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('請同時輸入註冊時使用的電子郵件與使用者名稱，兩者都正確才可送出重設密碼請求。'),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _forgotPasswordEmailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(
-                  labelText: '電子郵件',
-                  border: OutlineInputBorder(),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('請輸入使用者名稱與註冊時使用的電子郵件，並設定新密碼。'),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _forgotPasswordEmailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(
+                    labelText: '電子郵件',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _forgotPasswordUsernameController,
-                decoration: const InputDecoration(
-                  labelText: '使用者名稱',
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _forgotPasswordUsernameController,
+                  decoration: const InputDecoration(
+                    labelText: '使用者名稱',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _forgotPasswordNewPasswordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: '新密碼（至少 6 碼）',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _forgotPasswordConfirmPasswordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: '確認新密碼',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
           ),
           actions: [
             TextButton(
@@ -186,7 +212,7 @@ class _AuthPageState extends State<AuthPage> {
             ),
             FilledButton(
               onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('送出請求'),
+              child: const Text('重設密碼'),
             ),
           ],
         );
@@ -197,9 +223,18 @@ class _AuthPageState extends State<AuthPage> {
       return;
     }
 
+    if (_forgotPasswordNewPasswordController.text !=
+        _forgotPasswordConfirmPasswordController.text) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('兩次輸入的新密碼不相符')));
+      return;
+    }
+
     final result = await ApiService.requestPasswordReset(
       _forgotPasswordUsernameController.text,
       _forgotPasswordEmailController.text,
+      _forgotPasswordNewPasswordController.text,
     );
 
     if (!mounted) return;

@@ -589,31 +589,46 @@ class ApiService {
   static Map<String, String> forgotPasswordPayload({
     required String username,
     required String email,
+    required String newPassword,
   }) {
     final safeUsername = username.trim();
     final safeEmail = email.trim();
+    final safeNewPassword = newPassword.trim();
 
     if (safeUsername.isEmpty || safeEmail.isEmpty) {
       throw StateError('請同時填寫電子郵件與使用者名稱');
     }
+    if (safeNewPassword.length < 6) {
+      throw StateError('新密碼至少需要 6 碼');
+    }
 
-    return {'email': safeEmail, 'username': safeUsername};
+    return {
+      'email': safeEmail,
+      'username': safeUsername,
+      'new_password': safeNewPassword,
+    };
   }
 
   static Future<({bool success, String message})> requestPasswordReset(
     String username,
     String email,
+    String newPassword,
   ) async {
     final safeUsername = username.trim();
     final safeEmail = email.trim();
+    final safeNewPassword = newPassword.trim();
 
     if (safeUsername.isEmpty || safeEmail.isEmpty) {
       return (success: false, message: '請同時填寫電子郵件與使用者名稱');
+    }
+    if (safeNewPassword.length < 6) {
+      return (success: false, message: '新密碼至少需要 6 碼');
     }
 
     final payload = forgotPasswordPayload(
       username: safeUsername,
       email: safeEmail,
+      newPassword: safeNewPassword,
     );
 
     try {
@@ -629,7 +644,7 @@ class ApiService {
           res.statusCode == 201 ||
           res.statusCode == 202 ||
           res.statusCode == 204) {
-        return (success: true, message: '重設密碼請求已送出，請檢查信箱');
+        return (success: true, message: '密碼已重設，請用新密碼登入');
       }
 
       final data = _decodeJsonMap(res.body);
