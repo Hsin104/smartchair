@@ -656,12 +656,7 @@ class ApiService {
 
     final payload = <String, dynamic>{
       'current_password': safeCurrent,
-      'currentPassword': safeCurrent,
-      'old_password': safeCurrent,
-      'oldPassword': safeCurrent,
       'new_password': safeNew,
-      'newPassword': safeNew,
-      'password': safeNew,
     };
 
     try {

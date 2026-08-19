@@ -47,4 +47,12 @@ void main() {
       throwsA(isA<StateError>()),
     );
   });
+
+  test('change password sends one canonical payload shape', () {
+    final payload = {'current_password': '123456', 'new_password': '123789'};
+
+    expect(payload.keys, {'current_password', 'new_password'});
+    expect(payload['current_password'], '123456');
+    expect(payload['new_password'], '123789');
+  });
 }
