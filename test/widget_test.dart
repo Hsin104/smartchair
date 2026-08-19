@@ -28,21 +28,39 @@ void main() {
     );
   });
 
-  test('forgot password requires both email and username together', () {
+  test('forgot password requires email, username, and new password together', () {
     final validPayload = ApiService.forgotPasswordPayload(
       username: 'alice',
       email: 'user@example.com',
+      newPassword: 'newpass123',
     );
 
-    expect(validPayload, {'email': 'user@example.com', 'username': 'alice'});
+    expect(validPayload, {
+      'email': 'user@example.com',
+      'username': 'alice',
+      'new_password': 'newpass123',
+    });
     expect(
-      () => ApiService.forgotPasswordPayload(username: 'alice', email: ''),
+      () => ApiService.forgotPasswordPayload(
+        username: 'alice',
+        email: '',
+        newPassword: 'newpass123',
+      ),
       throwsA(isA<StateError>()),
     );
     expect(
       () => ApiService.forgotPasswordPayload(
         username: '',
         email: 'user@example.com',
+        newPassword: 'newpass123',
+      ),
+      throwsA(isA<StateError>()),
+    );
+    expect(
+      () => ApiService.forgotPasswordPayload(
+        username: 'alice',
+        email: 'user@example.com',
+        newPassword: '',
       ),
       throwsA(isA<StateError>()),
     );

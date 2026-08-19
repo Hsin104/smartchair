@@ -589,31 +589,40 @@ class ApiService {
   static Map<String, String> forgotPasswordPayload({
     required String username,
     required String email,
+    required String newPassword,
   }) {
     final safeUsername = username.trim();
     final safeEmail = email.trim();
+    final safeNewPassword = newPassword.trim();
 
-    if (safeUsername.isEmpty || safeEmail.isEmpty) {
-      throw StateError('請同時填寫電子郵件與使用者名稱');
+    if (safeUsername.isEmpty || safeEmail.isEmpty || safeNewPassword.isEmpty) {
+      throw StateError('請填寫電子郵件、使用者名稱與新密碼');
     }
 
-    return {'email': safeEmail, 'username': safeUsername};
+    return {
+      'email': safeEmail,
+      'username': safeUsername,
+      'new_password': safeNewPassword,
+    };
   }
 
   static Future<({bool success, String message})> requestPasswordReset(
     String username,
     String email,
+    String newPassword,
   ) async {
     final safeUsername = username.trim();
     final safeEmail = email.trim();
+    final safeNewPassword = newPassword.trim();
 
-    if (safeUsername.isEmpty || safeEmail.isEmpty) {
-      return (success: false, message: '請同時填寫電子郵件與使用者名稱');
+    if (safeUsername.isEmpty || safeEmail.isEmpty || safeNewPassword.isEmpty) {
+      return (success: false, message: '請填寫電子郵件、使用者名稱與新密碼');
     }
 
     final payload = forgotPasswordPayload(
       username: safeUsername,
       email: safeEmail,
+      newPassword: safeNewPassword,
     );
 
     try {
