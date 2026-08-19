@@ -586,65 +586,120 @@ class ApiService {
     }
   }
 
-  static Map<String, String> forgotPasswordPayload({
+  static Map<String, String> forgotPasswordRequestPayload({
     required String username,
     required String email,
-    required String newPassword,
   }) {
     final safeUsername = username.trim();
     final safeEmail = email.trim();
+
+    if (safeUsername.isEmpty || safeEmail.isEmpty) {
+      throw StateError('請同時填寫電子郵件與使用者名稱');
+    }
+
+    return {'email': safeEmail, 'username': safeUsername};
+  }
+
+  static Map<String, String> forgotPasswordVerifyPayload({
+    required String username,
+    required String code,
+    required String newPassword,
+  }) {
+    final safeUsername = username.trim();
+    final safeCode = code.trim();
     final safeNewPassword = newPassword.trim();
 
-    if (safeUsername.isEmpty || safeEmail.isEmpty || safeNewPassword.isEmpty) {
-      throw StateError('請填寫電子郵件、使用者名稱與新密碼');
+    if (safeUsername.isEmpty || safeCode.length != 6) {
+      throw StateError('請輸入帳號與 6 碼驗證碼');
+    }
+    if (safeNewPassword.length < 6) {
+      throw StateError('新密碼至少需要 6 碼');
     }
 
     return {
-      'email': safeEmail,
       'username': safeUsername,
+      'code': safeCode,
       'new_password': safeNewPassword,
     };
   }
 
-  static Future<({bool success, String message})> requestPasswordReset(
-    String username,
-    String email,
-    String newPassword,
-  ) async {
-    final safeUsername = username.trim();
-    final safeEmail = email.trim();
-    final safeNewPassword = newPassword.trim();
-
-    if (safeUsername.isEmpty || safeEmail.isEmpty || safeNewPassword.isEmpty) {
-      return (success: false, message: '請填寫電子郵件、使用者名稱與新密碼');
+  /// 忘記密碼第一步：驗證帳號＋Email 後，請後端寄出 6 碼驗證碼到信箱。
+  static Future<({bool success, String message})> requestPasswordResetCode({
+    required String username,
+    required String email,
+  }) async {
+    final Map<String, String> payload;
+    try {
+      payload = forgotPasswordRequestPayload(username: username, email: email);
+    } on StateError catch (e) {
+      return (success: false, message: e.message);
     }
-
-    final payload = forgotPasswordPayload(
-      username: safeUsername,
-      email: safeEmail,
-      newPassword: safeNewPassword,
-    );
 
     try {
       final res = await http
           .post(
-            _buildApiUri('auth/forgot-password'),
+            _buildApiUri('auth/forgot-password/request'),
             headers: await _headers(),
             body: jsonEncode(payload),
           )
           .timeout(const Duration(seconds: 10));
 
-      if (res.statusCode == 200 ||
-          res.statusCode == 201 ||
-          res.statusCode == 202 ||
-          res.statusCode == 204) {
-        return (success: true, message: '重設密碼請求已送出，請檢查信箱');
+      final data = _decodeJsonMap(res.body);
+      if (res.statusCode == 200) {
+        return (success: true, message: _extractMessage(data, '驗證碼已寄出，請查收信箱'));
       }
 
-      final data = _decodeJsonMap(res.body);
       return (
         success: false,
-        message: _extractMessage(data, '重設密碼失敗：${res.statusCode}'),
+        message: _extractMessage(
+          data,
+          data?['schema_error']?.toString() ?? '請求失敗：${res.statusCode}',
+        ),
+      );
+    } on TimeoutException {
+      return (success: false, message: '連線逾時，請稍後再試');
+    } catch (error) {
+      return (success: false, message: '請求失敗：${error.toString()}');
+    }
+  }
+
+  /// 忘記密碼第二步：輸入信箱收到的驗證碼與新密碼，完成重設。
+  static Future<({bool success, String message})> verifyPasswordReset({
+    required String username,
+    required String code,
+    required String newPassword,
+  }) async {
+    final Map<String, String> payload;
+    try {
+      payload = forgotPasswordVerifyPayload(
+        username: username,
+        code: code,
+        newPassword: newPassword,
+      );
+    } on StateError catch (e) {
+      return (success: false, message: e.message);
+    }
+
+    try {
+      final res = await http
+          .post(
+            _buildApiUri('auth/forgot-password/verify'),
+            headers: await _headers(),
+            body: jsonEncode(payload),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      final data = _decodeJsonMap(res.body);
+      if (res.statusCode == 200) {
+        return (success: true, message: _extractMessage(data, '密碼已重設，請用新密碼登入'));
+      }
+
+      return (
+        success: false,
+        message: _extractMessage(
+          data,
+          data?['schema_error']?.toString() ?? '重設密碼失敗：${res.statusCode}',
+        ),
       );
     } on TimeoutException {
       return (success: false, message: '連線逾時，請稍後再試');
