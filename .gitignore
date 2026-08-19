@@ -40,3 +40,6 @@ faiss_index/
 # 簡報檔案（不納入版控）
 *.pptx
 *_ppt.py
+
+# 個人進度筆記（不納入版控）
+schedule.md
