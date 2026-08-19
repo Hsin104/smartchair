@@ -20,45 +20,6 @@ void main() {
     );
   });
 
-  test('forgot password payload requires username, email, and new password', () {
-    final validPayload = ApiService.forgotPasswordPayload(
-      username: 'alice',
-      email: 'user@example.com',
-      newPassword: 'newpass123',
-    );
-
-    expect(validPayload, {
-      'email': 'user@example.com',
-      'username': 'alice',
-      'new_password': 'newpass123',
-    });
-
-    expect(
-      () => ApiService.forgotPasswordPayload(
-        username: 'alice',
-        email: '',
-        newPassword: 'newpass123',
-      ),
-      throwsA(isA<StateError>()),
-    );
-    expect(
-      () => ApiService.forgotPasswordPayload(
-        username: '',
-        email: 'user@example.com',
-        newPassword: 'newpass123',
-      ),
-      throwsA(isA<StateError>()),
-    );
-    expect(
-      () => ApiService.forgotPasswordPayload(
-        username: 'alice',
-        email: 'user@example.com',
-        newPassword: '',
-      ),
-      throwsA(isA<StateError>()),
-    );
-  });
-
   test('forgot password step 1 requires username and email', () {
     final validPayload = ApiService.forgotPasswordRequestPayload(
       username: 'alice',

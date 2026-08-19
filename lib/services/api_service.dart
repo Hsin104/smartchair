@@ -592,31 +592,9 @@ class ApiService {
   }) {
     final safeUsername = username.trim();
     final safeEmail = email.trim();
-<<<<<<< HEAD
 
     if (safeUsername.isEmpty || safeEmail.isEmpty) {
       throw StateError('請同時填寫電子郵件與使用者名稱');
-    }
-
-    return {'email': safeEmail, 'username': safeUsername};
-  }
-
-  static Map<String, String> forgotPasswordVerifyPayload({
-    required String username,
-    required String code,
-    required String newPassword,
-  }) {
-    final safeUsername = username.trim();
-    final safeCode = code.trim();
-    final safeNewPassword = newPassword.trim();
-=======
->>>>>>> 7e6bd56 (feat: 忘記密碼改用 Email 驗證碼兩階段流程)
-
-    if (safeUsername.isEmpty || safeCode.length != 6) {
-      throw StateError('請輸入帳號與 6 碼驗證碼');
-    }
-    if (safeNewPassword.length < 6) {
-      throw StateError('新密碼至少需要 6 碼');
     }
 
     return {'email': safeEmail, 'username': safeUsername};
@@ -645,27 +623,7 @@ class ApiService {
     };
   }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-  static Future<({bool success, String message})> requestPasswordReset(
-    String username,
-    String email,
-    String newPassword,
-  ) async {
-    final safeUsername = username.trim();
-    final safeEmail = email.trim();
-    final safeNewPassword = newPassword.trim();
-
-    if (safeUsername.isEmpty || safeEmail.isEmpty || safeNewPassword.isEmpty) {
-      return (success: false, message: '請填寫電子郵件、使用者名稱與新密碼');
-=======
->>>>>>> 7e6bd56 (feat: 忘記密碼改用 Email 驗證碼兩階段流程)
   /// 忘記密碼第一步：驗證帳號＋Email 後，請後端寄出 6 碼驗證碼到信箱。
-=======
-/// 忘記密碼第一步：驗證帳號＋Email 後，請後端寄出 6 碼驗證碼到信箱。
->>>>>>> dd021e3 (fix: cleanup forgot-password conflict residue and finalize auth payload validation)
   static Future<({bool success, String message})> requestPasswordResetCode({
     required String username,
     required String email,
@@ -675,19 +633,7 @@ class ApiService {
       payload = forgotPasswordRequestPayload(username: username, email: email);
     } on StateError catch (e) {
       return (success: false, message: e.message);
-<<<<<<< HEAD
-<<<<<<< HEAD
     }
-    if (safeNewPassword.length < 6) {
-      return (success: false, message: '新密碼至少需要 6 碼');
-    }
-=======
->>>>>>> ff7b618 (feat: 忘記密碼改用 Email 驗證碼兩階段流程)
-=======
-
->>>>>>> dd021e3 (fix: cleanup forgot-password conflict residue and finalize auth payload validation)
-    }
->>>>>>> 7e6bd56 (feat: 忘記密碼改用 Email 驗證碼兩階段流程)
 
     try {
       final res = await http
@@ -698,23 +644,9 @@ class ApiService {
           )
           .timeout(const Duration(seconds: 10));
 
-<<<<<<< HEAD
-<<<<<<< HEAD
       final data = _decodeJsonMap(res.body);
       if (res.statusCode == 200) {
         return (success: true, message: _extractMessage(data, '驗證碼已寄出，請查收信箱'));
-=======
-      if (res.statusCode == 200 ||
-          res.statusCode == 201 ||
-          res.statusCode == 202 ||
-          res.statusCode == 204) {
-        return (success: true, message: '密碼已重設，請用新密碼登入');
->>>>>>> fe184f8 (fix: 忘記密碼流程補上新密碼欄位，符合後端 schema)
-=======
-      final data = _decodeJsonMap(res.body);
-      if (res.statusCode == 200) {
-        return (success: true, message: _extractMessage(data, '驗證碼已寄出，請查收信箱'));
->>>>>>> 7e6bd56 (feat: 忘記密碼改用 Email 驗證碼兩階段流程)
       }
 
       return (
