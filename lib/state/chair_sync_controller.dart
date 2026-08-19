@@ -13,6 +13,7 @@ class ChairSyncController extends ChangeNotifier {
   DateTime? sessionOpenedAt;
   DateTime updatedAt = DateTime.now();
   DateTime lastBackendSyncAt = DateTime.now();
+  bool _lastPostureWasSedentary = false;
 
   Timer? _syncTimer;
 
@@ -133,12 +134,13 @@ class ChairSyncController extends ChangeNotifier {
   }
 
   void startSession() {
-    sessionOpenedAt = DateTime.now();
+    sessionOpenedAt ??= DateTime.now();
     notifyListeners();
   }
 
   void stopSession() {
     sessionOpenedAt = null;
+    _lastPostureWasSedentary = false;
     notifyListeners();
   }
 
@@ -243,6 +245,12 @@ class ChairSyncController extends ChangeNotifier {
     final code = _postureCodeFrom(source);
     final displayName = code.isEmpty ? '等待同步' : ApiService.toDisplayName(code);
     final score = _intValue(source['score']) ?? ApiService.toScore(code);
+    final isSedentary =
+        code == 'sedentary' ||
+        displayName.contains('久坐') ||
+        displayName.contains('sedentary');
+    final shouldResetTimer =
+        _lastPostureWasSedentary && !isSedentary && code.isNotEmpty;
 
     postureCode = code;
     postureLabel = displayName;
@@ -255,9 +263,14 @@ class ChairSyncController extends ChangeNotifier {
 
     if (displayName == '無人就坐') {
       sessionOpenedAt = null;
+      _lastPostureWasSedentary = false;
     } else if (code.isNotEmpty) {
-      sessionOpenedAt ??= DateTime.now();
+      if (sessionOpenedAt == null || shouldResetTimer) {
+        sessionOpenedAt = DateTime.now();
+      }
     }
+
+    _lastPostureWasSedentary = isSedentary;
   }
 
   Map<String, dynamic> _postureSource(Map<String, dynamic> payload) {

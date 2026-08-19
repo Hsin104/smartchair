@@ -6,6 +6,7 @@ import 'dashboard.dart';
 import 'report.dart';
 import 'notification.dart';
 import 'setting.dart';
+import 'ai_advice_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key, required this.chairSyncController});
@@ -23,6 +24,7 @@ class _HomePageState extends State<HomePage> {
 
   final List<Map<String, dynamic>> navItems = const [
     {'icon': Icons.event_seat, 'label': '儀表板', 'hint': '即時坐姿'},
+    {'icon': Icons.psychology_alt_rounded, 'label': 'AI 建議', 'hint': '治療師建議'},
     {'icon': Icons.bar_chart_rounded, 'label': '報表', 'hint': '今日分析'},
     {'icon': Icons.notifications_active_rounded, 'label': '通知', 'hint': '提醒中心'},
     {'icon': Icons.tune_rounded, 'label': '設定', 'hint': '個人偏好'},
@@ -105,8 +107,12 @@ class _HomePageState extends State<HomePage> {
       DashboardPage(
         controller: widget.chairSyncController,
         isLoggedIn: _isLoggedIn,
-        onOpenReport: () => setState(() => currentIndex = 1),
-        onStartStretch: () => setState(() => currentIndex = 2),
+        onOpenReport: () => setState(() => currentIndex = 2),
+        onStartStretch: () => setState(() => currentIndex = 3),
+      ),
+      AiAdvicePage(
+        controller: widget.chairSyncController,
+        isLoggedIn: _isLoggedIn,
       ),
       ReportPage(controller: widget.chairSyncController),
       NotificationPage(controller: widget.chairSyncController),
@@ -114,6 +120,7 @@ class _HomePageState extends State<HomePage> {
         isLoggedIn: _isLoggedIn,
         userEmail: _userEmail,
         onLogout: _logout,
+        onProfileChanged: _refreshAuthState,
       ),
     ];
 

@@ -586,6 +586,121 @@ class ApiService {
     }
   }
 
+  static Future<({bool success, String message})> requestPasswordReset(
+    String email,
+  ) async {
+    final safeEmail = email.trim();
+    if (safeEmail.isEmpty) {
+      return (success: false, message: '請輸入電子郵件');
+    }
+
+    try {
+      final res = await http
+          .post(
+            _buildApiUri('auth/forgot-password'),
+            headers: await _headers(),
+            body: jsonEncode({'email': safeEmail}),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (res.statusCode == 200 ||
+          res.statusCode == 201 ||
+          res.statusCode == 202 ||
+          res.statusCode == 204) {
+        return (success: true, message: '重設密碼請求已送出，請檢查信箱');
+      }
+
+      final data = _decodeJsonMap(res.body);
+      return (
+        success: false,
+        message: _extractMessage(data, '重設密碼失敗：${res.statusCode}'),
+      );
+    } on TimeoutException {
+      return (success: false, message: '連線逾時，請稍後再試');
+    } catch (error) {
+      return (success: false, message: '重設密碼失敗：${error.toString()}');
+    }
+  }
+
+  static Future<({bool success, String message})> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final safeCurrent = currentPassword.trim();
+    final safeNew = newPassword.trim();
+    if (safeCurrent.isEmpty || safeNew.isEmpty) {
+      return (success: false, message: '請填寫目前密碼與新密碼');
+    }
+
+    final payload = <String, dynamic>{
+      'current_password': safeCurrent,
+      'currentPassword': safeCurrent,
+      'old_password': safeCurrent,
+      'oldPassword': safeCurrent,
+      'new_password': safeNew,
+      'newPassword': safeNew,
+      'password': safeNew,
+    };
+
+    try {
+      final res = await http
+          .post(
+            _buildApiUri('auth/change-password'),
+            headers: await _headers(auth: true),
+            body: jsonEncode(payload),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (res.statusCode == 200 ||
+          res.statusCode == 201 ||
+          res.statusCode == 202 ||
+          res.statusCode == 204) {
+        return (success: true, message: '密碼已更新');
+      }
+
+      final data = _decodeJsonMap(res.body);
+      return (
+        success: false,
+        message: _extractMessage(data, '修改密碼失敗：${res.statusCode}'),
+      );
+    } on TimeoutException {
+      return (success: false, message: '連線逾時，請稍後再試');
+    } catch (error) {
+      return (success: false, message: '修改密碼失敗：${error.toString()}');
+    }
+  }
+
+  static Future<({bool success, String message})> updateAvatar(
+    Map<String, dynamic> updates,
+  ) async {
+    try {
+      final res = await http
+          .post(
+            _buildApiUri('me/avatar'),
+            headers: await _headers(auth: true),
+            body: jsonEncode(updates),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (res.statusCode == 200 ||
+          res.statusCode == 201 ||
+          res.statusCode == 202 ||
+          res.statusCode == 204) {
+        return (success: true, message: '頭像已更新');
+      }
+
+      final data = _decodeJsonMap(res.body);
+      return (
+        success: false,
+        message: _extractMessage(data, '更新頭像失敗：${res.statusCode}'),
+      );
+    } on TimeoutException {
+      return (success: false, message: '連線逾時，請稍後再試');
+    } catch (error) {
+      return (success: false, message: '更新頭像失敗：${error.toString()}');
+    }
+  }
+
   /// 將本地設定同步到後端（舊名稱，現在轉向 updateMe）。
   static Future<bool> saveUserSettings(Map<String, dynamic> settings) async {
     return updateMe(settings);

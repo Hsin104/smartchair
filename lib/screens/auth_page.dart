@@ -18,6 +18,7 @@ class _AuthPageState extends State<AuthPage> {
   final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
+  final _forgotPasswordEmailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
@@ -38,6 +39,7 @@ class _AuthPageState extends State<AuthPage> {
   void dispose() {
     _usernameController.dispose();
     _emailController.dispose();
+    _forgotPasswordEmailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -113,6 +115,59 @@ class _AuthPageState extends State<AuthPage> {
         ).showSnackBar(SnackBar(content: Text(result.message)));
       }
     }
+  }
+
+  Future<void> _showForgotPasswordDialog() async {
+    _forgotPasswordEmailController.text = _emailController.text.trim();
+
+    final submitted = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('忘記密碼'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('輸入註冊時使用的電子郵件，我們會嘗試送出重設密碼請求。'),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _forgotPasswordEmailController,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(
+                  labelText: '電子郵件',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('送出請求'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (submitted != true || !mounted) {
+      return;
+    }
+
+    final result = await ApiService.requestPasswordReset(
+      _forgotPasswordEmailController.text,
+    );
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(result.message)));
   }
 
   _LoginErrorKind _classifyLoginError(String message) {
@@ -300,6 +355,18 @@ class _AuthPageState extends State<AuthPage> {
                               fontSize: 14,
                               fontWeight: FontWeight.w700,
                             ),
+                          ),
+                        ),
+                      ],
+                      if (_mode == AuthMode.login) ...[
+                        const SizedBox(height: 4),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton(
+                            onPressed: _isSubmitting
+                                ? null
+                                : _showForgotPasswordDialog,
+                            child: const Text('忘記密碼？'),
                           ),
                         ),
                       ],
