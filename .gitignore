@@ -49,3 +49,6 @@ ngrok.exe
 
 # VS Code Mermaid Chart 擴充套件自動產生的 Copilot 指令（編輯器輔助設定，非專案程式碼）
 .github/
+
+# 本機終端機啟動說明（個人備忘，不納入版控）
+指令
