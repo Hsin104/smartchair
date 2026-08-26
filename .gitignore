@@ -46,3 +46,6 @@ schedule.md
 
 # 本機工具執行檔（體積大，不納入版控）
 ngrok.exe
+
+# VS Code Mermaid Chart 擴充套件自動產生的 Copilot 指令（編輯器輔助設定，非專案程式碼）
+.github/
