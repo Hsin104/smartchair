@@ -170,6 +170,13 @@ MQTT_USERNAME = os.getenv('MQTT_USERNAME', '')
 MQTT_PASSWORD = os.getenv('MQTT_PASSWORD', '')
 MQTT_USE_TLS  = os.getenv('MQTT_USE_TLS', 'false').lower() == 'true'
 
+# Physio Agent MCP Server 設定（python manage.py mcp_server 啟動的獨立服務）
+MCP_SERVER_HOST = os.getenv('MCP_SERVER_HOST', 'localhost')
+MCP_SERVER_PORT = int(os.getenv('MCP_SERVER_PORT', 8001))
+
+# Tavily 網路搜尋 API（web_search MCP 工具用，未設定時該工具會優雅降級）
+TAVILY_API_KEY = os.getenv('TAVILY_API_KEY', '')
+
 # Email 設定（忘記密碼驗證碼信，使用 Gmail SMTP）
 # EMAIL_HOST_PASSWORD 需為 Gmail「應用程式密碼」，而非一般登入密碼
 EMAIL_BACKEND       = 'django.core.mail.backends.smtp.EmailBackend'

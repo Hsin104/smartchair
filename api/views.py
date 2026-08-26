@@ -31,6 +31,7 @@ from .schemas import (
 )
 from .physio_agent import get_advice, POSTURE_DISPLAY
 from .mqtt_publisher import publish_motor_command
+from .motor_constants import MOTOR_MAP
 
 # ── 伸展計劃資料（lazy load） ──────────────────────────────────────────────────
 
@@ -43,17 +44,6 @@ def _get_stretch_map():
         with open(map_path, encoding='utf-8') as f:
             _STRETCH_MAP = json.load(f)
     return _STRETCH_MAP
-
-# 坐姿 → 馬達觸發規則（對應 PPT 第 11 頁馬達觸發控制表）
-MOTOR_TRIGGER_MAP = {
-    'forward':   ['M1', 'M2'],        # 前傾：左右手軸
-    'recline':   ['M3', 'M4'],        # 後仰：左右腰部
-    'left':      ['M2', 'M4'],        # 左傾：右手軸 + 右腰（對側矯正）
-    'right':     ['M1', 'M3'],        # 右傾：左手軸 + 左腰（對側矯正）
-    'sedentary': ['M1', 'M2', 'M3', 'M4'],  # 久坐：全部震動提醒起身
-    'normal':    [],
-    'empty':     [],
-}
 
 # ── 模型路徑 ──────────────────────────────────────────────────────────────────
 
@@ -570,7 +560,7 @@ def agent_advice(request):
     user_message = request.data.get('user_message', '')
 
     try:
-        advice = get_advice(posture, request.user.id, user_message)
+        advice, steps = get_advice(posture, request.user.id, user_message)
     except Exception as e:
         return Response(
             {'error': f'Agent 暫時無法使用：{str(e)}'},
@@ -582,6 +572,7 @@ def agent_advice(request):
         posture=posture,
         user_message=user_message,
         agent_reply=advice,
+        steps=steps,
     )
 
     return Response({
@@ -873,7 +864,7 @@ def motor_trigger(request):
         return Response({'schema_error': error}, status=status.HTTP_400_BAD_REQUEST)
 
     posture = request.data['posture']
-    motors  = MOTOR_TRIGGER_MAP.get(posture, [])
+    motors  = MOTOR_MAP.get(posture, [])
 
     if not motors:
         return Response({

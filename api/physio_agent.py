@@ -2,31 +2,21 @@
 Physio Agent — 完整 Agent 架構（四大核心模組）
 
 大腦（LLM）  : Gemini 2.5 Flash + 領域專精 Prompt 設計
-記憶（Memory）: 外部知識庫（knowledge_base/*.txt）→ FAISS 向量庫（持久化至磁碟）
-工具（Tools） : Function Calling — 知識庫搜尋、歷史查詢、震動觸發（含馬達指令回饋）
-行動（Action）: ReAct 迴圈 — Thought→Action→Observation→Thought，含觸發後坐姿驗證
+記憶（Memory）: 外部知識庫（knowledge_base/*.txt）→ FAISS 向量庫，經 MCP Server 暴露查詢工具
+工具（Tools） : MCP（Model Context Protocol）— 獨立跑的 api/mcp_server.py（python manage.py mcp_server），
+               透過 Streamable HTTP 暴露 4 個工具：知識庫查詢、坐姿歷史查詢、震動觸發、網路搜尋
+行動（Action）: 本檔案手寫的 ReAct 迴圈（Thought→Action→Observation→Thought），
+               每輪逐步記錄，不經由 LangChain AgentExecutor 黑盒子執行
 """
 
+import asyncio
 import logging
-from collections import Counter
-from pathlib import Path
 
 from django.conf import settings
-from django.utils import timezone
-from datetime import timedelta
-from langchain_community.document_loaders import DirectoryLoader, TextLoader
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_community.vectorstores import FAISS
-from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
-from langchain_core.tools import tool
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_classic.agents import create_tool_calling_agent, AgentExecutor
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_core.messages import SystemMessage, HumanMessage, ToolMessage
 
 logger = logging.getLogger(__name__)
-
-BASE_DIR  = Path(__file__).resolve().parent.parent
-KB_DIR    = BASE_DIR / 'knowledge_base'
-FAISS_DIR = Path.home() / 'smartchair_faiss'  # 避免路徑含中文導致 FAISS C++ 函式庫失敗
 
 POSTURE_DISPLAY = {
     'normal':    '標準坐姿',
@@ -38,19 +28,7 @@ POSTURE_DISPLAY = {
     'empty':     '無人就坐',
 }
 
-# 坐姿對應震動馬達（M1=左手軸, M2=右手軸, M3=左腰, M4=右腰）
-_MOTOR_MAP = {
-    'forward':   ['M1', 'M2'],              # 前傾：左右手軸提醒抬頭
-    'recline':   ['M3', 'M4'],              # 後仰：左右腰部提醒坐直
-    'left':      ['M2', 'M4'],              # 左傾：右手軸+右腰（對側矯正）
-    'right':     ['M1', 'M3'],              # 右傾：左手軸+左腰（對側矯正）
-    'sedentary': ['M1', 'M2', 'M3', 'M4'], # 久坐：全部馬達提醒起身
-    'normal':    [],
-    'empty':     [],
-}
-
-_retriever      = None
-_agent_executor = None
+MAX_ITERATIONS = 8
 
 
 def _get_all_keys() -> list:
@@ -58,147 +36,6 @@ def _get_all_keys() -> list:
     if not keys:
         raise ValueError('未設定任何 GEMINI_API_KEY，請確認 .env 檔案')
     return keys
-
-
-def _build_retriever():
-    """載入外部知識庫並建立 FAISS 向量庫（首次建立後持久化至磁碟）。"""
-    global _retriever
-    if _retriever is not None:
-        return _retriever
-
-    api_key = _get_all_keys()[0]
-    embeddings = GoogleGenerativeAIEmbeddings(
-        model='models/gemini-embedding-001',
-        google_api_key=api_key,
-    )
-
-    if (FAISS_DIR / 'index.faiss').exists():
-        logger.info('[PhysioAgent] 從磁碟載入 FAISS 向量庫...')
-        vs = FAISS.load_local(
-            str(FAISS_DIR), embeddings,
-            allow_dangerous_deserialization=True,
-        )
-    else:
-        logger.info('[PhysioAgent] 讀取外部知識庫並建立 FAISS...')
-        loader = DirectoryLoader(
-            str(KB_DIR), glob='*.txt',
-            loader_cls=TextLoader,
-            loader_kwargs={'encoding': 'utf-8'},
-        )
-        docs = loader.load()
-        # 排除純參考文獻清單（只有作者/期刊/URL，無實際建議內容，會稀釋檢索品質）
-        docs = [d for d in docs if not Path(d.metadata.get('source', '')).stem == '參考資料']
-        # chunk_size 拉大到可涵蓋知識庫文件的完整小節（原 400 常把「立即改善動作」清單從中切斷）
-        splitter = RecursiveCharacterTextSplitter(chunk_size=700, chunk_overlap=100)
-        split_docs = splitter.split_documents(docs)
-        vs = FAISS.from_documents(split_docs, embeddings)
-        FAISS_DIR.mkdir(parents=True, exist_ok=True)
-        vs.save_local(str(FAISS_DIR))
-        logger.info(f'[PhysioAgent] FAISS 已儲存至磁碟：{FAISS_DIR}')
-
-    _retriever = vs.as_retriever(search_type='mmr', search_kwargs={'k': 4, 'fetch_k': 10})
-    return _retriever
-
-
-# ── Tools（Function Calling）─────────────────────────────────────────────────
-
-@tool
-def search_knowledge_base(query: str) -> str:
-    """從外部醫學文獻知識庫搜尋坐姿、物理治療相關資訊。回答任何建議前必須先呼叫此工具。"""
-    retriever = _build_retriever()
-    docs = retriever.invoke(query)
-    if not docs:
-        return (
-            '【知識庫查詢結果：無相關文獻】\n'
-            '此問題超出本系統知識庫範疇，請直接回覆：\n'
-            '「根據目前知識庫，我無法回答此問題，建議諮詢專業醫師或物理治療師。」'
-        )
-    parts = []
-    for i, d in enumerate(docs, 1):
-        filename = Path(d.metadata.get('source', '')).stem
-        parts.append(f'[文獻{i}｜來源：{filename}.txt]\n{d.page_content}')
-    return (
-        '【知識庫查詢結果｜請嚴格依此內容回答，不可補充知識庫以外的資訊】\n\n'
-        + '\n\n---\n\n'.join(parts)
-    )
-
-
-@tool
-def get_posture_history(user_id: int) -> str:
-    """
-    查詢指定使用者的個人化背景資料，用於提供更貼合個人的建議：
-    - 身高體重（BMI）：體型差異會影響人體工學建議的施力與角度
-    - 最近 5 筆坐姿紀錄：用於判斷是否持續不良或已有改善
-    - 近 7 天壞坐姿統計：用於判斷哪種坐姿問題最頻繁，建議應優先處理
-    """
-    from .models import PostureRecord, User
-
-    parts = []
-
-    # ── 身高體重 ──
-    try:
-        user = User.objects.get(id=user_id)
-        if user.height and user.weight:
-            bmi = round(user.weight / ((user.height / 100) ** 2), 1)
-            parts.append(f'使用者身高 {user.height:.0f}cm、體重 {user.weight:.0f}kg（BMI {bmi}）。')
-        else:
-            parts.append('使用者尚未填寫身高體重。')
-    except User.DoesNotExist:
-        parts.append('查無此使用者。')
-
-    # ── 最近 5 筆坐姿紀錄（趨勢判斷）──
-    recent = PostureRecord.objects.filter(user_id=user_id).order_by('-timestamp')[:5]
-    if recent.exists():
-        lines = [f'- {r.timestamp.strftime("%H:%M")} → {r.posture}' for r in recent]
-        parts.append('最近 5 筆坐姿紀錄：\n' + '\n'.join(lines))
-    else:
-        parts.append('沒有近期坐姿紀錄。')
-
-    # ── 近 7 天壞坐姿統計（頻率判斷）──
-    cutoff = timezone.now() - timedelta(days=7)
-    week_records = PostureRecord.objects.filter(
-        user_id=user_id, timestamp__gte=cutoff,
-    ).exclude(posture__in=['normal', 'empty'])
-    total = week_records.count()
-    if total:
-        counts = Counter(week_records.values_list('posture', flat=True))
-        stat_lines = [
-            f'- {POSTURE_DISPLAY.get(p, p)}：{c} 次（{round(c / total * 100)}%）'
-            for p, c in counts.most_common()
-        ]
-        parts.append(f'近 7 天壞坐姿統計（共 {total} 筆）：\n' + '\n'.join(stat_lines))
-    else:
-        parts.append('近 7 天無不良坐姿紀錄。')
-
-    return '\n\n'.join(parts)
-
-
-@tool
-def trigger_vibration(user_id: int, posture: str, reason: str) -> str:
-    """觸發震動馬達提醒使用者調整坐姿，並回傳已啟動的馬達清單。
-    posture: 當前坐姿類別（forward/recline/left/right/sedentary/normal）
-    reason: 提醒原因說明（中文）
-    回傳值包含啟動馬達清單，請在收到回覆後呼叫 get_posture_history 確認坐姿是否改善。
-    """
-    from .models import Notification, MotorLog
-    from .mqtt_publisher import publish_motor_command
-    motors = _MOTOR_MAP.get(posture, [])
-    Notification.objects.create(user_id=user_id, message=f'坐姿提醒：{reason}')
-    if motors:
-        MotorLog.objects.create(
-            user_id=user_id,
-            posture=posture,
-            motors=motors,
-            reason=reason,
-        )
-        publish_motor_command(motors)
-    logger.info(f'[PhysioAgent] 震動提醒已建立 user_id={user_id} motors={motors} reason={reason}')
-    if motors:
-        return (
-            f'【震動馬達已觸發】啟動馬達：{", ".join(motors)} | 原因：{reason}\n'
-            f'→ 請呼叫 get_posture_history(user_id={user_id}) 觀察坐姿是否在最新紀錄中出現改善。'
-        )
-    return f'【提醒已送出（{posture} 無需震動）】原因：{reason}'
 
 
 # ── System Prompt ──────────────────────────────────────────────────────────────
@@ -211,27 +48,30 @@ Step 1 — 呼叫 get_posture_history(user_id)
     判斷「哪一種坐姿問題最頻繁」及「是持續不良或偶發」
 Step 2 — 呼叫 search_knowledge_base(query)
   → 觀察（Observation）：針對 Step 1 判斷出的最頻繁坐姿問題查詢對應醫學文獻，作為建議依據
+  → 若查無相關文獻，且問題仍屬「辦公室人體工學／坐姿」範疇，可呼叫 web_search(query) 補充查詢
 Step 3 — 若偵測到非正常坐姿，呼叫 trigger_vibration(user_id, posture, reason)
   → 觀察（Observation）：確認啟動馬達清單（M1~M4），回覆中會提示下一步驗證
 Step 4 — 再次呼叫 get_posture_history(user_id)
   → 觀察（Observation）：比對 Step 1 與 Step 4 的最新紀錄，判斷坐姿是否有改善跡象
 Step 5 — 根據 Step 1~4 的完整觀察結果，產生個人化建議回覆（結合 7 天統計出的優先問題與 BMI 體型差異）
 
-【工具說明】
-• search_knowledge_base(query)   — 查詢醫學文獻知識庫，回答任何建議前必須先呼叫
+【工具說明（皆透過 MCP Server 呼叫，非傳統 function calling）】
 • get_posture_history(user_id)   — 查詢身高體重（BMI）、最近 5 筆坐姿紀錄、近 7 天壞坐姿統計，
   用於個人化建議、趨勢判斷與改善驗證
+• search_knowledge_base(query)   — 查詢醫學文獻知識庫，回答任何建議前必須先呼叫
+• web_search(query)              — 網路搜尋補充查詢，僅在知識庫查無相關文獻、且問題仍屬允許範疇時才可使用
 • trigger_vibration(user_id, posture, reason) — 觸發震動馬達並記錄 MotorLog；
   回傳啟動馬達清單，收到後必須呼叫 get_posture_history 進行雙向回授驗證
 
 【核心規則 — 防幻覺機制】
 1. 【強制查詢】回答任何問題前，必須先呼叫 search_knowledge_base 工具查詢知識庫。
-2. 【嚴格知識邊界】只能根據 search_knowledge_base 返回的文獻內容回答，嚴禁引用知識庫以外的任何資訊。
+2. 【嚴格知識邊界】只能根據 search_knowledge_base 或 web_search 返回的內容回答，嚴禁引用以外的任何資訊。
 3. 【不知道規則】若問題涉及以下範疇，必須直接回覆以下句子並停止：
    「根據目前知識庫，我無法回答此問題，建議諮詢專業醫師或物理治療師。」
    不可回答的範疇：藥物、手術、注射治療、疾病診斷、飲食與營養補充品、
    非辦公室坐姿相關的健康問題（如血壓、體重、懷孕、精神健康）。
-4. 【強制引用】每則回覆最後必須有「📚 參考來源」章節，列出實際查詢到的 .txt 檔名。
+   此類問題禁止改用 web_search 迴避，仍須直接拒答。
+4. 【強制引用】每則回覆最後必須有「📚 參考來源」章節，列出實際查詢到的 .txt 檔名或網路來源網址。
    若查無相關文獻，請寫「（無相關知識庫文獻）」並拒絕提供建議。
 5. 【震動提醒】偵測到非正常坐姿時，必須呼叫 trigger_vibration，posture 欄位填入英文坐姿代碼。
 6. 【雙向驗證】每次呼叫 trigger_vibration 後，必須再次呼叫 get_posture_history 觀察改善結果。
@@ -240,10 +80,10 @@ Step 5 — 根據 Step 1~4 的完整觀察結果，產生個人化建議回覆�
    若使用者詢問體重相關健康問題，仍依規則3回覆「無法回答」。
 
 【嚴禁行為（任何違反均屬幻覺輸出）】
-✗ 引用知識庫文獻以外的醫學數據或研究
+✗ 引用知識庫與網路搜尋以外的醫學數據或研究
 ✗ 診斷任何疾病或評估病情嚴重程度
 ✗ 推薦任何藥物、手術或補充品
-✗ 捏造具體數字（百分比、角度、時間），除非直接引用自文獻
+✗ 捏造具體數字（百分比、角度、時間），除非直接引用自查詢結果
 
 【可回答的主題（知識庫涵蓋範圍）】
 ✓ 辦公室六種坐姿：正常坐姿、頭部前傾、身體左傾、身體右傾、過度後仰、久坐未動
@@ -272,37 +112,74 @@ Step 5 — 根據 Step 1~4 的完整觀察結果，產生個人化建議回覆�
 - 檔名.txt"""
 
 
-# ── Agent 初始化 ───────────────────────────────────────────────────────────────
+# ── MCP Client + 手寫 ReAct 迴圈 ─────────────────────────────────────────────────
 
-def _build_agent_with_key(api_key: str):
-    global _agent_executor
-    if _agent_executor is not None:
-        return _agent_executor
+def _flatten_content(content) -> str:
+    """Gemini 回覆的 content 可能是 str，也可能是多個 part 組成的 list。"""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts = []
+        for item in content:
+            if isinstance(item, dict):
+                parts.append(item.get('text', ''))
+            elif isinstance(item, str):
+                parts.append(item)
+        return ''.join(parts)
+    return str(content)
 
-    _build_retriever()
 
-    llm = ChatGoogleGenerativeAI(
-        model='gemini-2.5-flash',
-        google_api_key=api_key,
-        temperature=0.2,
-    )
+async def _run_react(question: str, api_key: str) -> tuple[str, list]:
+    """
+    手寫 ReAct 迴圈：Thought（模型回覆）→ Action（MCP 工具呼叫）→ Observation（工具回傳）→ 再思考。
 
-    tools = [search_knowledge_base, get_posture_history, trigger_vibration]
+    每輪都顯式記錄進 steps，不經由 LangChain AgentExecutor 等黑盒子執行，
+    供 AgentLog.steps 落地保存、Django admin 檢視完整決策過程。
+    """
+    from mcp import ClientSession
+    from mcp.client.streamable_http import streamablehttp_client
+    from langchain_mcp_adapters.tools import load_mcp_tools
 
-    prompt = ChatPromptTemplate.from_messages([
-        ('system', _SYSTEM_PROMPT),
-        ('human', '{input}'),
-        ('placeholder', '{agent_scratchpad}'),
-    ])
+    url = f'http://{settings.MCP_SERVER_HOST}:{settings.MCP_SERVER_PORT}/mcp'
 
-    agent = create_tool_calling_agent(llm, tools, prompt)
-    _agent_executor = AgentExecutor(
-        agent=agent, tools=tools,
-        verbose=True, max_iterations=8,
-    )
+    async with streamablehttp_client(url) as (read, write, _):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            tools = await load_mcp_tools(session)
 
-    logger.info('[PhysioAgent] Agent 初始化完成')
-    return _agent_executor
+            llm = ChatGoogleGenerativeAI(
+                model='gemini-2.5-flash',
+                google_api_key=api_key,
+                temperature=0.2,
+            ).bind_tools(tools)
+
+            messages = [SystemMessage(content=_SYSTEM_PROMPT), HumanMessage(content=question)]
+            steps = []
+
+            for i in range(MAX_ITERATIONS):
+                response = await llm.ainvoke(messages)
+                messages.append(response)
+
+                if not response.tool_calls:
+                    return _flatten_content(response.content), steps
+
+                for call in response.tool_calls:
+                    tool = next((t for t in tools if t.name == call['name']), None)
+                    if tool is None:
+                        observation = f'錯誤：找不到工具 {call["name"]}'
+                    else:
+                        observation = await tool.ainvoke(call['args'])
+
+                    steps.append({
+                        'step':         i + 1,
+                        'thought':      _flatten_content(response.content),
+                        'action':       call['name'],
+                        'action_input': call['args'],
+                        'observation':  str(observation),
+                    })
+                    messages.append(ToolMessage(content=str(observation), tool_call_id=call['id']))
+
+            return '（已達最大步數，回傳目前累積資訊，建議重新提問或簡化問題）', steps
 
 
 # ── 防幻覺驗證 ─────────────────────────────────────────────────────────────────
@@ -327,7 +204,12 @@ def _validate_response(response: str) -> str:
 
 # ── 對外介面 ───────────────────────────────────────────────────────────────────
 
-def get_advice(posture: str, user_id: int, user_message: str = '') -> str:
+def get_advice(posture: str, user_id: int, user_message: str = '') -> tuple[str, list]:
+    """
+    回傳 (advice, steps)：
+        advice — 最終回覆文字（已通過防幻覺驗證）
+        steps  — ReAct 迴圈逐步紀錄（Thought/Action/Observation），供 AgentLog.steps 落地保存
+    """
     posture_name = POSTURE_DISPLAY.get(posture, posture)
 
     if user_message:
@@ -344,22 +226,6 @@ def get_advice(posture: str, user_id: int, user_message: str = '') -> str:
             f'請查詢外部知識庫後分析坐姿問題並提供改善建議。'
         )
 
-    def _invoke(api_key):
-        global _agent_executor
-        _agent_executor = None  # 強制重建 agent（切換 key 時需要）
-        executor = _build_agent_with_key(api_key)
-        result = executor.invoke({'input': question})
-        output = result['output']
-        if isinstance(output, list):
-            parts = []
-            for item in output:
-                if isinstance(item, dict):
-                    parts.append(item.get('text', ''))
-                elif isinstance(item, str):
-                    parts.append(item)
-            output = ''.join(parts)
-        return _validate_response(output.strip())
-
     def _is_quota_error(e):
         msg = str(e)
         return '429' in msg or 'RESOURCE_EXHAUSTED' in msg or 'quota' in msg.lower()
@@ -368,10 +234,11 @@ def get_advice(posture: str, user_id: int, user_message: str = '') -> str:
     last_error = None
     for i, key in enumerate(keys):
         try:
-            result = _invoke(key)
+            output, steps = asyncio.run(_run_react(question, key))
+            advice = _validate_response(output.strip())
             if i > 0:
                 logger.info(f'[PhysioAgent] 使用第 {i+1} 組 key 成功')
-            return result
+            return advice, steps
         except Exception as e:
             last_error = e
             if _is_quota_error(e) and i < len(keys) - 1:

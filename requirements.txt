@@ -28,3 +28,8 @@ langchain-text-splitters
 langchain-google-genai
 langchain-community
 faiss-cpu
+
+# Physio Agent MCP 化 + ReAct 迴圈（第四階段）
+mcp
+langchain-mcp-adapters
+tavily-python

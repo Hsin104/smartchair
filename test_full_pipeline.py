@@ -29,7 +29,8 @@ from django.utils import timezone
 
 from api.models import PostureRecord, Notification, MotorLog, ChairSession
 from api.management.commands.mqtt_subscriber import _handle_pressure_01
-from api.views import _check_sedentary, MOTOR_TRIGGER_MAP, POSTURE_DISPLAY
+from api.views import _check_sedentary, POSTURE_DISPLAY
+from api.motor_constants import MOTOR_MAP
 
 User = get_user_model()
 WITH_AI = '--with-ai' in sys.argv
@@ -152,7 +153,7 @@ def main():
     result = _check_sedentary(user, 'normal')
     check('久坐 6 分鐘後判定為 sedentary', result == 'sedentary', f'結果={result}')
 
-    # ── 第三段：馬達觸發決策（MOTOR_TRIGGER_MAP，對應 POST /api/motor/trigger 邏輯）──
+    # ── 第三段：馬達觸發決策（MOTOR_MAP，對應 POST /api/motor/trigger 邏輯）──
     print('\n[第三段] 馬達觸發決策邏輯（坐姿 → 對應馬達）')
     EXPECTED_MOTORS = {
         'forward': ['M1', 'M2'], 'recline': ['M3', 'M4'],
@@ -160,7 +161,7 @@ def main():
         'sedentary': ['M1', 'M2', 'M3', 'M4'], 'normal': [],
     }
     for posture, expected in EXPECTED_MOTORS.items():
-        motors = MOTOR_TRIGGER_MAP.get(posture, [])
+        motors = MOTOR_MAP.get(posture, [])
         check(f'{posture:8s} 馬達對應正確', motors == expected, f'{motors}')
 
     # ── 第四段（可選）：Physio Agent 完整 ReAct 流程（消耗 Gemini API 額度）──
@@ -168,11 +169,14 @@ def main():
         print('\n[第四段] Physio Agent 完整 ReAct 流程（真實呼叫 Gemini API，僅測 1 次）')
         from api.physio_agent import get_advice
         try:
-            advice = get_advice('forward', user.id, '')
+            advice, steps = get_advice('forward', user.id, '')
             check('Agent 產生建議（非空）', bool(advice and len(advice) > 20))
-            check('Agent 回覆含知識庫來源引用邏輯已驗證', True, '（來源章節已由 _validate_response 移除，人工比對 log 中 verbose 輸出）')
+            check('ReAct steps 有記錄到至少一輪 Thought/Action/Observation', bool(steps), f'共 {len(steps)} 步')
             print('\n  --- Agent 回覆內容 ---')
             print('  ' + advice.replace('\n', '\n  '))
+            print('\n  --- ReAct 執行步驟 ---')
+            for s in steps:
+                print(f'  Step {s["step"]}: {s["action"]}({s["action_input"]}) → {s["observation"][:80]}...')
         except Exception as e:
             check('Agent 產生建議（非空）', False, str(e))
     else:

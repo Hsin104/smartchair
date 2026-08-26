@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>運作腳本一 測試頁面｜偵測即時坐姿與觸發馬達提醒</title>
+<style>
+  :root {
+    --navy: #1F3A5F;
+    --accent: #2E74B5;
+    --green: #2E7D32;
+    --red: #B3261E;
+    --grey: #595959;
+    --light-grey: #F2F2F2;
+    --border: #D9D9D9;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Microsoft JhengHei", "PingFang TC", sans-serif;
+    background: #FAFAFA;
+    color: #1A1A1A;
+  }
+  header {
+    background: var(--navy);
+    color: #fff;
+    padding: 22px 32px;
+  }
+  header h1 { margin: 0; font-size: 22px; }
+  header p { margin: 6px 0 0; font-size: 13px; color: #C9D6E8; }
+  .badge-hint {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 3px 10px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 3px;
+    font-size: 12px;
+  }
+  main {
+    max-width: 980px;
+    margin: 24px auto 60px;
+    padding: 0 20px;
+  }
+  .config-bar {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin-bottom: 20px;
+    font-size: 13px;
+  }
+  .config-bar input {
+    flex: 1;
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 13px;
+  }
+  .panel {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 18px;
+    overflow: hidden;
+  }
+  .panel-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 18px;
+    background: var(--light-grey);
+    border-bottom: 1px solid var(--border);
+  }
+  .step-tag {
+    background: var(--accent);
+    color: #fff;
+    font-weight: bold;
+    font-size: 12px;
+    padding: 3px 9px;
+    border-radius: 12px;
+    white-space: nowrap;
+  }
+  .panel-head h2 { margin: 0; font-size: 16px; }
+  .panel-body { padding: 16px 18px; }
+  .panel-note { font-size: 12px; color: var(--grey); margin: 0 0 12px; line-height: 1.6; }
+  label { font-size: 13px; color: var(--grey); display: block; margin-bottom: 4px; }
+  select, input[type=text], input[type=password] {
+    padding: 7px 10px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 14px;
+    margin-right: 8px;
+  }
+  button {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  button:hover { background: var(--navy); }
+  button:disabled { background: #ADB5BD; cursor: not-allowed; }
+  .row { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+  .sensor-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    max-width: 360px;
+    margin: 10px 0 14px;
+  }
+  .sensor-cell {
+    background: var(--light-grey);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 8px 4px;
+    text-align: center;
+    font-size: 12px;
+  }
+  .sensor-cell b { display: block; font-size: 15px; color: var(--navy); }
+  .back-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    max-width: 360px;
+    margin: 0 0 14px;
+  }
+  .result-box {
+    margin-top: 12px;
+    padding: 12px 14px;
+    border-radius: 5px;
+    font-size: 13px;
+    line-height: 1.7;
+    display: none;
+  }
+  .result-ok { background: #EAF4EA; border: 1px solid var(--green); }
+  .result-err { background: #FBEAEA; border: 1px solid var(--red); }
+  .result-box.show { display: block; }
+  .result-box .posture-badge {
+    display: inline-block;
+    font-weight: bold;
+    padding: 2px 10px;
+    border-radius: 12px;
+    background: var(--navy);
+    color: #fff;
+    font-size: 13px;
+    margin-right: 6px;
+  }
+  .motor-chip {
+    display: inline-block;
+    background: var(--navy);
+    color: #fff;
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    margin-right: 6px;
+    font-weight: bold;
+  }
+  .status-line { font-size: 13px; margin-top: 8px; }
+  #loginStatus { font-size: 13px; }
+  #loginStatus.ok { color: var(--green); }
+  #loginStatus.err { color: var(--red); }
+  .hw-note {
+    font-size: 12px;
+    color: var(--grey);
+    background: var(--light-grey);
+    border-radius: 5px;
+    padding: 10px 14px;
+    line-height: 1.7;
+  }
+  .log {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 18px;
+    font-size: 12px;
+    color: var(--grey);
+    max-height: 220px;
+    overflow-y: auto;
+  }
+  .log h3 { margin: 0 0 8px; font-size: 13px; color: #1A1A1A; }
+  .log-line { padding: 3px 0; border-bottom: 1px dashed #eee; }
+  .log-line:last-child { border-bottom: none; }
+  .log-line.err { color: var(--red); }
+
+  .caption-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 999;
+    min-height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 14px 24px;
+    background: rgba(0, 0, 0, 0.78);
+    color: #fff;
+    font-size: 20px;
+    font-weight: bold;
+    line-height: 1.5;
+    letter-spacing: 0.5px;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+    opacity: 1;
+    transition: opacity 0.35s ease;
+  }
+  .caption-bar.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .caption-bar .caption-tag {
+    display: inline-block;
+    background: var(--accent);
+    color: #fff;
+    font-size: 13px;
+    font-weight: bold;
+    padding: 2px 9px;
+    border-radius: 10px;
+    margin-right: 10px;
+    vertical-align: 2px;
+  }
+  main { margin-bottom: 100px; }
+</style>
+</head>
+<body>
+
+<div class="caption-bar hidden" id="captionBar">
+  <span class="caption-tag">START</span>測試頁面已載入，請先完成 Step 0 登入
+</div>
+
+<header>
+  <h1>運作腳本一：偵測即時坐姿與觸發馬達提醒</h1>
+  <p>自製測試頁面 — 直接呼叫後端 API 並以結構化畫面呈現結果，取代 Postman 原始 JSON 展示</p>
+  <span class="badge-hint">步驟編號對應主簡報「運作腳本一」A0～A11</span>
+</header>
+
+<main>
+
+  <div class="config-bar">
+    <label style="margin:0;white-space:nowrap;">後端網址</label>
+    <input type="text" id="apiBase" value="http://localhost:8000/api">
+    <span id="loginStatus">尚未登入</span>
+  </div>
+
+  <!-- 登入 -->
+  <div class="panel">
+    <div class="panel-head">
+      <span class="step-tag">Step 0</span>
+      <h2>登入測試帳號</h2>
+    </div>
+    <div class="panel-body">
+      <p class="panel-note">運作腳本永遠以使用者操作為起點，測試頁面比照正式 App 走登入取得 Token，而非直接夾帶帳密呼叫其他 API。</p>
+      <div class="row">
+        <div>
+          <label>帳號</label>
+          <input type="text" id="username" placeholder="username">
+        </div>
+        <div>
+          <label>密碼</label>
+          <input type="password" id="password" placeholder="password">
+        </div>
+        <button onclick="doLogin()">登入</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Check-in -->
+  <div class="panel">
+    <div class="panel-head">
+      <span class="step-tag">起點</span>
+      <h2>使用者坐上椅子（Check-in）</h2>
+    </div>
+    <div class="panel-body">
+      <p class="panel-note">
+        運作腳本一的操作起點：「使用者坐上椅子後系統自動監控」。呼叫 <code>POST /api/chair/checkin</code> 讓登入帳號成為目前椅子感測資料的歸屬對象，
+        之後的感測數據與通知才會正確算在這個帳號名下（避免椅子先前被其他測試帳號 check-in，導致下面查不到自己的通知）。
+      </p>
+      <button onclick="doCheckin()">Check-in</button>
+      <div class="result-box" id="checkinResult"></div>
+    </div>
+  </div>
+
+  <!-- A0-A4 -->
+  <div class="panel">
+    <div class="panel-head">
+      <span class="step-tag">A.0 ～ A.4</span>
+      <h2>感測數值 → 系統自動預測坐姿並儲存</h2>
+    </div>
+    <div class="panel-body">
+      <p class="panel-note">
+        A.0 讀取壓力感測器數值 → A.1 發布坐姿資料 → A.2 轉送坐姿資料（正式環境經 EMQX MQTT Broker pub/sub，由
+        <code>mqtt_subscriber.py</code> 訂閱）→ A.3 分析坐姿類別 → A.4 儲存坐姿紀錄。
+        本頁以 <code>POST /api/posture</code> 模擬 ESP32 送出的感測數值，直接觸發後端相同的預測與寫入邏輯（跳過 MQTT 傳輸層，僅為測試頁面簡化，正式管線仍走 MQTT）。
+      </p>
+      <div class="row">
+        <div>
+          <label>模擬坐姿情境</label>
+          <select id="posturePreset" onchange="renderSensorPreview()">
+            <option value="normal">標準坐姿</option>
+            <option value="forward" selected>頭部前傾（烏龜頸）</option>
+            <option value="left">身體左傾</option>
+            <option value="right">身體右傾</option>
+            <option value="recline">過度後仰</option>
+          </select>
+        </div>
+        <button onclick="submitPosture()">送出模擬感測數據（A0→A4）</button>
+      </div>
+
+      <label>椅墊 8 點 FSR 數值（A.0）</label>
+      <div class="sensor-grid" id="seatGrid"></div>
+      <label>椅背 3 點 FSR 數值（A.0）</label>
+      <div class="back-grid" id="backGrid"></div>
+
+      <div class="result-box" id="postureResult"></div>
+    </div>
+  </div>
+
+  <!-- A5 -->
+  <div class="panel">
+    <div class="panel-head">
+      <span class="step-tag">A.5</span>
+      <h2>系統自動建立坐姿提醒通知</h2>
+    </div>
+    <div class="panel-body">
+      <p class="panel-note">查詢 <code>GET /api/notification/history</code> 最新一筆，確認上一步驟非標準坐姿時是否自動建立通知。</p>
+      <button onclick="checkNotification()">查詢最新通知（A5）</button>
+      <div class="result-box" id="notificationResult"></div>
+    </div>
+  </div>
+
+  <!-- A6-A9 -->
+  <div class="panel">
+    <div class="panel-head">
+      <span class="step-tag">A.6 ～ A.9</span>
+      <h2>觸發馬達決策 → 記錄 → 發布馬達指令</h2>
+    </div>
+    <div class="panel-body">
+      <p class="panel-note">
+        A.6 觸發馬達決策 → A.7 紀錄馬達觸發（寫入 MotorLog）→ A.8 發布馬達指令 → A.9 轉送馬達指令（經 MQTT Broker 送往 ESP32，Topic：<code>chair/vibration/01/cmd</code>）。
+        呼叫 <code>POST /api/motor/trigger</code>，依上方最後偵測到的坐姿決定觸發哪幾顆馬達（M1～M4，對應電路設計編號）。
+      </p>
+      <button onclick="triggerMotor()">觸發馬達提醒（A6→A9）</button>
+      <div class="result-box" id="motorResult"></div>
+    </div>
+  </div>
+
+  <!-- A10-A11 -->
+  <div class="panel">
+    <div class="panel-head">
+      <span class="step-tag">A.10 ～ A.11</span>
+      <h2>馬達實際震動 ＋ App 推播提醒</h2>
+    </div>
+    <div class="panel-body">
+      <p class="hw-note">
+        A.10 執行馬達震動、A.11 推播提醒通知為硬體端／App 端的實際動作，需搭配實體 ESP32 與 App 展示，不在本測試頁面涵蓋範圍內。
+        本頁僅涵蓋軟體端 A.0～A.9：MQTT 指令是否成功發布可由上方「mqtt_published」欄位確認；實際馬達是否震動、App 是否收到推播需另外錄製硬體 Demo 影片佐證。
+      </p>
+    </div>
+  </div>
+
+  <div class="log">
+    <h3>操作紀錄</h3>
+    <div id="logArea"></div>
+  </div>
+
+</main>
+
+<script>
+const POSTURE_DISPLAY = {
+  normal: '標準坐姿', left: '身體左傾', right: '身體右傾',
+  forward: '頭部前傾（烏龜頸）', recline: '過度後仰', sedentary: '久坐未動', empty: '無人就坐',
+};
+
+// 5 種坐姿模擬 payload（數值取自 test_full_pipeline.py 的 POSTURE_PAYLOADS，與自動化測試一致）
+const POSTURE_PAYLOADS = {
+  normal:   { seat: { left_back: 50, left_mid: 50, left_front: 48, center_back: 46, center_front: 46, right_back: 50, right_mid: 50, right_front: 48 },
+              back: { spine_upper: 27, spine_mid: 27, spine_lower: 25 } },
+  left:     { seat: { left_back: 70, left_mid: 65, left_front: 65, center_back: 39, center_front: 36, right_back: 15, right_mid: 14, right_front: 14 },
+              back: { spine_upper: 21, spine_mid: 21, spine_lower: 18 } },
+  right:    { seat: { left_back: 15, left_mid: 14, left_front: 14, center_back: 36, center_front: 36, right_back: 70, right_mid: 65, right_front: 65 },
+              back: { spine_upper: 21, spine_mid: 21, spine_lower: 18 } },
+  forward:  { seat: { left_back: 11, left_mid: 29, left_front: 65, center_back: 10, center_front: 63, right_back: 11, right_mid: 29, right_front: 65 },
+              back: { spine_upper: 6, spine_mid: 6, spine_lower: 5 } },
+  recline:  { seat: { left_back: 62, left_mid: 40, left_front: 11, center_back: 63, center_front: 11, right_back: 62, right_mid: 40, right_front: 11 },
+              back: { spine_upper: 72, spine_mid: 66, spine_lower: 56 } },
+};
+
+let TOKEN = null;
+let LAST_POSTURE = null;
+
+function apiBase() { return document.getElementById('apiBase').value.replace(/\/$/, ''); }
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// 字幕採「顯示 → 停留可讀秒數 → 自動淡出」，用 token 避免舊字幕的淡出計時器
+// 把使用者手上正在看的新字幕提早蓋掉（快速連續按下一步時常見的競態）。
+let captionToken = 0;
+const CAPTION_READ_MS = 1800;   // 過場文字（即將做什麼）停留時間
+const CAPTION_HOLD_MS = 4000;   // 結果文字停留時間，之後自動消失
+
+function showCaption(tag, text) {
+  const el = document.getElementById('captionBar');
+  el.innerHTML = `<span class="caption-tag">${tag}</span>${text}`;
+  el.classList.remove('hidden');
+  return ++captionToken;
+}
+
+function scheduleHide(token, delayMs) {
+  setTimeout(() => {
+    if (token === captionToken) {
+      document.getElementById('captionBar').classList.add('hidden');
+    }
+  }, delayMs);
+}
+
+function log(text, isErr) {
+  const area = document.getElementById('logArea');
+  const line = document.createElement('div');
+  line.className = 'log-line' + (isErr ? ' err' : '');
+  const t = new Date().toLocaleTimeString('zh-TW', { hour12: false });
+  line.textContent = `[${t}] ${text}`;
+  area.prepend(line);
+}
+
+async function apiCall(method, path, body) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (TOKEN) headers['Authorization'] = 'Token ' + TOKEN;
+  const resp = await fetch(apiBase() + path, {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok) {
+    const err = new Error(data.error || data.message || `HTTP ${resp.status}`);
+    err.data = data;
+    throw err;
+  }
+  return data;
+}
+
+async function doLogin() {
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value;
+  const statusEl = document.getElementById('loginStatus');
+  if (!username || !password) { statusEl.textContent = '請輸入帳號密碼'; statusEl.className = 'err'; return; }
+  let token = showCaption('STEP 0', '運作腳本以使用者操作為起點，這裡先登入測試帳號，取得存取權杖（Token）。');
+  await sleep(CAPTION_READ_MS);
+  try {
+    const data = await apiCall('POST', '/login', { username, password });
+    TOKEN = data.token;
+    statusEl.textContent = `已登入：${data.user.username}`;
+    statusEl.className = 'ok';
+    log(`登入成功（Step 0）→ ${data.user.username}`);
+    token = showCaption('STEP 0', `登入成功，帳號「${data.user.username}」已取得授權，接下來所有操作都以這個帳號進行。`);
+  } catch (e) {
+    statusEl.textContent = '登入失敗：' + e.message;
+    statusEl.className = 'err';
+    log('登入失敗：' + e.message, true);
+    token = showCaption('STEP 0', '登入失敗：' + e.message);
+  }
+  scheduleHide(token, CAPTION_HOLD_MS);
+}
+
+async function doCheckin() {
+  const box = document.getElementById('checkinResult');
+  if (!TOKEN) {
+    box.className = 'result-box result-err show';
+    box.innerHTML = '請先完成 Step 0 登入';
+    scheduleHide(showCaption('起點', '請先完成 Step 0 登入，才能 Check-in。'), CAPTION_HOLD_MS);
+    return;
+  }
+  let token = showCaption('起點', '使用者坐上椅子，呼叫 Check-in，讓這個帳號成為目前椅子感測資料的歸屬對象。');
+  await sleep(CAPTION_READ_MS);
+  try {
+    const data = await apiCall('POST', '/chair/checkin', {});
+    box.className = 'result-box result-ok show';
+    box.innerHTML = `已 Check-in：<b>${data.username}</b> 成為目前椅子感測資料的歸屬對象`;
+    log(`Check-in 成功（起點）→ ${data.username}`);
+    token = showCaption('起點', `Check-in 完成，之後的感測資料與通知都會正確算在「${data.username}」名下。`);
+  } catch (e) {
+    box.className = 'result-box result-err show';
+    box.innerHTML = `Check-in 失敗：${e.message}`;
+    log('Check-in 失敗：' + e.message, true);
+    token = showCaption('起點', 'Check-in 失敗：' + e.message);
+  }
+  scheduleHide(token, CAPTION_HOLD_MS);
+}
+
+function renderSensorPreview() {
+  const preset = document.getElementById('posturePreset').value;
+  const p = POSTURE_PAYLOADS[preset];
+  const seatOrder = [
+    ['left_back','左後'], ['center_back','中後'], ['right_back','右後'],
+    ['left_mid','左中'], ['center_front','中前'], ['right_mid','右中'],
+    ['left_front','左前'], ['center_front','（中前已顯示）'], ['right_front','右前'],
+  ];
+  // 簡化為 3x3：後排(左中右)、中排(左中右)、前排(左中右)
+  const seatGrid = document.getElementById('seatGrid');
+  const cells = [
+    ['left_back','左後'], ['center_back','中後'], ['right_back','右後'],
+    ['left_mid','左中'],  ['—','—'],             ['right_mid','右中'],
+    ['left_front','左前'],['center_front','中前'], ['right_front','右前'],
+  ];
+  seatGrid.innerHTML = cells.map(([key,label]) => {
+    if (key === '—') return `<div class="sensor-cell" style="visibility:hidden">-</div>`;
+    return `<div class="sensor-cell">${label}<b>${p.seat[key]}</b></div>`;
+  }).join('');
+
+  const backGrid = document.getElementById('backGrid');
+  backGrid.innerHTML = ['spine_upper','spine_mid','spine_lower'].map(key => {
+    const label = key === 'spine_upper' ? '上背' : key === 'spine_mid' ? '中背' : '下背';
+    return `<div class="sensor-cell">${label}<b>${p.back[key]}</b></div>`;
+  }).join('');
+}
+
+async function submitPosture() {
+  const box = document.getElementById('postureResult');
+  const preset = document.getElementById('posturePreset').value;
+  const p = POSTURE_PAYLOADS[preset];
+  let token = showCaption('A.0～A.4', '模擬 ESP32 讀取椅墊與椅背壓力感測器數值，系統會自動預測坐姿類別並寫入資料庫。');
+  await sleep(CAPTION_READ_MS);
+  try {
+    const data = await apiCall('POST', '/posture', {
+      seat_pressure_data: p.seat,
+      back_pressure_data: p.back,
+    });
+    LAST_POSTURE = data.posture;
+    box.className = 'result-box result-ok show';
+    box.innerHTML = `
+      <span class="posture-badge">${POSTURE_DISPLAY[data.posture] || data.posture}</span>
+      系統預測結果（A.3）
+      <div class="status-line">PostureRecord id：${data.id ?? '(見回傳資料)'}　｜　寫入時間（A.4）：${new Date(data.timestamp || Date.now()).toLocaleString('zh-TW')}</div>
+    `;
+    log(`送出模擬感測數值（A0→A4）→ 預測坐姿：${POSTURE_DISPLAY[data.posture] || data.posture}`);
+    token = showCaption('A.3～A.4', `系統預測結果出爐：「${POSTURE_DISPLAY[data.posture] || data.posture}」，已寫入坐姿紀錄資料庫。`);
+  } catch (e) {
+    box.className = 'result-box result-err show';
+    box.innerHTML = `送出失敗：${e.message}`;
+    log('A0→A4 呼叫失敗：' + e.message, true);
+    token = showCaption('A.0～A.4', '送出失敗：' + e.message);
+  }
+  scheduleHide(token, CAPTION_HOLD_MS);
+}
+
+async function checkNotification() {
+  const box = document.getElementById('notificationResult');
+  let token = showCaption('A.5', '查詢系統是否因為偵測到不良坐姿，而自動建立提醒通知。');
+  await sleep(CAPTION_READ_MS);
+  try {
+    const data = await apiCall('GET', '/notification/history?limit=1');
+    box.className = 'result-box result-ok show';
+    if (data.notifications && data.notifications.length) {
+      const n = data.notifications[0];
+      box.innerHTML = `
+        <b>最新通知（A.5）：</b>${n.message}
+        <div class="status-line">時間：${new Date(n.timestamp).toLocaleString('zh-TW')}　｜　已讀取：${n.is_sent ? '是' : '否'}</div>
+      `;
+      log('查詢通知（A5）→ ' + n.message);
+      token = showCaption('A.5', `系統已自動建立通知：「${n.message}」。`);
+    } else {
+      box.innerHTML = '目前沒有通知紀錄（若上一步是標準坐姿，本就不會產生通知）';
+      log('查詢通知（A5）→ 無通知紀錄');
+      token = showCaption('A.5', '這次是標準坐姿，系統判斷不需要建立提醒通知。');
+    }
+  } catch (e) {
+    box.className = 'result-box result-err show';
+    box.innerHTML = `查詢失敗：${e.message}`;
+    log('A5 呼叫失敗：' + e.message, true);
+    token = showCaption('A.5', '查詢失敗：' + e.message);
+  }
+  scheduleHide(token, CAPTION_HOLD_MS);
+}
+
+async function triggerMotor() {
+  const box = document.getElementById('motorResult');
+  const posture = LAST_POSTURE || document.getElementById('posturePreset').value;
+  let token = showCaption('A.6～A.9', '依偵測到的坐姿類別，決定要啟動哪幾顆震動馬達，並透過 MQTT 發布指令給硬體。');
+  await sleep(CAPTION_READ_MS);
+  try {
+    const data = await apiCall('POST', '/motor/trigger', { posture });
+    box.className = 'result-box result-ok show';
+    if (data.triggered) {
+      const chips = data.motors.map(m => `<span class="motor-chip">${m}</span>`).join('');
+      box.innerHTML = `
+        <b>觸發坐姿：</b>${data.posture_display}
+        <div class="status-line">啟動馬達（A.6～A.7）：${chips}</div>
+        <div class="status-line">MQTT 指令已發布（A.8～A.9）：${data.mqtt_published ? '是（chair/vibration/01/cmd）' : '否（硬體未連線或發布失敗）'}</div>
+      `;
+      log(`觸發馬達（A6→A9）→ ${data.motors.join(', ')}　mqtt_published=${data.mqtt_published}`);
+      token = showCaption('A.6～A.9', `已觸發馬達 ${data.motors.join('、')}，MQTT 指令${data.mqtt_published ? '已成功發布' : '發布失敗（硬體未連線）'}，對應電路設計上的馬達編號。`);
+    } else {
+      box.innerHTML = `${data.posture_display}：${data.reason}`;
+      log('觸發馬達（A6→A9）→ 無需觸發：' + data.reason);
+      token = showCaption('A.6～A.9', `這個坐姿判定為「${data.posture_display}」，不需要觸發任何馬達。`);
+    }
+  } catch (e) {
+    box.className = 'result-box result-err show';
+    box.innerHTML = `觸發失敗：${e.message}`;
+    log('A6→A9 呼叫失敗：' + e.message, true);
+    token = showCaption('A.6～A.9', '觸發失敗：' + e.message);
+  }
+  scheduleHide(token, CAPTION_HOLD_MS);
+}
+
+renderSensorPreview();
+log('測試頁面已載入，請先登入（Step 0）');
+</script>
+
+</body>
+</html>

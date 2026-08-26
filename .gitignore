@@ -43,3 +43,6 @@ faiss_index/
 
 # 個人進度筆記（不納入版控）
 schedule.md
+
+# 本機工具執行檔（體積大，不納入版控）
+ngrok.exe

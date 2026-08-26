@@ -95,6 +95,7 @@ class AgentLog(models.Model):
     posture = models.CharField(max_length=20, verbose_name='觸發坐姿')
     user_message = models.TextField(blank=True, verbose_name='使用者輸入')
     agent_reply = models.TextField(verbose_name='Agent 回覆')
+    steps = models.JSONField(default=list, blank=True, verbose_name='ReAct 執行步驟')
 
     class Meta:
         ordering = ['-timestamp']
