@@ -7,6 +7,9 @@ Topic:
 
 參數限制（韌體端會自動夾限，這裡先做一次防呆，避免夾限行為造成誤解）：
     motor_id: 1~4 | intensity: 0~100 | duration_ms: 50~5000 | stagger_ms: 0~500
+
+硬體限制（組員回報）：多顆馬達不可在同一毫秒同時啟動（瞬間電流/機構限制），
+故啟動需靠 stagger_ms 錯開；但停止沒有這個限制，可以同時停（見 build_stop_command）。
 """
 import json
 import logging

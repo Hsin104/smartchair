@@ -204,15 +204,26 @@ def _validate_response(response: str) -> str:
 
 # ── 對外介面 ───────────────────────────────────────────────────────────────────
 
-def get_advice(posture: str, user_id: int, user_message: str = '') -> tuple[str, list]:
+def get_advice(posture: str = '', user_id: int = 0, user_message: str = '') -> tuple[str, list]:
     """
     回傳 (advice, steps)：
         advice — 最終回覆文字（已通過防幻覺驗證）
         steps  — ReAct 迴圈逐步紀錄（Thought/Action/Observation），供 AgentLog.steps 落地保存
+
+    posture、user_message 至少會有一個非空（由 AGENT_SCHEMA 保證），三種組合對應不同開場問法：
+        只有 posture         → 針對偵測到的坐姿分析
+        posture + user_message → 針對偵測到的坐姿 + 使用者補充症狀
+        只有 user_message     → 不綁定特定坐姿，純粹依症狀描述回答（Step 1 仍會查詢近期坐姿紀錄輔助判斷）
     """
     posture_name = POSTURE_DISPLAY.get(posture, posture)
 
-    if user_message:
+    if not posture:
+        question = (
+            f'使用者 ID：{user_id}\n'
+            f'使用者未指定特定坐姿，僅描述症狀：{user_message}\n'
+            f'請先查詢使用者近期坐姿紀錄作為背景資訊，再查詢外部知識庫後提供改善建議。'
+        )
+    elif user_message:
         question = (
             f'使用者 ID：{user_id}\n'
             f'偵測坐姿：「{posture_name}」\n'

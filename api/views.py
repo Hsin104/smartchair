@@ -547,16 +547,16 @@ def posture_create(request):
 @permission_classes([IsAuthenticated])
 def agent_advice(request):
     """
-    POST /api/agent — 依坐姿查詢 Physio Agent 建議。
+    POST /api/agent — 查詢 Physio Agent 建議，posture、user_message 至少擇一。
 
-    payload: { "posture": "left", "user_message": "我肩膀很痠" }
+    payload: { "posture": "left", "user_message": "我肩膀很痠" }  ← 兩者皆可單獨給
     回傳:    { "posture": "left", "posture_display": "身體左傾", "advice": "..." }
     """
     error = validate_request(request.data, AGENT_SCHEMA)
     if error:
         return Response({'schema_error': error}, status=status.HTTP_400_BAD_REQUEST)
 
-    posture      = request.data['posture']
+    posture      = request.data.get('posture', '')
     user_message = request.data.get('user_message', '')
 
     try:

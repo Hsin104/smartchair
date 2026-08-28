@@ -136,13 +136,17 @@ AVATAR_SCHEMA = {
 
 AGENT_SCHEMA = {
     "type": "object",
-    "required": ["posture"],
+    # posture、user_message 至少擇一：可只給坐姿（沿用偵測結果）、只給症狀描述（不綁定坐姿），或兩者都給
+    "anyOf": [
+        {"required": ["posture"]},
+        {"required": ["user_message"]},
+    ],
     "properties": {
         "posture": {
             "type": "string",
             "enum": ["normal", "left", "right", "forward", "recline", "sedentary"],
         },
-        "user_message": {"type": "string", "maxLength": 500},
+        "user_message": {"type": "string", "minLength": 1, "maxLength": 500},
     },
     "additionalProperties": False,
 }

@@ -59,7 +59,8 @@ class Notification(models.Model):
         User, on_delete=models.CASCADE, related_name='notifications', verbose_name='使用者'
     )
     timestamp = models.DateTimeField(auto_now_add=True, verbose_name='時間戳')
-    message = models.CharField(max_length=255, verbose_name='通知內容')
+    # TextField 而非 CharField：週報通知（weekly_advice）會塞入完整 Physio Agent 建議文字，長度不固定
+    message = models.TextField(verbose_name='通知內容')
     is_sent = models.BooleanField(default=False, verbose_name='是否已發送')
 
     class Meta:
