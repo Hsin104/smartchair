@@ -7,7 +7,7 @@
     - 寫入 Notification（完整建議文字，供前端通知頁顯示）
 
 執行前置需求：
-    MCP Server 必須先啟動（python manage.py mcp_server，監聽 localhost:8001），
+    MCP Server 必須先啟動（python manage.py mcp_server，監聽 localhost:8010），
     否則呼叫 Physio Agent 會失敗。單一使用者失敗不影響其他人（見例外處理）。
 
 設計為冪等：同一使用者 7 天內已有週報通知就不重複產生，

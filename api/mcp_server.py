@@ -43,7 +43,7 @@ POSTURE_DISPLAY = {
 mcp = FastMCP(
     name='SmartChairPhysioTools',
     host='0.0.0.0',
-    port=getattr(settings, 'MCP_SERVER_PORT', 8001),
+    port=getattr(settings, 'MCP_SERVER_PORT', 8010),
 )
 
 _retriever = None
