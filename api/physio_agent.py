@@ -145,7 +145,9 @@ async def _run_react(question: str, api_key: str) -> tuple[str, list]:
             tools = await load_mcp_tools(session)
 
             llm = ChatGoogleGenerativeAI(
-                model='gemini-2.5-flash',
+                # gemini-2.5-flash 已對新建立的 Google 專案／新 key 停用（404，Google 端強制導向新模型），
+                # 3.6-flash 對新舊 key 都測過可用，改用這個避免新申請的 key 完全不能用
+                model='gemini-3.6-flash',
                 google_api_key=api_key,
                 temperature=0.2,
             ).bind_tools(tools)
