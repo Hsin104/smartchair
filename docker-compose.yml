@@ -65,6 +65,19 @@ services:
       - faiss_data:/root/smartchair_faiss
     command: python manage.py mcp_server
 
+  ngrok:
+    image: ngrok/ngrok:latest
+    container_name: smartchair-ngrok
+    restart: unless-stopped
+    depends_on:
+      - django
+    environment:
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN}
+    command:
+      - http
+      - --url=${NGROK_DOMAIN}
+      - django:8000
+
 volumes:
   db_data:
   mqtt_data:
