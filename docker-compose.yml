@@ -65,10 +65,14 @@ services:
       - faiss_data:/root/smartchair_faiss
     command: python manage.py mcp_server
 
+  # profiles 讓這個服務預設不會被 "docker compose up -d"（不指定服務名稱）啟動，
+  # 避免每台機器（例如這台開發用 Windows）不小心一起搶同一個固定網域。
+  # 真的要啟動時明確指定：docker compose up -d ngrok
   ngrok:
     image: ngrok/ngrok:latest
     container_name: smartchair-ngrok
     restart: unless-stopped
+    profiles: ["ngrok"]
     depends_on:
       - django
     environment:
