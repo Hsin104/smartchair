@@ -7,11 +7,14 @@ Physio Agent MCP Server — 獨立、長駐的 MCP 工具服務。
 透過 Streamable HTTP 監聽 settings.MCP_SERVER_HOST:MCP_SERVER_PORT，
 供 api/physio_agent.py（MCP Client + ReAct 迴圈）連線呼叫。
 
-暴露 4 個工具：
+暴露 3 個工具：
     search_knowledge_base — RAG 知識庫查詢（FAISS + Gemini Embedding）
     get_posture_history   — 個人化背景查詢（身高體重/BMI、坐姿歷史、7天壞坐姿統計）
-    trigger_vibration     — 觸發震動馬達（Notification + MotorLog + MQTT）
     web_search            — 網路搜尋補充查詢（Tavily API）
+
+震動馬達觸發不經過 Agent：即時坐姿偵測到壞坐姿時由偵測管線
+（views.py / mqtt_subscriber.py）直接觸發，Agent 純粹負責諮詢與建議，
+不會因為使用者按「AI 建議」問問題、或系統跑週報回顧，就順帶讓馬達震動。
 """
 
 import logging
@@ -177,41 +180,6 @@ def _get_posture_history_sync(user_id: int) -> str:
         parts.append('近 7 天無不良坐姿紀錄。')
 
     return '\n\n'.join(parts)
-
-
-@mcp.tool()
-async def trigger_vibration(user_id: int, posture: str, reason: str) -> str:
-    """觸發震動馬達提醒使用者調整坐姿，並回傳已啟動的馬達清單。
-    posture: 當前坐姿類別（forward/recline/left/right/sedentary/normal）
-    reason: 提醒原因說明（中文）
-    回傳值包含啟動馬達清單，請在收到回覆後呼叫 get_posture_history 確認坐姿是否改善。
-    """
-    return await sync_to_async(_trigger_vibration_sync)(user_id, posture, reason)
-
-
-def _trigger_vibration_sync(user_id: int, posture: str, reason: str) -> str:
-    """MCP Server 跑在 async event loop 裡，Django ORM 是 async-unsafe，需透過 sync_to_async 呼叫此函式。"""
-    from .models import Notification, MotorLog
-    from .mqtt_publisher import publish_motor_command
-    from .motor_constants import MOTOR_MAP
-
-    motors = MOTOR_MAP.get(posture, [])
-    Notification.objects.create(user_id=user_id, message=f'坐姿提醒：{reason}')
-    if motors:
-        MotorLog.objects.create(
-            user_id=user_id,
-            posture=posture,
-            motors=motors,
-            reason=reason,
-        )
-        publish_motor_command(motors)
-    logger.info(f'[MCP] 震動提醒已建立 user_id={user_id} motors={motors} reason={reason}')
-    if motors:
-        return (
-            f'【震動馬達已觸發】啟動馬達：{", ".join(motors)} | 原因：{reason}\n'
-            f'→ 請呼叫 get_posture_history(user_id={user_id}) 觀察坐姿是否在最新紀錄中出現改善。'
-        )
-    return f'【提醒已送出（{posture} 無需震動）】原因：{reason}'
 
 
 @mcp.tool()

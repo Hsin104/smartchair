@@ -67,7 +67,10 @@ class Command(BaseCommand):
             top_posture, _ = Counter(records.values_list('posture', flat=True)).most_common(1)[0]
 
             try:
-                advice, steps = get_advice(top_posture, user.id, _WEEKLY_PROMPT)
+                # posture 刻意留空：這是回顧過去 7 天的統計，不是「現在偵測到」的坐姿，
+                # 傳 top_posture 進去會讓 Agent 誤判成即時坐姿。top_posture 只留給
+                # AgentLog 存證，Agent 本身透過 get_posture_history 自己查 7 天統計。
+                advice, steps = get_advice('', user.id, _WEEKLY_PROMPT)
             except Exception as e:
                 failed += 1
                 logger.warning(f'[weekly_advice] user={user.id} Physio Agent 呼叫失敗：{e}')
