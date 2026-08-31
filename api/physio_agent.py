@@ -31,6 +31,11 @@ POSTURE_DISPLAY = {
 
 MAX_ITERATIONS = 8
 
+# 單一 key 嘗試的逾時上限（秒）。正常 2~4 步的 ReAct 迴圈約 20~30 秒完成，
+# 8 步的極端情況也大約 60~70 秒，設 60 秒在「給足夠時間跑完」跟
+# 「卡住/被限流時盡快換下一組 key」之間取平衡。
+_LLM_TIMEOUT_SECONDS = 60
+
 
 def _get_all_keys() -> list:
     keys = getattr(settings, 'GEMINI_API_KEYS', [])
@@ -244,11 +249,21 @@ def get_advice(posture: str = '', user_id: int = 0, user_message: str = '') -> t
     last_error = None
     for i, key in enumerate(keys):
         try:
-            output, steps = asyncio.run(_run_react(question, key))
+            # google-genai SDK 遇到限流時會在背景默默重試，不會馬上拋例外，
+            # 沒有這個逾時的話單一 key 卡住可能會傻等好幾分鐘，外層完全沒機會切換下一組 key
+            output, steps = asyncio.run(
+                asyncio.wait_for(_run_react(question, key), timeout=_LLM_TIMEOUT_SECONDS)
+            )
             advice = _validate_response(output.strip())
             if i > 0:
                 logger.info(f'[PhysioAgent] 使用第 {i+1} 組 key 成功')
             return advice, steps
+        except asyncio.TimeoutError as e:
+            last_error = e
+            if i < len(keys) - 1:
+                logger.warning(f'[PhysioAgent] 第 {i+1} 組 key 逾時（{_LLM_TIMEOUT_SECONDS}秒，可能被限流卡住重試），切換下一組')
+                continue
+            break
         except Exception as e:
             last_error = e
             if _is_quota_error(e) and i < len(keys) - 1:
@@ -257,6 +272,8 @@ def get_advice(posture: str = '', user_id: int = 0, user_message: str = '') -> t
             break
 
     logger.error(f'[PhysioAgent] 所有 key 均失敗（共 {len(keys)} 組）：{last_error}')
+    if isinstance(last_error, asyncio.TimeoutError):
+        raise RuntimeError(f'全部 {len(keys)} 組 Gemini API key 都逾時（可能都被限流），請稍後再試') from last_error
     if _is_quota_error(last_error):
         raise RuntimeError(f'全部 {len(keys)} 組 Gemini API 額度均已用盡，請明日再試或新增更多 key') from last_error
     raise last_error
