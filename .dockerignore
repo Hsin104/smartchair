@@ -1,0 +1,12 @@
+.git/
+.claude/
+venv/
+__pycache__/
+*.pyc
+demo/
+postman/
+811.pdf
+report_0811.pptx
+ngrok.exe
+指令
+linux指令.txt

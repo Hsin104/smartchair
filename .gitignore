@@ -52,3 +52,7 @@ ngrok.exe
 
 # 本機終端機啟動說明（個人備忘，不納入版控）
 指令
+linux指令.txt
+
+# 本機 Docker Compose 覆寫（各環境接管既有 volume 的方式不同，不納入版控）
+docker-compose.override.yml

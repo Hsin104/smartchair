@@ -1,0 +1,72 @@
+services:
+  db:
+    image: postgres:16
+    container_name: smartchair-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+      POSTGRES_DB: smartchair
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  mqtt-broker:
+    image: eclipse-mosquitto
+    container_name: smartchair-mqtt
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - mqtt_data:/mosquitto/data
+      - mqtt_log:/mosquitto/log
+
+  django:
+    build: .
+    container_name: smartchair-django
+    restart: unless-stopped
+    depends_on:
+      - db
+    env_file: .env
+    environment:
+      DB_HOST: db
+      MCP_SERVER_HOST: mcp
+    ports:
+      - "8000:8000"
+    volumes:
+      - faiss_data:/root/smartchair_faiss
+    command: python manage.py runserver 0.0.0.0:8000
+
+  mqtt-subscriber:
+    build: .
+    container_name: smartchair-mqtt-subscriber
+    restart: unless-stopped
+    depends_on:
+      - db
+    env_file: .env
+    environment:
+      DB_HOST: db
+    command: python manage.py mqtt_subscriber
+
+  mcp:
+    build: .
+    container_name: smartchair-mcp
+    restart: unless-stopped
+    depends_on:
+      - db
+    env_file: .env
+    environment:
+      DB_HOST: db
+    ports:
+      - "8010:8010"
+    volumes:
+      - faiss_data:/root/smartchair_faiss
+    command: python manage.py mcp_server
+
+volumes:
+  db_data:
+  mqtt_data:
+  mqtt_log:
+  faiss_data:
