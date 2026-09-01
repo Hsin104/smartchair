@@ -87,16 +87,29 @@ SEAT_KEYS = ['left_back', 'left_mid', 'left_front',
 BACK_KEYS = ['spine_upper', 'spine_mid', 'spine_lower']
 
 
+_RULE_POINT_CAP = 60  # 單點壓力封頂：避免單一感測器校正異常、讀值卡在接近滿載時，
+                       # 單靠它一點就把 front_ratio 拉過門檻、誤判成前傾（曾實測 center_front 卡在 95~100）
+
+
 def _rule_based_posture(seat_pressure_data, back_pressure_data=None):
     """
     絕對值快速判斷，用於極端姿勢（模型訓練資料可能未涵蓋的範圍）。
     回傳姿勢字串，或 None 表示交由 ML 模型決定。
     """
     seat = seat_pressure_data or {}
-    left  = seat.get('left_back', 0) + seat.get('left_mid', 0) + seat.get('left_front', 0)
-    right = seat.get('right_back', 0) + seat.get('right_mid', 0) + seat.get('right_front', 0)
-    front = seat.get('left_front', 0) + seat.get('center_front', 0) + seat.get('right_front', 0)
-    back  = seat.get('left_back', 0) + seat.get('center_back', 0) + seat.get('right_back', 0)
+    lb = min(seat.get('left_back', 0),   _RULE_POINT_CAP)
+    lm = min(seat.get('left_mid', 0),    _RULE_POINT_CAP)
+    lf = min(seat.get('left_front', 0),  _RULE_POINT_CAP)
+    cb = min(seat.get('center_back', 0), _RULE_POINT_CAP)
+    cf = min(seat.get('center_front', 0),_RULE_POINT_CAP)
+    rb = min(seat.get('right_back', 0),  _RULE_POINT_CAP)
+    rm = min(seat.get('right_mid', 0),   _RULE_POINT_CAP)
+    rf = min(seat.get('right_front', 0), _RULE_POINT_CAP)
+
+    left  = lb + lm + lf
+    right = rb + rm + rf
+    front = lf + cf + rf
+    back  = lb + cb + rb
 
     total = left + right + 1e-6
     left_ratio  = left / total
