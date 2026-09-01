@@ -9,8 +9,8 @@ mcp_server.py（trigger_vibration MCP 工具，Agent 決策觸發）共用，
 MOTOR_MAP = {
     'forward':   ['M1', 'M2'],              # 前傾：左右手軸提醒抬頭
     'recline':   ['M3', 'M4'],              # 後仰：左右腰部提醒坐直
-    'left':      ['M2', 'M4'],              # 左傾：右手軸+右腰（對側矯正）
-    'right':     ['M1', 'M3'],              # 右傾：左手軸+左腰（對側矯正）
+    'left':      ['M1', 'M3'],              # 左傾：左手軸+左腰（同側提醒）
+    'right':     ['M2', 'M4'],              # 右傾：右手軸+右腰（同側提醒）
     'sedentary': ['M1', 'M2', 'M3', 'M4'], # 久坐：全部馬達提醒起身
     'normal':    [],
     'empty':     [],

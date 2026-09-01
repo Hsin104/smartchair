@@ -257,13 +257,20 @@ def predict_posture(seat_pressure_data, back_pressure_data=None,
     if model is None:
         return None
 
-    features      = _build_features(seat_pressure_data, back_pressure_data,
-                                     baseline_seat if baseline_seat else None,
-                                     baseline_back if baseline_seat else None)
-    features_norm = scaler.transform(features)
-    probs         = model.predict(features_norm, verbose=0)
-    idx           = np.argmax(probs, axis=1)
-    return encoder.inverse_transform(idx)[0]
+    features = _build_features(seat_pressure_data, back_pressure_data,
+                                baseline_seat if baseline_seat else None,
+                                baseline_back if baseline_seat else None)
+    try:
+        features_norm = scaler.transform(features)
+        probs         = model.predict(features_norm, verbose=0)
+        idx           = np.argmax(probs, axis=1)
+        return encoder.inverse_transform(idx)[0]
+    except Exception as e:
+        # 模型/scaler 檔案版本與目前特徵數對不上時（例如尚未針對新增的椅背
+        # 特徵重新訓練），不能整個拋出去讓 MQTT 訂閱服務跟著死掉，退回 None
+        # 讓呼叫端的 fallback（payload 自帶的 posture 或 'normal'）接手。
+        print(f'[模型] 推論失敗，退回規則/預設值：{e}')
+        return None
 
 # ── 端點 ──────────────────────────────────────────────────────────────────────
 

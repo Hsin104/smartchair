@@ -18,18 +18,18 @@ MQTT 訂閱服務
 import json
 import logging
 import ssl
-from datetime import timedelta
 
 import paho.mqtt.client as mqtt
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
-from django.utils import timezone
 
-from api.models import PostureRecord, ChairSession, Notification
+from api.models import PostureRecord, ChairSession, Notification, MotorLog
 from api.views import predict_posture, _check_sedentary
 from api.physio_agent import POSTURE_DISPLAY
 from api.sensor_adapter import parse_esp32_payload, total_pressure
+from api.mqtt_publisher import publish_motor_command
+from api.motor_constants import MOTOR_MAP
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -129,6 +129,10 @@ def _handle_pressure_01(payload: dict):
     ) or payload.get('posture', 'normal')
     posture = _check_sedentary(user, posture)
 
+    # 邊緣觸發用：記錄「這筆之前」的最新坐姿，寫入新紀錄前先查，才不會查到自己。
+    previous = PostureRecord.objects.filter(user=user).order_by('-timestamp').first()
+    previous_posture = previous.posture if previous else None
+
     PostureRecord.objects.create(
         user=user,
         posture=posture,
@@ -138,15 +142,22 @@ def _handle_pressure_01(payload: dict):
     )
     print(f'[MQTT] 寫入資料庫 [{mode_label}] — {user.username}: {posture}')
 
-    if posture not in ('normal', 'empty'):
-        cooldown = timezone.now() - timedelta(minutes=1)
-        already_notified = Notification.objects.filter(
-            user=user, timestamp__gte=cooldown
-        ).exists()
-        if not already_notified:
-            posture_name = POSTURE_DISPLAY.get(posture, posture)
-            Notification.objects.create(user=user, message=f'坐姿提醒：{posture_name}')
-            print(f'[MQTT] 產生通知 — {user.username}: {posture_name}')
+    # 邊緣觸發：只在坐姿「變成」這個壞坐姿的那一刻提醒＋震動一次，
+    # 同一個壞坐姿持續多久都不重複，直到坐姿變回 normal/empty 再變差才會重新觸發。
+    # （ESP32 約 0.5 秒送一次資料，原本用時間冷卻不管多短都會定期重複震動，太擾人。）
+    if posture not in ('normal', 'empty') and posture != previous_posture:
+        posture_name = POSTURE_DISPLAY.get(posture, posture)
+        Notification.objects.create(user=user, message=f'坐姿提醒：{posture_name}')
+        print(f'[MQTT] 產生通知 — {user.username}: {posture_name}')
+
+        # 震動馬達：即時偵測管線直接觸發（不經過 Agent，見 mcp_server.py 開頭說明）。
+        motors = MOTOR_MAP.get(posture, [])
+        if motors:
+            MotorLog.objects.create(
+                user=user, posture=posture, motors=motors, reason=posture_name,
+            )
+            publish_motor_command(motors)
+            print(f'[MQTT] 觸發馬達 — {user.username}: {motors}')
 
 
 # ── paho 事件回調 ────────────────────────────────────────────────────────────
@@ -173,6 +184,15 @@ def on_message(client, userdata, msg):
 
     print(f'[MQTT] 收到 {topic}: {payload}')   # ← 方便確認組員的資料格式
 
+    # 單一訊息處理失敗（例如模型維度不合、資料庫瞬斷）不該讓整個訂閱服務掛掉
+    # 重開機——那樣等於整批即時資料都收不到，比單筆處理失敗嚴重得多。
+    try:
+        _dispatch_message(topic, payload)
+    except Exception as e:
+        logger.error(f'[MQTT] 處理訊息失敗（{topic}）：{e}', exc_info=True)
+
+
+def _dispatch_message(topic, payload):
     # ── chair/pressure/01（EMQX Cloud，組員裝置）───────────────────────────
     if topic == 'chair/pressure/01':
         _handle_pressure_01(payload)
