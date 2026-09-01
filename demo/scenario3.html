@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>運作腳本三 測試頁面｜諮詢 AI 物理治療師（Physio Agent）</title>
+<style>
+  :root {
+    --navy: #1F3A5F;
+    --accent: #2E74B5;
+    --green: #2E7D32;
+    --red: #B3261E;
+    --purple: #6A3EA1;
+    --grey: #595959;
+    --light-grey: #F2F2F2;
+    --border: #D9D9D9;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Microsoft JhengHei", "PingFang TC", sans-serif;
+    background: #FAFAFA;
+    color: #1A1A1A;
+  }
+  header {
+    background: var(--navy);
+    color: #fff;
+    padding: 22px 32px;
+  }
+  header h1 { margin: 0; font-size: 22px; }
+  header p { margin: 6px 0 0; font-size: 13px; color: #C9D6E8; }
+  .badge-hint {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 3px 10px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 3px;
+    font-size: 12px;
+  }
+  main {
+    max-width: 980px;
+    margin: 24px auto 60px;
+    padding: 0 20px;
+  }
+  .config-bar {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin-bottom: 20px;
+    font-size: 13px;
+  }
+  .config-bar input {
+    flex: 1;
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 13px;
+  }
+  .panel {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 18px;
+    overflow: hidden;
+  }
+  .panel-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 18px;
+    background: var(--light-grey);
+    border-bottom: 1px solid var(--border);
+  }
+  .step-tag {
+    background: var(--accent);
+    color: #fff;
+    font-weight: bold;
+    font-size: 12px;
+    padding: 3px 9px;
+    border-radius: 12px;
+    white-space: nowrap;
+  }
+  .step-tag.alt { background: var(--purple); }
+  .panel-head h2 { margin: 0; font-size: 16px; }
+  .panel-body { padding: 16px 18px; }
+  .panel-note { font-size: 12px; color: var(--grey); margin: 0 0 12px; line-height: 1.6; }
+  label { font-size: 13px; color: var(--grey); display: block; margin-bottom: 4px; }
+  select, input[type=text], input[type=password], textarea {
+    padding: 7px 10px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 14px;
+    margin-right: 8px;
+    font-family: inherit;
+  }
+  textarea { width: 100%; resize: vertical; min-height: 56px; margin-right: 0; }
+  button {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  button:hover { background: var(--navy); }
+  button:disabled { background: #ADB5BD; cursor: not-allowed; }
+  .row { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+  .field { display: flex; flex-direction: column; }
+  .result-box {
+    margin-top: 12px;
+    padding: 12px 14px;
+    border-radius: 5px;
+    font-size: 13px;
+    line-height: 1.7;
+    display: none;
+  }
+  .result-ok { background: #EAF4EA; border: 1px solid var(--green); }
+  .result-err { background: #FBEAEA; border: 1px solid var(--red); }
+  .result-box.show { display: block; }
+  .posture-badge {
+    display: inline-block;
+    font-weight: bold;
+    padding: 2px 10px;
+    border-radius: 12px;
+    background: var(--navy);
+    color: #fff;
+    font-size: 13px;
+    margin-right: 6px;
+  }
+  .advice-text {
+    white-space: pre-wrap;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 14px;
+    margin-top: 10px;
+    font-size: 13.5px;
+    line-height: 1.8;
+  }
+  .react-trace { margin-top: 14px; }
+  .react-trace h4 {
+    margin: 0 0 8px;
+    font-size: 13px;
+    color: var(--navy);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .react-step {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-bottom: 8px;
+    overflow: hidden;
+  }
+  .react-step-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 12px;
+    background: #F5F0FA;
+    font-size: 12.5px;
+  }
+  .react-step-num {
+    background: var(--purple);
+    color: #fff;
+    font-weight: bold;
+    font-size: 11px;
+    padding: 1px 7px;
+    border-radius: 10px;
+  }
+  .react-step-action {
+    font-family: Consolas, "Courier New", monospace;
+    font-weight: bold;
+    color: var(--purple);
+  }
+  .react-step-body {
+    padding: 8px 12px;
+    font-size: 12px;
+    color: var(--grey);
+    line-height: 1.6;
+  }
+  .react-step-body .kv { margin-bottom: 4px; }
+  .react-step-body .kv b { color: #1A1A1A; }
+  .react-obs {
+    font-family: Consolas, "Courier New", monospace;
+    background: var(--light-grey);
+    border-radius: 4px;
+    padding: 6px 8px;
+    max-height: 90px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+  .hw-note {
+    font-size: 12px;
+    color: var(--grey);
+    background: var(--light-grey);
+    border-radius: 5px;
+    padding: 10px 14px;
+    line-height: 1.7;
+  }
+  .status-line { font-size: 13px; margin-top: 8px; }
+  #loginStatus { font-size: 13px; }
+  #loginStatus.ok { color: var(--green); }
+  #loginStatus.err { color: var(--red); }
+  .log {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 18px;
+    font-size: 12px;
+    color: var(--grey);
+    max-height: 220px;
+    overflow-y: auto;
+  }
+  .log h3 { margin: 0 0 8px; font-size: 13px; color: #1A1A1A; }
+  .log-line { padding: 3px 0; border-bottom: 1px dashed #eee; }
+  .log-line:last-child { border-bottom: none; }
+  .log-line.err { color: var(--red); }
+
+  .caption-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 999;
+    min-height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 14px 24px;
+    background: rgba(0, 0, 0, 0.78);
+    color: #fff;
+    font-size: 20px;
+    font-weight: bold;
+    line-height: 1.5;
+    letter-spacing: 0.5px;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+    opacity: 1;
+    transition: opacity 0.35s ease;
+  }
+  .caption-bar.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .caption-bar .caption-tag {
+    display: inline-block;
+    background: var(--accent);
+    color: #fff;
+    font-size: 13px;
+    font-weight: bold;
+    padding: 2px 9px;
+    border-radius: 10px;
+    margin-right: 10px;
+    vertical-align: 2px;
+  }
+  main { margin-bottom: 100px; }
+</style>
+</head>
+<body>
+
+<div class="caption-bar hidden" id="captionBar">
+  <span class="caption-tag">START</span>測試頁面已載入，請先完成 Step 0 登入
+</div>
+
+<header>
+  <h1>運作腳本三：諮詢 AI 物理治療師（Physio Agent）</h1>
+  <p>自製測試頁面 — 直接呼叫後端 API，並把 ReAct 迴圈的每一步（Thought／Action／Observation）攤開顯示，不是只看最終回覆</p>
+  <span class="badge-hint">對應主簡報「運作腳本三」：LLM 決策核心 ＋ MCP 工具呼叫 ＋ 完整 ReAct 迴圈</span>
+</header>
+
+<main>
+
+  <div class="config-bar">
+    <label style="margin:0;white-space:nowrap;">後端網址</label>
+    <input type="text" id="apiBase" value="http://localhost:8000/api">
+    <span id="loginStatus">尚未登入</span>
+  </div>
+
+  <!-- 登入 -->
+  <div class="panel">
+    <div class="panel-head">
+      <span class="step-tag">Step 0</span>
+      <h2>登入測試帳號</h2>
+    </div>
+    <div class="panel-body">
+      <p class="panel-note">建議用 <code>demo_page_test</code>（密碼 test1234）— 這個帳號已經設定好身高體重，也有近 7 天的坐姿紀錄，Agent 才有真實資料可以分析。</p>
+      <div class="row">
+        <div>
+          <label>帳號</label>
+          <input type="text" id="username" placeholder="username" value="demo_page_test">
+        </div>
+        <div>
+          <label>密碼</label>
+          <input type="password" id="password" placeholder="password" value="test1234">
+        </div>
+        <button onclick="doLogin()">登入</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- B.1 依當下坐姿 -->
+  <div class="panel">
+    <div class="panel-head">
+      <span class="step-tag">B.1</span>
+      <h2>AI 建議 — 依當下偵測到的坐姿</h2>
+    </div>
+    <div class="panel-body">
+      <p class="panel-note">
+        呼叫 <code>POST /api/agent</code>，帶入偵測到的坐姿（對應 App 裡「取得 AI 建議」按鈕的預設模式）。
+        Agent 會依序：Step 1 查詢個人化背景（身高體重 BMI、近 7 天壞坐姿統計）→ Step 2 查知識庫 → Step 3 產生建議，
+        每一步都會呼叫真正的 MCP 工具，不是把整段文字直接丟給 LLM 生成。
+      </p>
+      <div class="row">
+        <div class="field">
+          <label>偵測到的坐姿</label>
+          <select id="postureSelect">
+            <option value="normal">標準坐姿</option>
+            <option value="forward" selected>頭部前傾（烏龜頸）</option>
+            <option value="left">身體左傾</option>
+            <option value="right">身體右傾</option>
+            <option value="recline">過度後仰</option>
+            <option value="sedentary">久坐未動</option>
+          </select>
+        </div>
+        <button onclick="askAgent('posture')">取得 AI 建議（B.1）</button>
+      </div>
+      <label>附加症狀描述（選填）</label>
+      <textarea id="symptomWithPosture" placeholder="例如：我肩膀很痠、背部緊繃"></textarea>
+      <div class="result-box" id="agentResultA"></div>
+    </div>
+  </div>
+
+  <!-- B.2 純症狀 -->
+  <div class="panel">
+    <div class="panel-head">
+      <span class="step-tag alt">B.2</span>
+      <h2>AI 建議 — 純症狀，不綁定特定坐姿（新功能）</h2>
+    </div>
+    <div class="panel-body">
+      <p class="panel-note">
+        同樣呼叫 <code>POST /api/agent</code>，但這次<b>完全不帶 posture 欄位</b>，只送 <code>user_message</code>。
+        後端 Schema 原本規定 posture 必填，現在改成 posture、user_message 至少擇一——讓使用者不用等椅子偵測到特定坐姿，
+        也能直接描述症狀發問。
+      </p>
+      <div class="row">
+        <textarea id="symptomOnly" placeholder="例如：我最近打字的時候肩膀跟脖子很痠痛" style="flex:1;">我最近打字的時候肩膀跟脖子很痠痛</textarea>
+        <button onclick="askAgent('symptom')">純症狀詢問（B.2）</button>
+      </div>
+      <div class="result-box" id="agentResultB"></div>
+    </div>
+  </div>
+
+  <!-- C 每週坐姿報告 -->
+  <div class="panel">
+    <div class="panel-head">
+      <span class="step-tag">C</span>
+      <h2>每週坐姿報告（系統排程自動產生）</h2>
+    </div>
+    <div class="panel-body">
+      <p class="hw-note">
+        這個功能是後端排程（Linux 主機用 cron，一過週日 00:00 自動執行 <code>python manage.py weekly_advice</code>），
+        不是網頁按鈕現場觸發——排程會彙整每位使用者近 7 天壞坐姿統計，一樣交給 Physio Agent 做完整 ReAct 分析，
+        結果直接寫進通知，不需要使用者主動詢問。下面的按鈕只是查詢 <code>GET /api/notification/history</code>，
+        顯示資料庫裡「已經產生好」的週報通知（demo 前已先手動跑過一次 <code>weekly_advice</code> 產生範例資料）。
+      </p>
+      <div class="row" style="margin-top:12px;">
+        <button onclick="checkWeeklyReport()">查詢我的週報通知（C）</button>
+      </div>
+      <div class="result-box" id="weeklyResult"></div>
+    </div>
+  </div>
+
+  <div class="log">
+    <h3>操作紀錄</h3>
+    <div id="logArea"></div>
+  </div>
+
+</main>
+
+<script>
+const POSTURE_DISPLAY = {
+  normal: '標準坐姿', left: '身體左傾', right: '身體右傾',
+  forward: '頭部前傾（烏龜頸）', recline: '過度後仰', sedentary: '久坐未動', empty: '無人就坐',
+};
+
+const ACTION_LABEL = {
+  get_posture_history: '查詢個人化背景（身高體重/BMI、近7天統計）',
+  search_knowledge_base: '查詢醫學文獻知識庫（RAG）',
+  web_search: '網路搜尋補充查詢',
+};
+
+let TOKEN = null;
+
+function apiBase() { return document.getElementById('apiBase').value.replace(/\/$/, ''); }
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+let captionToken = 0;
+const CAPTION_READ_MS = 1800;
+const CAPTION_HOLD_MS = 4500;
+
+function showCaption(tag, text) {
+  const el = document.getElementById('captionBar');
+  el.innerHTML = `<span class="caption-tag">${tag}</span>${text}`;
+  el.classList.remove('hidden');
+  return ++captionToken;
+}
+
+function scheduleHide(token, delayMs) {
+  setTimeout(() => {
+    if (token === captionToken) {
+      document.getElementById('captionBar').classList.add('hidden');
+    }
+  }, delayMs);
+}
+
+function log(text, isErr) {
+  const area = document.getElementById('logArea');
+  const line = document.createElement('div');
+  line.className = 'log-line' + (isErr ? ' err' : '');
+  const t = new Date().toLocaleTimeString('zh-TW', { hour12: false });
+  line.textContent = `[${t}] ${text}`;
+  area.prepend(line);
+}
+
+async function apiCall(method, path, body) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (TOKEN) headers['Authorization'] = 'Token ' + TOKEN;
+  const resp = await fetch(apiBase() + path, {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok) {
+    const err = new Error(data.error || data.schema_error || data.message || `HTTP ${resp.status}`);
+    err.data = data;
+    throw err;
+  }
+  return data;
+}
+
+async function doLogin() {
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value;
+  const statusEl = document.getElementById('loginStatus');
+  if (!username || !password) { statusEl.textContent = '請輸入帳號密碼'; statusEl.className = 'err'; return; }
+  let token = showCaption('STEP 0', '運作腳本以使用者操作為起點，這裡先登入測試帳號，取得存取權杖（Token）。');
+  await sleep(CAPTION_READ_MS);
+  try {
+    const data = await apiCall('POST', '/login', { username, password });
+    TOKEN = data.token;
+    statusEl.textContent = `已登入：${data.user.username}`;
+    statusEl.className = 'ok';
+    log(`登入成功（Step 0）→ ${data.user.username}`);
+    token = showCaption('STEP 0', `登入成功，帳號「${data.user.username}」已取得授權，接下來所有操作都以這個帳號進行。`);
+  } catch (e) {
+    statusEl.textContent = '登入失敗：' + e.message;
+    statusEl.className = 'err';
+    log('登入失敗：' + e.message, true);
+    token = showCaption('STEP 0', '登入失敗：' + e.message);
+  }
+  scheduleHide(token, CAPTION_HOLD_MS);
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// 把 advice 文字裡的 **粗體** 轉成 <b>，其餘保留原樣（含換行、emoji 標題）
+function renderAdvice(text) {
+  return escapeHtml(text).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+}
+
+function renderSteps(steps) {
+  if (!steps || !steps.length) return '<p class="panel-note">（這次沒有呼叫任何工具）</p>';
+  return steps.map(s => {
+    const label = ACTION_LABEL[s.action] || s.action;
+    const obs = typeof s.observation === 'string' ? s.observation : JSON.stringify(s.observation);
+    return `
+      <div class="react-step">
+        <div class="react-step-head">
+          <span class="react-step-num">STEP ${s.step}</span>
+          Action：<span class="react-step-action">${escapeHtml(s.action)}</span>
+          <span style="color:var(--grey);">（${escapeHtml(label)}）</span>
+        </div>
+        <div class="react-step-body">
+          <div class="kv"><b>Action Input：</b>${escapeHtml(JSON.stringify(s.action_input))}</div>
+          <div class="kv"><b>Observation：</b></div>
+          <div class="react-obs">${escapeHtml(obs).slice(0, 600)}${obs.length > 600 ? '\n...(截斷，完整內容見 Django admin AgentLog)' : ''}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function askAgent(mode) {
+  const isPosture = mode === 'posture';
+  const box = document.getElementById(isPosture ? 'agentResultA' : 'agentResultB');
+  const tag = isPosture ? 'B.1' : 'B.2';
+
+  if (!TOKEN) {
+    box.className = 'result-box result-err show';
+    box.innerHTML = '請先完成 Step 0 登入';
+    scheduleHide(showCaption(tag, '請先完成 Step 0 登入。'), CAPTION_HOLD_MS);
+    return;
+  }
+
+  const payload = {};
+  let captionIntro;
+  if (isPosture) {
+    payload.posture = document.getElementById('postureSelect').value;
+    const symptom = document.getElementById('symptomWithPosture').value.trim();
+    if (symptom) payload.user_message = symptom;
+    captionIntro = `使用者按下「取得 AI 建議」，帶著偵測到的坐姿「${POSTURE_DISPLAY[payload.posture]}」發問。`;
+  } else {
+    const symptom = document.getElementById('symptomOnly').value.trim();
+    if (!symptom) {
+      box.className = 'result-box result-err show';
+      box.innerHTML = '請先描述症狀';
+      return;
+    }
+    payload.user_message = symptom;
+    captionIntro = `使用者不指定坐姿，純粹描述症狀發問：「${symptom}」。`;
+  }
+
+  let token = showCaption(tag, captionIntro);
+  await sleep(CAPTION_READ_MS);
+  token = showCaption(tag, 'Agent 開始執行 ReAct 迴圈：查詢個人化背景 → 查詢知識庫 → 產生建議，請看下方逐步紀錄。');
+  await sleep(CAPTION_READ_MS);
+
+  box.className = 'result-box result-ok show';
+  box.innerHTML = '<i>Agent 執行中（Gemini + MCP 工具呼叫，需要幾秒到十幾秒）...</i>';
+
+  try {
+    const data = await apiCall('POST', '/agent', payload);
+    box.innerHTML = `
+      ${data.posture ? `<span class="posture-badge">${data.posture_display}</span>已針對此坐姿分析` : '<span class="posture-badge" style="background:var(--purple);">純症狀分析</span>未綁定特定坐姿'}
+      <div class="advice-text">${renderAdvice(data.advice)}</div>
+      <div class="react-trace">
+        <h4>ReAct 執行過程（共 ${data.steps.length} 步，每一步都是真的呼叫 MCP 工具）</h4>
+        ${renderSteps(data.steps)}
+      </div>
+    `;
+    log(`${tag} Agent 回覆完成 → 共 ${data.steps.length} 步：${data.steps.map(s => s.action).join(' → ')}`);
+    token = showCaption(tag, `Agent 完成 ${data.steps.length} 步 ReAct 迴圈，已產生個人化建議並附上知識庫來源。`);
+  } catch (e) {
+    box.className = 'result-box result-err show';
+    box.innerHTML = `呼叫失敗：${e.message}`;
+    log(`${tag} 呼叫失敗：` + e.message, true);
+    token = showCaption(tag, '呼叫失敗：' + e.message);
+  }
+  scheduleHide(token, CAPTION_HOLD_MS);
+}
+
+async function checkWeeklyReport() {
+  const box = document.getElementById('weeklyResult');
+  if (!TOKEN) {
+    box.className = 'result-box result-err show';
+    box.innerHTML = '請先完成 Step 0 登入';
+    return;
+  }
+  let token = showCaption('C', '查詢資料庫，看排程有沒有已經幫這個使用者產生過每週坐姿報告。');
+  await sleep(CAPTION_READ_MS);
+  try {
+    const data = await apiCall('GET', '/notification/history?limit=20');
+    const weekly = (data.notifications || []).find(n => n.message.startsWith('【每週坐姿報告】'));
+    box.className = 'result-box result-ok show';
+    if (weekly) {
+      box.innerHTML = `
+        <div class="status-line">產生時間：${new Date(weekly.timestamp).toLocaleString('zh-TW')}</div>
+        <div class="advice-text">${renderAdvice(weekly.message)}</div>
+      `;
+      log('查詢週報通知（C）→ 找到一筆，時間 ' + weekly.timestamp);
+      token = showCaption('C', '找到系統排程產生的每週坐姿報告，內容跟 B.1／B.2 使用同一套 Agent 邏輯，只是由排程主動觸發。');
+    } else {
+      box.innerHTML = '目前查無週報通知，demo 前請先在後端跑一次 <code>python manage.py weekly_advice</code>。';
+      log('查詢週報通知（C）→ 尚無資料');
+      token = showCaption('C', '目前查無週報通知，需要先讓排程執行過一次。');
+    }
+  } catch (e) {
+    box.className = 'result-box result-err show';
+    box.innerHTML = `查詢失敗：${e.message}`;
+    log('C 呼叫失敗：' + e.message, true);
+    token = showCaption('C', '查詢失敗：' + e.message);
+  }
+  scheduleHide(token, CAPTION_HOLD_MS);
+}
+
+log('測試頁面已載入，請先登入（Step 0）');
+</script>
+
+</body>
+</html>

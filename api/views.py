@@ -550,7 +550,11 @@ def agent_advice(request):
     POST /api/agent — 查詢 Physio Agent 建議，posture、user_message 至少擇一。
 
     payload: { "posture": "left", "user_message": "我肩膀很痠" }  ← 兩者皆可單獨給
-    回傳:    { "posture": "left", "posture_display": "身體左傾", "advice": "..." }
+    回傳:    { "posture": "left", "posture_display": "身體左傾", "advice": "...",
+               "steps": [{ "step": 1, "thought": "...", "action": "search_knowledge_base",
+                          "action_input": {...}, "observation": "..." }, ...] }
+    steps 是完整 ReAct 逐步紀錄（Thought/Action/Observation），給前端展示 Agent
+    決策過程用，不是黑盒子產出最終文字而已。
     """
     error = validate_request(request.data, AGENT_SCHEMA)
     if error:
@@ -579,6 +583,7 @@ def agent_advice(request):
         'posture':         posture,
         'posture_display': POSTURE_DISPLAY.get(posture, posture),
         'advice':          advice,
+        'steps':           steps,
     })
 
 
