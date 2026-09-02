@@ -49,6 +49,11 @@ DEFAULT_USERNAME = 'user01'
 # 椅子空置時 norm 幾乎全 0，此門檻過濾掉空椅訊號
 MIN_SEAT_PRESSURE = 30
 
+# 坐姿判斷防手震：連續幾筆讀值一致，才承認「真的變成這個坐姿」。
+# ESP32 約 0.5 秒送一次資料，單筆分類結果常因雜訊在 right/normal/left 之間
+# 跳一下又跳回去，邊緣觸發若不做防手震，這種單筆雜訊也會誤觸發一次震動。
+STABLE_READINGS = 10
+
 # 所有訂閱 Topic
 TOPICS = [
     'chair/pressure/01',
@@ -63,6 +68,9 @@ _sensor_buffer = {}
 
 # 上一次空椅狀態（True=有人, False=無人, None=初始）
 _last_occupied = None
+
+# 坐姿防手震狀態：{ username: {'candidate': 候選坐姿, 'count': 連續次數, 'confirmed': 上次確認的坐姿} }
+_posture_state = {}
 
 
 def _get_buffer(username):
@@ -129,10 +137,6 @@ def _handle_pressure_01(payload: dict):
     ) or payload.get('posture', 'normal')
     posture = _check_sedentary(user, posture)
 
-    # 邊緣觸發用：記錄「這筆之前」的最新坐姿，寫入新紀錄前先查，才不會查到自己。
-    previous = PostureRecord.objects.filter(user=user).order_by('-timestamp').first()
-    previous_posture = previous.posture if previous else None
-
     PostureRecord.objects.create(
         user=user,
         posture=posture,
@@ -142,10 +146,24 @@ def _handle_pressure_01(payload: dict):
     )
     print(f'[MQTT] 寫入資料庫 [{mode_label}] — {user.username}: {posture}')
 
-    # 邊緣觸發：只在坐姿「變成」這個壞坐姿的那一刻提醒＋震動一次，
+    # 防手震：連續 STABLE_READINGS 筆讀值一致才算「真的變成這個坐姿」，
+    # 過濾單筆雜訊（例如持續 normal 中間突然閃一筆 right 又跳回 normal）。
+    state = _posture_state.setdefault(
+        user.username, {'candidate': None, 'count': 0, 'confirmed': None}
+    )
+    if posture == state['candidate']:
+        state['count'] += 1
+    else:
+        state['candidate'] = posture
+        state['count'] = 1
+
+    just_confirmed = state['count'] >= STABLE_READINGS and state['confirmed'] != posture
+    if just_confirmed:
+        state['confirmed'] = posture
+
+    # 邊緣觸發：只在坐姿「確認變成」這個壞坐姿的那一刻提醒＋震動一次，
     # 同一個壞坐姿持續多久都不重複，直到坐姿變回 normal/empty 再變差才會重新觸發。
-    # （ESP32 約 0.5 秒送一次資料，原本用時間冷卻不管多短都會定期重複震動，太擾人。）
-    if posture not in ('normal', 'empty') and posture != previous_posture:
+    if posture not in ('normal', 'empty') and just_confirmed:
         posture_name = POSTURE_DISPLAY.get(posture, posture)
         Notification.objects.create(user=user, message=f'坐姿提醒：{posture_name}')
         print(f'[MQTT] 產生通知 — {user.username}: {posture_name}')
