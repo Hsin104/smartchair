@@ -50,6 +50,16 @@ FEATURES = [
 ]
 
 
+def _is_delta_style(record):
+    """
+    real 資料依採集方式分兩種格式，不能混用：
+      - 校準模式（collect_data.py 預設）存 delta 值，相對基準值，可正可負
+      - 未校準模式（collect_data.py --raw）存原始絕對讀值，FSR 讀數理論上不會是負的
+    用「有沒有負值」判斷是哪一種格式。
+    """
+    return any(v < 0 for v in (record.seat_pressure_data or {}).values())
+
+
 def load_data():
     print('[1/4] 從資料庫讀取數據...')
     qs = PostureRecord.objects.filter(
@@ -60,6 +70,14 @@ def load_data():
     # 排除椅背資料為空字典（尚未接上椅背感測器時期的舊資料，20 特徵模型無法使用）
     qs = [r for r in qs if r.back_pressure_data]
 
+    # 排除格式跟目前訓練模式不符的 real 資料（delta 資料訓練未校準模式、
+    # 或原始值資料訓練校準模式，preprocess() 會誤解讀，必須先排除）
+    mismatched = sum(1 for r in qs if r.source == 'real' and _is_delta_style(r) != CALIBRATED_MODE)
+    qs = [r for r in qs if not (r.source == 'real' and _is_delta_style(r) != CALIBRATED_MODE)]
+    if mismatched:
+        print(f'   [略過] {mismatched} 筆真實資料格式跟目前訓練模式（'
+              f'{"校準" if CALIBRATED_MODE else "未校準"}）不符，已排除')
+
     real_count = sum(1 for r in qs if r.source == 'real')
     fake_count = sum(1 for r in qs if r.source == 'fake')
     auto_count = len(qs) - real_count - fake_count
@@ -68,7 +86,7 @@ def load_data():
     if REAL_ONLY_MODE:
         if real_count < 50:
             print(f'   [Error] --real-only 需要至少 50 筆真實資料，目前只有 {real_count} 筆')
-            print(f'   請先執行 python collect_data.py 採集真實資料')
+            print(f'   請先執行 python collect_data.py{"" if CALIBRATED_MODE else " --raw"} 採集真實資料')
             sys.exit(1)
         qs = [r for r in qs if r.source == 'real']
         print(f'   [real-only] 僅使用真實資料 {real_count} 筆')

@@ -1,13 +1,19 @@
 """
-真實感測資料採集工具（校準模型用）
+真實感測資料採集工具
 
-流程：
+校準模式（預設，訓練 posture_model_calibrated）：
   1. 坐正 → 記錄基準值（baseline）
-  2. 依序擺出每種坐姿，腳本自動收 MQTT 資料並存入資料庫
+  2. 依序擺出每種坐姿，腳本自動收 MQTT 資料並存入資料庫（存 delta 值）
   3. 採集完後執行 python train_model_dl.py --calibrated 重新訓練
 
+原始值模式（--raw，訓練 posture_model_dl 未校準版）：
+  不需要基準校準，每種姿勢直接存絕對讀值（跟校準模式的 delta 資料
+  不能混用，preprocess() 對兩種模式的欄位解讀方式不同）。
+  採集完後執行 python train_model_dl.py（不加 --calibrated）重新訓練。
+
 執行方式：
-    python collect_data.py
+    python collect_data.py          # 校準模式
+    python collect_data.py --raw    # 原始值模式
 """
 
 import os
@@ -64,10 +70,11 @@ def _compute_delta(seat: dict, back: dict, baseline_seat: dict, baseline_back: d
 
 
 class Collector:
-    def __init__(self, user, baseline_seat, baseline_back):
+    def __init__(self, user, baseline_seat, baseline_back, raw=False):
         self.user          = user
         self.baseline_seat = baseline_seat
         self.baseline_back = baseline_back
+        self.raw           = raw
         self.target_posture = None
         self.collected      = 0
         self.target_count   = SAMPLES_PER_POSTURE
@@ -97,10 +104,15 @@ class Collector:
         if seat is None:
             return
 
-        # 校準模式：存 delta 值
-        delta_seat, delta_back = _compute_delta(seat, back,
-                                                self.baseline_seat,
-                                                self.baseline_back)
+        if self.raw:
+            # 原始值模式：直接存絕對值，訓練未校準模型用（不能跟校準模式的
+            # delta 資料混在一起，preprocess() 對兩種模式的解讀方式不同）
+            delta_seat, delta_back = seat, (back or {})
+        else:
+            # 校準模式：存 delta 值
+            delta_seat, delta_back = _compute_delta(seat, back,
+                                                    self.baseline_seat,
+                                                    self.baseline_back)
 
         with self._lock:
             posture = self.target_posture
@@ -170,8 +182,10 @@ def collect_baseline(collector_ref: list, client):
 
 
 def main():
+    raw_mode = '--raw' in sys.argv
+
     print('=' * 55)
-    print('  智慧辦公椅 真實資料採集工具')
+    print('  智慧辦公椅 真實資料採集工具' + ('（原始值模式，未校準模型用）' if raw_mode else ''))
     print('=' * 55)
 
     # 選擇使用者
@@ -219,11 +233,16 @@ def main():
 
     time.sleep(2)  # 等待連線
 
-    # 基準採集
-    baseline_seat, baseline_back = collect_baseline(collector_holder, client)
+    if raw_mode:
+        # 原始值模式不需要基準值，每種姿勢直接存絕對讀值
+        baseline_seat, baseline_back = {}, {}
+        print('\n>>> 原始值模式：略過基準校準，直接採集每種姿勢的絕對讀值')
+    else:
+        # 基準採集
+        baseline_seat, baseline_back = collect_baseline(collector_holder, client)
 
     # 建立採集器
-    collector = Collector(user, baseline_seat, baseline_back)
+    collector = Collector(user, baseline_seat, baseline_back, raw=raw_mode)
     collector_holder[0] = collector
 
     # 依序採集每種姿勢
@@ -254,7 +273,7 @@ def main():
     print(f'  資料庫總計：{total} 筆')
     print('=' * 55)
     print('\n下一步：')
-    print('  python train_model_dl.py --calibrated')
+    print('  python train_model_dl.py' + ('' if raw_mode else ' --calibrated'))
 
 
 if __name__ == '__main__':
