@@ -87,24 +87,26 @@ SEAT_KEYS = ['left_back', 'left_mid', 'left_front',
 BACK_KEYS = ['spine_upper', 'spine_mid', 'spine_lower']
 
 
-_RULE_POINT_CAP = 60  # 單點壓力封頂：避免單一感測器校正異常、讀值卡在接近滿載時，
-                       # 單靠它一點就把 front_ratio 拉過門檻、誤判成前傾（曾實測 center_front 卡在 95~100）
-
-
 def _rule_based_posture(seat_pressure_data, back_pressure_data=None):
     """
     絕對值快速判斷，用於極端姿勢（模型訓練資料可能未涵蓋的範圍）。
     回傳姿勢字串，或 None 表示交由 ML 模型決定。
+
+    曾經在這裡加過單點壓力封頂，避免單一感測器讀值異常主導判斷；
+    但實測發現封頂會誤傷真正用力前傾時的正常讀值，導致前傾判斷
+    永遠碰不到門檻。單筆雜訊改交給 mqtt_subscriber.py 的防手震機制
+    （STABLE_READINGS，需連續多筆讀值一致才觸發提醒/震動）過濾，
+    這裡維持用原始值判斷。
     """
     seat = seat_pressure_data or {}
-    lb = min(seat.get('left_back', 0),   _RULE_POINT_CAP)
-    lm = min(seat.get('left_mid', 0),    _RULE_POINT_CAP)
-    lf = min(seat.get('left_front', 0),  _RULE_POINT_CAP)
-    cb = min(seat.get('center_back', 0), _RULE_POINT_CAP)
-    cf = min(seat.get('center_front', 0),_RULE_POINT_CAP)
-    rb = min(seat.get('right_back', 0),  _RULE_POINT_CAP)
-    rm = min(seat.get('right_mid', 0),   _RULE_POINT_CAP)
-    rf = min(seat.get('right_front', 0), _RULE_POINT_CAP)
+    lb = seat.get('left_back', 0)
+    lm = seat.get('left_mid', 0)
+    lf = seat.get('left_front', 0)
+    cb = seat.get('center_back', 0)
+    cf = seat.get('center_front', 0)
+    rb = seat.get('right_back', 0)
+    rm = seat.get('right_mid', 0)
+    rf = seat.get('right_front', 0)
 
     left  = lb + lm + lf
     right = rb + rm + rf
@@ -120,9 +122,9 @@ def _rule_based_posture(seat_pressure_data, back_pressure_data=None):
         return 'left'
     if right_ratio > 0.68:
         return 'right'
-    if front_ratio > 0.65:
+    if front_ratio > 0.55:
         return 'forward'
-    if front_ratio < 0.22:
+    if front_ratio < 0.28:
         return 'recline'
     return None
 
