@@ -12,6 +12,7 @@ Physio Agent — 完整 Agent 架構（四大核心模組）
 
 import asyncio
 import logging
+import threading
 
 from django.conf import settings
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -37,11 +38,27 @@ MAX_ITERATIONS = 8
 _LLM_TIMEOUT_SECONDS = 60
 
 
+_key_rotation_lock = threading.Lock()
+_key_rotation_index = 0
+
+
 def _get_all_keys() -> list:
+    """
+    回傳所有 key，但每次呼叫的起始順序輪流轉動（round-robin），
+    不永遠固定從第一組開始試。避免第一組 key 剛好被 Google 端限流時，
+    每一次請求都要先付出那次逾時代價才會換下一組。
+    """
+    global _key_rotation_index
+
     keys = getattr(settings, 'GEMINI_API_KEYS', [])
     if not keys:
         raise ValueError('未設定任何 GEMINI_API_KEY，請確認 .env 檔案')
-    return keys
+
+    with _key_rotation_lock:
+        start = _key_rotation_index % len(keys)
+        _key_rotation_index += 1
+
+    return keys[start:] + keys[:start]
 
 
 # ── System Prompt ──────────────────────────────────────────────────────────────

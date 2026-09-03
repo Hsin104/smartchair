@@ -45,6 +45,28 @@ def _get_stretch_map():
             _STRETCH_MAP = json.load(f)
     return _STRETCH_MAP
 
+
+def _recommend_exercises(posture, limit=3):
+    """依單一坐姿直接查表回傳建議伸展動作（含 YouTube 連結），不經過 LLM。"""
+    stretch_map     = _get_stretch_map()
+    exercises_by_id = {ex['id']: ex for ex in stretch_map['exercises']}
+    ex_ids          = stretch_map['posture_exercise_map'].get(posture, [])
+
+    return [
+        {
+            'id':             ex['id'],
+            'name':           ex['name'],
+            'target_muscles': ex['target_muscles'],
+            'reps':           ex['reps'],
+            'duration_sec':   ex['duration_sec'],
+            'youtube_url':    ex['youtube_url'],
+            'youtube_title':  ex['youtube_title'],
+            'description':    ex['description'],
+        }
+        for ex_id in ex_ids[:limit]
+        if (ex := exercises_by_id.get(ex_id))
+    ]
+
 # ── 模型路徑 ──────────────────────────────────────────────────────────────────
 
 _BASE           = os.path.dirname(os.path.dirname(__file__))
@@ -574,9 +596,15 @@ def agent_advice(request):
     payload: { "posture": "left", "user_message": "我肩膀很痠" }  ← user_message 可省略
     回傳:    { "posture": "left", "posture_display": "身體左傾", "advice": "...",
                "steps": [{ "step": 1, "thought": "...", "action": "search_knowledge_base",
-                          "action_input": {...}, "observation": "..." }, ...] }
+                          "action_input": {...}, "observation": "..." }, ...],
+               "recommended_exercises": [{ "id": 1, "name": "...", "youtube_url": "...", ... }] }
     steps 是完整 ReAct 逐步紀錄（Thought/Action/Observation），給前端展示 Agent
     決策過程用，不是黑盒子產出最終文字而已。
+
+    recommended_exercises 是依 posture 直接查表（stretch_video_map.json）附加的
+    伸展動作＋YouTube 連結，不經過 LLM——Agent 的文字建議本身不知道這份資料，
+    也不會在回覆裡引用影片連結，避免 LLM 複述連結時打錯字，也不用多一輪
+    LLM 呼叫拖慢回應速度。
     """
     error = validate_request(request.data, AGENT_SCHEMA)
     if error:
@@ -602,10 +630,11 @@ def agent_advice(request):
     )
 
     return Response({
-        'posture':         posture,
-        'posture_display': POSTURE_DISPLAY.get(posture, posture),
-        'advice':          advice,
-        'steps':           steps,
+        'posture':               posture,
+        'posture_display':       POSTURE_DISPLAY.get(posture, posture),
+        'advice':                advice,
+        'steps':                 steps,
+        'recommended_exercises': _recommend_exercises(posture),
     })
 
 
