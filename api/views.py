@@ -569,9 +569,9 @@ def posture_create(request):
 @permission_classes([IsAuthenticated])
 def agent_advice(request):
     """
-    POST /api/agent — 查詢 Physio Agent 建議，posture、user_message 至少擇一。
+    POST /api/agent — 查詢 Physio Agent 建議，posture 必填，user_message 選填。
 
-    payload: { "posture": "left", "user_message": "我肩膀很痠" }  ← 兩者皆可單獨給
+    payload: { "posture": "left", "user_message": "我肩膀很痠" }  ← user_message 可省略
     回傳:    { "posture": "left", "posture_display": "身體左傾", "advice": "...",
                "steps": [{ "step": 1, "thought": "...", "action": "search_knowledge_base",
                           "action_input": {...}, "observation": "..." }, ...] }

@@ -136,11 +136,9 @@ AVATAR_SCHEMA = {
 
 AGENT_SCHEMA = {
     "type": "object",
-    # posture、user_message 至少擇一：可只給坐姿（沿用偵測結果）、只給症狀描述（不綁定坐姿），或兩者都給
-    "anyOf": [
-        {"required": ["posture"]},
-        {"required": ["user_message"]},
-    ],
+    # posture 必填：一定要結合偵測到的坐姿，不接受純症狀描述、不綁定坐姿的用法。
+    # user_message 選填，用來補充症狀描述。
+    "required": ["posture"],
     "properties": {
         "posture": {
             "type": "string",
