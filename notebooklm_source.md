@@ -18,7 +18,7 @@
 - 後端框架：Django REST Framework（Python）
 - 資料庫：PostgreSQL
 - 深度學習框架：TensorFlow / Keras
-- AI Agent：LangChain + Google Gemini 2.5 Flash + FAISS 向量資料庫
+- AI Agent：LangChain + OpenAI（教授提供按量計費金鑰）+ FAISS 向量資料庫
 - 通訊協定：MQTT（EMQX Cloud，ESP32 與雲端後端串接）
 - API 測試工具：Postman
 
@@ -142,11 +142,11 @@ RAG 是一種讓 AI 在回答前先查閱特定知識庫的技術，避免 AI �
 完整流程：
 1. 建立知識庫（7 份醫學文獻，手動撰寫）
 2. 使用 RecursiveCharacterTextSplitter 切分文件（每段 400 字，重疊 50 字）
-3. 透過 Google Gemini Embedding 模型（gemini-embedding-001）將文字向量化
+3. 透過 OpenAI Embedding 模型（text-embedding-3-small）將文字向量化
 4. 儲存至 FAISS 本地向量資料庫
 5. 當使用者坐姿不良時，自動以坐姿類別作為查詢
 6. FAISS 檢索最相關的 3 份文件片段
-7. 將文件內容 + 問題送入 Gemini 2.5 Flash LLM
+7. 將文件內容 + 問題送入 OpenAI LLM（gpt-4o-mini）
 8. LLM 生成固定格式的繁體中文建議
 
 ### 知識庫內容（7 份文件）
@@ -185,8 +185,8 @@ RAG 是一種讓 AI 在回答前先查閱特定知識庫的技術，避免 AI �
 
 | 元件 | 選擇 | 原因 |
 |------|------|------|
-| LLM | Google Gemini 2.5 Flash | 免費額度足夠，支援繁體中文 |
-| Embedding | gemini-embedding-001 | 與 LLM 同一平台，整合方便 |
+| LLM | OpenAI gpt-4o-mini | 教授提供按量計費金鑰，支援繁體中文，型號可透過 .env 調整 |
+| Embedding | OpenAI text-embedding-3-small | 成本低、品質穩定 |
 | 向量資料庫 | FAISS（本地） | 無需額外服務，避免 ChromaDB 版本衝突 |
 | Chain | LangChain 1.x LCEL | 取代已棄用的 RetrievalQA，架構更清晰 |
 | temperature | 0.7 | 建議有一定變化性，但不失專業性 |
@@ -251,7 +251,7 @@ ESP32 確認馬達已震動完畢（可選），回傳確認筆數。
 5. ✅ 資料庫欄位更新（移除 ToF/IMU 欄位，新增 back_pressure_data）
 6. ✅ Django Migration 套用至 PostgreSQL
 7. ✅ RAG 知識庫建立（7 份醫學文獻，FAISS 向量資料庫）
-8. ✅ Gemini 2.5 Flash LLM 串接，繁體中文專業建議
+8. ✅ OpenAI LLM 串接，繁體中文專業建議（2026-10 由 Gemini 改用教授提供之 OpenAI 金鑰）
 9. ✅ 坐姿偵測自動觸發 Agent 建議（POST /api/posture）
 10. ✅ 手動查詢建議介面（POST /api/agent）
 11. ✅ 6 種坐姿 Postman 測試全數通過
