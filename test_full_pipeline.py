@@ -28,7 +28,7 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 
 from api.models import PostureRecord, Notification, MotorLog, ChairSession
-from api.management.commands.mqtt_subscriber import _handle_pressure_01
+from api.management.commands.mqtt_subscriber import _handle_pressure_01, STABLE_READINGS, _posture_state
 from api.views import _check_sedentary, POSTURE_DISPLAY
 from api.motor_constants import MOTOR_MAP
 
@@ -112,10 +112,15 @@ def main():
             'back': data['back'],
         }
         # 各坐姿視為獨立情境測試，先清空通知，避免踩到真實存在的
-        # 「1 分鐘冷卻」防洗版機制（同一使用者 1 分鐘內只發一次通知）
+        # 「1 分鐘冷卻」防洗版機制（同一使用者 1 分鐘內只發一次通知）；
+        # 同時重置防手震狀態，避免上一個坐姿的 confirmed 狀態跨情境污染判斷
         Notification.objects.filter(user=user).delete()
+        _posture_state.pop(user.username, None)
         before_count = 0
-        _handle_pressure_01(payload)
+        # 防手震機制需連續 STABLE_READINGS 筆讀值一致才算「確認變成」該坐姿並觸發通知
+        # （見 mqtt_subscriber.py，2026-09-02 加入），單次呼叫不會觸發，須重複送同一份 payload
+        for _ in range(STABLE_READINGS):
+            _handle_pressure_01(payload)
 
         record = PostureRecord.objects.filter(user=user).order_by('-timestamp').first()
         check(
@@ -155,9 +160,10 @@ def main():
 
     # ── 第三段：馬達觸發決策（MOTOR_MAP，對應 POST /api/motor/trigger 邏輯）──
     print('\n[第三段] 馬達觸發決策邏輯（坐姿 → 對應馬達）')
+    # 比照 api/motor_constants.py 的「同側提醒」設計（left→左手軸+左腰，right→右手軸+右腰）
     EXPECTED_MOTORS = {
         'forward': ['M1', 'M2'], 'recline': ['M3', 'M4'],
-        'left': ['M2', 'M4'], 'right': ['M1', 'M3'],
+        'left': ['M1', 'M3'], 'right': ['M2', 'M4'],
         'sedentary': ['M1', 'M2', 'M3', 'M4'], 'normal': [],
     }
     for posture, expected in EXPECTED_MOTORS.items():
