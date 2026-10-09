@@ -2,6 +2,9 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
+    # 健康檢查（Docker HEALTHCHECK／監控用）
+    path('health', views.health, name='health'),
+
     # 使用者認證
     path('register',               views.register,         name='register'),
     path('login',                  views.login,             name='login'),

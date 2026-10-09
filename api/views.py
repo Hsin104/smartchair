@@ -262,24 +262,34 @@ def _check_sedentary(user, prediction):
     return 'sedentary' if was_sitting else prediction
 
 
+# softmax 最大機率低於此門檻時視為低信心，僅記錄警告，不影響判斷結果
+# （拒答/二次確認屬於前端互動設計，後端先把信心分數透出讓前端決定怎麼呈現）
+LOW_CONFIDENCE_THRESHOLD = 0.5
+
+
 def predict_posture(seat_pressure_data, back_pressure_data=None,
                      baseline_seat=None, baseline_back=None):
     """
     深度學習模型預測坐姿類別（20 特徵：椅墊 12 個 + 椅背 8 個）。
     有基準值時使用校準模型（delta 特徵），否則使用原始模型。
     極端姿勢先由規則層攔截，避免模型對 out-of-distribution 輸入誤判。
+
+    回傳 (posture, confidence)：
+        posture    — 坐姿類別字串，或 None（模型未載入／推論失敗）
+        confidence — 0~1 之間的 softmax 最大機率值；規則層覆蓋或模型不可用時為 None
+                     （代表「這不是機率推論出來的結果」，而非信心剛好缺值）
     """
     rule = _rule_based_posture(seat_pressure_data, back_pressure_data)
     if rule:
         print(f'[規則層] 覆蓋模型 → {rule}')
-        return rule
+        return rule, None
 
     model, encoder, scaler = (
         (_cal_model, _cal_encoder, _cal_scaler) if (baseline_seat and _cal_model)
         else (_dl_model, _dl_encoder, _dl_scaler)
     )
     if model is None:
-        return None
+        return None, None
 
     features = _build_features(seat_pressure_data, back_pressure_data,
                                 baseline_seat if baseline_seat else None,
@@ -288,13 +298,17 @@ def predict_posture(seat_pressure_data, back_pressure_data=None,
         features_norm = scaler.transform(features)
         probs         = model.predict(features_norm, verbose=0)
         idx           = np.argmax(probs, axis=1)
-        return encoder.inverse_transform(idx)[0]
+        posture       = encoder.inverse_transform(idx)[0]
+        confidence    = float(probs[0][idx[0]])
+        if confidence < LOW_CONFIDENCE_THRESHOLD:
+            print(f'[模型] 低信心預測：{posture}（confidence={confidence:.2f} < {LOW_CONFIDENCE_THRESHOLD}）')
+        return posture, confidence
     except Exception as e:
         # 模型/scaler 檔案版本與目前特徵數對不上時（例如尚未針對新增的椅背
         # 特徵重新訓練），不能整個拋出去讓 MQTT 訂閱服務跟著死掉，退回 None
         # 讓呼叫端的 fallback（payload 自帶的 posture 或 'normal'）接手。
         print(f'[模型] 推論失敗，退回規則/預設值：{e}')
-        return None
+        return None, None
 
 # ── 端點 ──────────────────────────────────────────────────────────────────────
 
@@ -356,6 +370,27 @@ def login(request):
         'token':   token.key,
         'user':    UserSerializer(user).data,
     })
+
+
+@api_view(['GET'])
+def health(request):
+    """
+    GET /api/health — 健康檢查端點，供 Docker HEALTHCHECK／監控用，不需要登入。
+
+    只驗證資料庫連線是否正常；MQTT／MCP Server 是獨立服務，各自有自己的健康檢查方式
+    （mqtt-subscriber 用心跳檔案，mcp 用 TCP 連線檢查，見 docker-compose.yml）。
+    """
+    from django.db import connection
+    try:
+        connection.ensure_connection()
+        db_ok = True
+    except Exception:
+        db_ok = False
+
+    return Response(
+        {'status': 'ok' if db_ok else 'degraded', 'db': db_ok},
+        status=status.HTTP_200_OK if db_ok else status.HTTP_503_SERVICE_UNAVAILABLE,
+    )
 
 
 @api_view(['GET'])
@@ -558,15 +593,17 @@ def posture_create(request):
     if not data.get('posture'):
         baseline_seat = session.baseline_seat if session else None
         baseline_back = session.baseline_back if session else None
-        predicted = predict_posture(
+        predicted, confidence = predict_posture(
             data.get('seat_pressure_data'),
             back_pressure_data=data.get('back_pressure_data'),
             baseline_seat=baseline_seat,
             baseline_back=baseline_back,
         )
         if predicted:
-            predicted = _check_sedentary(target_user, predicted)
-            data['posture'] = predicted
+            final_posture = _check_sedentary(target_user, predicted)
+            data['posture'] = final_posture
+            # sedentary 是依坐著時長覆蓋的規則判斷，不是這次 softmax 機率對應的類別，信心分數不適用
+            data['confidence'] = confidence if final_posture == predicted else None
         else:
             return Response(
                 {'error': '模型尚未載入，請先執行 python train_model_dl.py'},

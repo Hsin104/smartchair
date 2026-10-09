@@ -38,6 +38,12 @@ services:
     volumes:
       - faiss_data:/root/smartchair_faiss
     command: python manage.py runserver 0.0.0.0:8000
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/api/health', timeout=5).status == 200 else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   mqtt-subscriber:
     build: .
@@ -49,6 +55,12 @@ services:
     environment:
       DB_HOST: db
     command: python manage.py mqtt_subscriber
+    healthcheck:
+      test: ["CMD", "python", "healthcheck_mqtt.py"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   mcp:
     build: .
@@ -64,6 +76,12 @@ services:
     volumes:
       - faiss_data:/root/smartchair_faiss
     command: python manage.py mcp_server
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; s = socket.create_connection(('localhost', 8010), timeout=5); s.close()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   # profiles 讓這個服務預設不會被 "docker compose up -d"（不指定服務名稱）啟動，
   # 避免每台機器（例如這台開發用 Windows）不小心一起搶同一個固定網域。

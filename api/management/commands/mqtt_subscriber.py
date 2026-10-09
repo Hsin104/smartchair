@@ -18,6 +18,9 @@ MQTT 訂閱服務
 import json
 import logging
 import ssl
+import tempfile
+import time
+from pathlib import Path
 
 import paho.mqtt.client as mqtt
 from django.conf import settings
@@ -62,6 +65,18 @@ TOPICS = [
     'smartchair/sensor/back',
     'smartchair/result/posture',
 ]
+
+# 心跳檔案：供 Docker HEALTHCHECK 判斷服務是否「真的還活著」，而不只是「process 沒 crash」。
+# on_connect／on_disconnect／on_message 都會更新，healthcheck.py 讀取判斷連線狀態與新鮮度。
+_HEARTBEAT_PATH = Path(tempfile.gettempdir()) / 'mqtt_heartbeat.json'
+
+
+def _write_heartbeat(connected: bool):
+    try:
+        _HEARTBEAT_PATH.write_text(json.dumps({'connected': connected, 'ts': time.time()}))
+    except OSError:
+        pass  # 心跳檔案寫入失敗不該讓訂閱服務掛掉，純粹監控用途
+
 
 # 暫存緩衝區：{ username: { 'seat': ..., 'back': ... } }
 _sensor_buffer = {}
@@ -129,13 +144,17 @@ def _handle_pressure_01(payload: dict):
 
     baseline_back = session.baseline_back if (session and session.baseline_back) else None
 
-    posture = predict_posture(
+    predicted, confidence = predict_posture(
         seat_data,
         back_pressure_data=back_data,
         baseline_seat=baseline_seat,
         baseline_back=baseline_back,
-    ) or payload.get('posture', 'normal')
-    posture = _check_sedentary(user, posture)
+    )
+    predicted = predicted or payload.get('posture', 'normal')
+    posture = _check_sedentary(user, predicted)
+    # sedentary 是依坐著時長覆蓋的規則判斷，不是這次 softmax 機率對應的類別，信心分數不適用
+    if posture != predicted:
+        confidence = None
 
     PostureRecord.objects.create(
         user=user,
@@ -143,6 +162,7 @@ def _handle_pressure_01(payload: dict):
         seat_pressure_data=seat_data,
         back_pressure_data=back_data,
         source='auto',
+        confidence=confidence,
     )
     print(f'[MQTT] 寫入資料庫 [{mode_label}] — {user.username}: {posture}')
 
@@ -186,8 +206,10 @@ def on_connect(client, userdata, flags, reason_code, properties=None):
         for topic in TOPICS:
             client.subscribe(topic)
             print(f'[MQTT] 訂閱：{topic}')
+        _write_heartbeat(connected=True)
     else:
         print(f'[MQTT] 連線失敗，代碼：{reason_code}')
+        _write_heartbeat(connected=False)
 
 
 def on_message(client, userdata, msg):
@@ -201,6 +223,7 @@ def on_message(client, userdata, msg):
         return
 
     print(f'[MQTT] 收到 {topic}: {payload}')   # ← 方便確認組員的資料格式
+    _write_heartbeat(connected=True)
 
     # 單一訊息處理失敗（例如模型維度不合、資料庫瞬斷）不該讓整個訂閱服務掛掉
     # 重開機——那樣等於整批即時資料都收不到，比單筆處理失敗嚴重得多。
@@ -260,6 +283,7 @@ def _dispatch_message(topic, payload):
 
 def on_disconnect(client, userdata, disconnect_flags, reason_code, properties=None):
     print(f'[MQTT] 連線中斷（代碼：{reason_code}），嘗試重新連線...')
+    _write_heartbeat(connected=False)
 
 
 # ── Django management command ────────────────────────────────────────────────

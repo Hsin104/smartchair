@@ -43,6 +43,8 @@ class PostureRecord(models.Model):
     back_pressure_data = models.JSONField(null=True, blank=True, verbose_name='椅背脊椎壓力感測數值（3點）')
     physio_advice      = models.TextField(null=True, blank=True, verbose_name='AI 物理治療建議')
     source             = models.CharField(max_length=10, choices=SOURCE_CHOICES, default='auto', verbose_name='資料來源')
+    # 模型 softmax 最大機率值（信心分數），0~1；規則層覆蓋判斷（極端姿勢）或手動輸入 posture 時無意義，留 null
+    confidence         = models.FloatField(null=True, blank=True, verbose_name='模型信心分數')
 
     class Meta:
         ordering = ['-timestamp']

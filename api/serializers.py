@@ -53,5 +53,5 @@ class PostureRecordSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PostureRecord
-        fields = ['id', 'timestamp', 'posture', 'posture_display', 'seat_pressure_data', 'back_pressure_data', 'physio_advice']
+        fields = ['id', 'timestamp', 'posture', 'posture_display', 'seat_pressure_data', 'back_pressure_data', 'physio_advice', 'confidence']
         read_only_fields = ['id', 'timestamp']
