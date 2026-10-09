@@ -9,7 +9,7 @@
 ## 我的負責範圍（陳翊昕）
 - Django 後端建置
 - PostgreSQL 資料庫設計
-- Mosquitto MQTT Broker 架設
+- MQTT 資料串接（訂閱蕭芷萱架設之 Mosquitto Broker 資料流，整合進後端）
 - REST API 開發
 - 坐姿數據採集與標記
 - AI 模型訓練（深度學習 MLP，TensorFlow/Keras）
@@ -28,7 +28,7 @@
 - 資料庫：PostgreSQL
 - 通訊：MQTT（paho-mqtt）
 - AI 模型：TensorFlow / Keras（MLP 深度學習）
-- LLM：GPT-4o 或 Gemini 1.5 Pro
+- LLM：OpenAI（對話／推理 + RAG 知識庫 embeddings，教授提供按量計費金鑰，預設 gpt-4o-mini）
 - RAG：LangChain + ChromaDB
 - 環境：Python 3.11、Docker、VSCode、PowerShell
 

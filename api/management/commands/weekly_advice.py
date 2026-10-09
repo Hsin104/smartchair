@@ -1,7 +1,7 @@
 """
 每週坐姿報告通知（AI 個人化版）
 
-彙整每位使用者近 7 天的壞坐姿統計，交給 Physio Agent（Gemini + MCP + ReAct 迴圈，
+彙整每位使用者近 7 天的壞坐姿統計，交給 Physio Agent（OpenAI + MCP + ReAct 迴圈，
 與 POST /api/agent 走同一套 get_advice() 邏輯）產生個人化建議：
     - 寫入 AgentLog（完整 ReAct 步驟，供 Django admin 檢視）
     - 寫入 Notification（完整建議文字，供前端通知頁顯示）
@@ -11,7 +11,7 @@
     否則呼叫 Physio Agent 會失敗。單一使用者失敗不影響其他人（見例外處理）。
 
 設計為冪等：同一使用者 7 天內已有週報通知就不重複產生，
-避免排程器重複觸發（例如手動補跑）造成重複消耗 Gemini API 額度。
+避免排程器重複觸發（例如手動補跑）造成重複消耗 OpenAI API 額度。
 
 執行方式：
     python manage.py weekly_advice

@@ -152,16 +152,11 @@ CORS_ALLOW_HEADERS = list(default_headers) + [
     'content-type',
 ]
 
-# Gemini API — 所有可用的 key（依序嘗試，額度用盡自動切換）
-GEMINI_API_KEY        = os.getenv('GEMINI_API_KEY', '')
-GEMINI_API_KEY_BACKUP = os.getenv('GEMINI_API_KEY_BACKUP', '')
-GEMINI_API_KEYS = [k for k in [
-    os.getenv('GEMINI_API_KEY', ''),
-    os.getenv('GEMINI_API_KEY_BACKUP', ''),
-    os.getenv('GEMINI_API_KEY_2', ''),
-    os.getenv('GEMINI_API_KEY_3', ''),
-    os.getenv('GEMINI_API_KEY_4', ''),
-] if k]
+# OpenAI API — Physio Agent 對話/推理 LLM ＋ RAG 知識庫 embeddings（教授提供之按量計費金鑰，節省用量）。
+# Gemini 已完全移除（原僅供 embeddings 使用，FAISS index 已改用 OpenAI embeddings 重建）。
+# OPENAI_MODEL 預設選省錢的輕量款，之後要換更高階型號只需改 .env，不需改程式碼。
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', '')
+OPENAI_MODEL   = os.getenv('OPENAI_MODEL', 'gpt-4o-mini')
 
 # MQTT Broker 設定
 MQTT_HOST     = os.getenv('MQTT_HOST', 'localhost')

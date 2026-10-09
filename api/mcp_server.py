@@ -8,7 +8,7 @@ Physio Agent MCP Server — 獨立、長駐的 MCP 工具服務。
 供 api/physio_agent.py（MCP Client + ReAct 迴圈）連線呼叫。
 
 暴露 3 個工具：
-    search_knowledge_base — RAG 知識庫查詢（FAISS + Gemini Embedding）
+    search_knowledge_base — RAG 知識庫查詢（FAISS + OpenAI Embedding）
     get_posture_history   — 個人化背景查詢（身高體重/BMI、坐姿歷史、7天壞坐姿統計）
     web_search            — 網路搜尋補充查詢（Tavily API）
 
@@ -52,13 +52,6 @@ mcp = FastMCP(
 _retriever = None
 
 
-def _get_all_keys() -> list:
-    keys = getattr(settings, 'GEMINI_API_KEYS', [])
-    if not keys:
-        raise ValueError('未設定任何 GEMINI_API_KEY，請確認 .env 檔案')
-    return keys
-
-
 def _build_retriever():
     """載入外部知識庫並建立 FAISS 向量庫（首次建立後持久化至磁碟）。"""
     global _retriever
@@ -68,12 +61,14 @@ def _build_retriever():
     from langchain_community.document_loaders import DirectoryLoader, TextLoader
     from langchain_text_splitters import RecursiveCharacterTextSplitter
     from langchain_community.vectorstores import FAISS
-    from langchain_google_genai import GoogleGenerativeAIEmbeddings
+    from langchain_openai import OpenAIEmbeddings
 
-    api_key = _get_all_keys()[0]
-    embeddings = GoogleGenerativeAIEmbeddings(
-        model='models/gemini-embedding-001',
-        google_api_key=api_key,
+    api_key = getattr(settings, 'OPENAI_API_KEY', '')
+    if not api_key:
+        raise ValueError('未設定 OPENAI_API_KEY，請確認 .env 檔案')
+    embeddings = OpenAIEmbeddings(
+        model='text-embedding-3-small',
+        api_key=api_key,
     )
 
     if (FAISS_DIR / 'index.faiss').exists():

@@ -557,7 +557,7 @@ async function askAgent() {
   await sleep(CAPTION_READ_MS);
 
   box.className = 'result-box result-ok show';
-  box.innerHTML = '<i>Agent 執行中（Gemini + MCP 工具呼叫，需要 20~30 秒屬正常，是真的在跑多輪 LLM 對話）...</i>';
+  box.innerHTML = '<i>Agent 執行中（OpenAI + MCP 工具呼叫，需要 20~30 秒屬正常，是真的在跑多輪 LLM 對話）...</i>';
 
   try {
     const data = await apiCall('POST', '/agent', payload);
@@ -571,7 +571,7 @@ async function askAgent() {
       </div>
     `;
     log(`${tag} Agent 回覆完成 → 共 ${data.steps.length} 步：${data.steps.map(s => s.action).join(' → ')}`);
-    token = showCaption(tag, `Agent 完成 ${data.steps.length} 步 ReAct 迴圈，已產生個人化建議並附上知識庫來源。`);
+    token = showCaption(tag, `Agent 完成 ${data.steps.length} 步 ReAct 迴圈，已產生個人化建議並附上知識庫來源；下方另附依坐姿查表附加的伸展影片，不經過 LLM 生成。`);
   } catch (e) {
     box.className = 'result-box result-err show';
     box.innerHTML = `呼叫失敗：${e.message}`;

@@ -15,18 +15,23 @@ numpy>=1.26.0,<2.0.0
 pandas==2.2.3
 scikit-learn==1.6.1
 joblib==1.4.2
+matplotlib==3.9.2
+seaborn==0.13.2
 
 # 深度學習（DL 訓練管線用）
 tensorflow==2.16.1
+# keras 原本沒釘選版本，導致每次全新安裝都抓最新版，跟存模型當時的版本漂移到不相容
+# （詳見 2026-10-09 排查記錄：.keras 存檔用的版本介於 3.5～3.6 之間，新版 keras 的
+#  GlorotUniform 不接受存檔裡的 input_axes 欄位）。重新訓練後用 3.10.0 驗證可正常讀寫，故釘選此版本。
+keras==3.10.0
 
 # JSON Schema 驗證
 jsonschema==4.23.0
 
 # Physio Agent（RAG + LLM）
-google-generativeai
 langchain
 langchain-text-splitters
-langchain-google-genai
+langchain-openai
 langchain-community
 faiss-cpu
 

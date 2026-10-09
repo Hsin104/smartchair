@@ -1,8 +1,9 @@
 """
 Physio Agent — 完整 Agent 架構（四大核心模組）
 
-大腦（LLM）  : Gemini 2.5 Flash + 領域專精 Prompt 設計
-記憶（Memory）: 外部知識庫（knowledge_base/*.txt）→ FAISS 向量庫，經 MCP Server 暴露查詢工具
+大腦（LLM）  : OpenAI（settings.OPENAI_MODEL，教授提供按量計費金鑰）+ 領域專精 Prompt 設計
+記憶（Memory）: 外部知識庫（knowledge_base/*.txt）→ FAISS 向量庫（OpenAI Embedding，見 mcp_server.py），
+               經 MCP Server 暴露查詢工具
 工具（Tools） : MCP（Model Context Protocol）— 獨立跑的 api/mcp_server.py（python manage.py mcp_server），
                透過 Streamable HTTP 暴露 3 個工具：知識庫查詢、坐姿歷史查詢、網路搜尋
                （震動馬達由即時偵測管線直接觸發，不經過 Agent，見 mcp_server.py 開頭說明）
@@ -12,10 +13,9 @@ Physio Agent — 完整 Agent 架構（四大核心模組）
 
 import asyncio
 import logging
-import threading
 
 from django.conf import settings
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage, ToolMessage
 
 logger = logging.getLogger(__name__)
@@ -32,33 +32,9 @@ POSTURE_DISPLAY = {
 
 MAX_ITERATIONS = 8
 
-# 單一 key 嘗試的逾時上限（秒）。正常 2~4 步的 ReAct 迴圈約 20~30 秒完成，
-# 8 步的極端情況也大約 60~70 秒，設 60 秒在「給足夠時間跑完」跟
-# 「卡住/被限流時盡快換下一組 key」之間取平衡。
+# 正常 2~4 步的 ReAct 迴圈約 20~30 秒完成，8 步的極端情況也大約 60~70 秒，
+# 設 60 秒避免單次請求卡住時無限期等待。
 _LLM_TIMEOUT_SECONDS = 60
-
-
-_key_rotation_lock = threading.Lock()
-_key_rotation_index = 0
-
-
-def _get_all_keys() -> list:
-    """
-    回傳所有 key，但每次呼叫的起始順序輪流轉動（round-robin），
-    不永遠固定從第一組開始試。避免第一組 key 剛好被 Google 端限流時，
-    每一次請求都要先付出那次逾時代價才會換下一組。
-    """
-    global _key_rotation_index
-
-    keys = getattr(settings, 'GEMINI_API_KEYS', [])
-    if not keys:
-        raise ValueError('未設定任何 GEMINI_API_KEY，請確認 .env 檔案')
-
-    with _key_rotation_lock:
-        start = _key_rotation_index % len(keys)
-        _key_rotation_index += 1
-
-    return keys[start:] + keys[:start]
 
 
 # ── System Prompt ──────────────────────────────────────────────────────────────
@@ -134,7 +110,7 @@ Step 3 — 根據 Step 1~2 的完整觀察結果，產生個人化建議回覆�
 # ── MCP Client + 手寫 ReAct 迴圈 ─────────────────────────────────────────────────
 
 def _flatten_content(content) -> str:
-    """Gemini 回覆的 content 可能是 str，也可能是多個 part 組成的 list。"""
+    """LLM 回覆的 content 可能是 str，也可能是多個 part 組成的 list。"""
     if isinstance(content, str):
         return content
     if isinstance(content, list):
@@ -166,11 +142,9 @@ async def _run_react(question: str, api_key: str) -> tuple[str, list]:
             await session.initialize()
             tools = await load_mcp_tools(session)
 
-            llm = ChatGoogleGenerativeAI(
-                # gemini-2.5-flash 已對新建立的 Google 專案／新 key 停用（404，Google 端強制導向新模型），
-                # 3.6-flash 對新舊 key 都測過可用，改用這個避免新申請的 key 完全不能用
-                model='gemini-3.6-flash',
-                google_api_key=api_key,
+            llm = ChatOpenAI(
+                model=settings.OPENAI_MODEL,
+                api_key=api_key,
                 temperature=0.2,
             ).bind_tools(tools)
 
@@ -258,39 +232,28 @@ def get_advice(posture: str = '', user_id: int = 0, user_message: str = '') -> t
             f'請查詢外部知識庫後分析坐姿問題並提供改善建議。'
         )
 
-    def _is_quota_error(e):
+    api_key = settings.OPENAI_API_KEY
+    if not api_key:
+        raise ValueError('未設定 OPENAI_API_KEY，請確認 .env 檔案')
+
+    try:
+        output, steps = asyncio.run(
+            asyncio.wait_for(_run_react(question, api_key), timeout=_LLM_TIMEOUT_SECONDS)
+        )
+        return _validate_response(output.strip()), steps
+    except asyncio.TimeoutError as e:
+        logger.error(f'[PhysioAgent] OpenAI 請求逾時（{_LLM_TIMEOUT_SECONDS}秒）')
+        raise RuntimeError('Physio Agent 請求逾時，請稍後再試') from e
+    except Exception as e:
         msg = str(e)
-        return '429' in msg or 'RESOURCE_EXHAUSTED' in msg or 'quota' in msg.lower()
-
-    keys = _get_all_keys()
-    last_error = None
-    for i, key in enumerate(keys):
-        try:
-            # google-genai SDK 遇到限流時會在背景默默重試，不會馬上拋例外，
-            # 沒有這個逾時的話單一 key 卡住可能會傻等好幾分鐘，外層完全沒機會切換下一組 key
-            output, steps = asyncio.run(
-                asyncio.wait_for(_run_react(question, key), timeout=_LLM_TIMEOUT_SECONDS)
-            )
-            advice = _validate_response(output.strip())
-            if i > 0:
-                logger.info(f'[PhysioAgent] 使用第 {i+1} 組 key 成功')
-            return advice, steps
-        except asyncio.TimeoutError as e:
-            last_error = e
-            if i < len(keys) - 1:
-                logger.warning(f'[PhysioAgent] 第 {i+1} 組 key 逾時（{_LLM_TIMEOUT_SECONDS}秒，可能被限流卡住重試），切換下一組')
-                continue
-            break
-        except Exception as e:
-            last_error = e
-            if _is_quota_error(e) and i < len(keys) - 1:
-                logger.warning(f'[PhysioAgent] 第 {i+1} 組 key 額度用盡，切換下一組')
-                continue
-            break
-
-    logger.error(f'[PhysioAgent] 所有 key 均失敗（共 {len(keys)} 組）：{last_error}')
-    if isinstance(last_error, asyncio.TimeoutError):
-        raise RuntimeError(f'全部 {len(keys)} 組 Gemini API key 都逾時（可能都被限流），請稍後再試') from last_error
-    if _is_quota_error(last_error):
-        raise RuntimeError(f'全部 {len(keys)} 組 Gemini API 額度均已用盡，請明日再試或新增更多 key') from last_error
-    raise last_error
+        if '429' in msg or 'insufficient_quota' in msg or 'rate_limit' in msg.lower():
+            logger.error(f'[PhysioAgent] OpenAI 額度/速率限制：{e}')
+            raise RuntimeError('OpenAI API 額度或速率已達上限，請稍後再試（全組共用同一組金鑰）') from e
+        if any(s in msg for s in ('Connection refused', 'Connect call failed', 'ConnectError', 'getaddrinfo failed')):
+            logger.error(f'[PhysioAgent] 無法連線 MCP Server：{e}')
+            raise RuntimeError(
+                f'無法連線到 MCP Server（{settings.MCP_SERVER_HOST}:{settings.MCP_SERVER_PORT}），'
+                '請確認 python manage.py mcp_server 是否已啟動'
+            ) from e
+        logger.error(f'[PhysioAgent] Physio Agent 呼叫失敗：{e}')
+        raise RuntimeError(f'Physio Agent 發生未預期錯誤，請稍後再試或聯絡開發者：{msg[:200]}') from e

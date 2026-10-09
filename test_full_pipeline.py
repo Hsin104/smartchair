@@ -8,7 +8,7 @@
 因此不會影響組員目前連線中的 EMQX Cloud（chair/pressure/01）。
 
 執行方式：
-    python test_full_pipeline.py            # 略過會呼叫 Gemini API 的 AI 建議測試
+    python test_full_pipeline.py            # 略過會呼叫 OpenAI API 的 AI 建議測試
     python test_full_pipeline.py --with-ai   # 額外測試一次 Physio Agent 完整 ReAct 流程（消耗 API 額度）
 """
 
@@ -164,9 +164,9 @@ def main():
         motors = MOTOR_MAP.get(posture, [])
         check(f'{posture:8s} 馬達對應正確', motors == expected, f'{motors}')
 
-    # ── 第四段（可選）：Physio Agent 完整 ReAct 流程（消耗 Gemini API 額度）──
+    # ── 第四段（可選）：Physio Agent 完整 ReAct 流程（消耗 OpenAI API 額度）──
     if WITH_AI:
-        print('\n[第四段] Physio Agent 完整 ReAct 流程（真實呼叫 Gemini API，僅測 1 次）')
+        print('\n[第四段] Physio Agent 完整 ReAct 流程（真實呼叫 OpenAI API，僅測 1 次）')
         from api.physio_agent import get_advice
         try:
             advice, steps = get_advice('forward', user.id, '')
@@ -180,7 +180,7 @@ def main():
         except Exception as e:
             check('Agent 產生建議（非空）', False, str(e))
     else:
-        print('\n[第四段] 已略過 Physio Agent 測試（加 --with-ai 執行，會呼叫 Gemini API）')
+        print('\n[第四段] 已略過 Physio Agent 測試（加 --with-ai 執行，會呼叫 OpenAI API）')
 
     # ── 收尾：清除測試資料，避免污染資料庫 ──────────────────────────────────
     PostureRecord.objects.filter(user=user).delete()
