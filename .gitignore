@@ -58,3 +58,6 @@ linux指令.txt
 
 # 本機 Docker Compose 覆寫（各環境接管既有 volume 的方式不同，不納入版控）
 docker-compose.override.yml
+
+# collectstatic 產物（Docker build 時產生）
+staticfiles/

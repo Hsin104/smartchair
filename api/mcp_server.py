@@ -71,13 +71,22 @@ def _build_retriever():
         api_key=api_key,
     )
 
+    vs = None
     if (FAISS_DIR / 'index.faiss').exists():
         logger.info('[MCP] 從磁碟載入 FAISS 向量庫...')
         vs = FAISS.load_local(
             str(FAISS_DIR), embeddings,
             allow_dangerous_deserialization=True,
         )
-    else:
+        # 舊 volume 可能還留著換 embedding 模型前建的索引（例如 Gemini 時期），維度對不上時 FAISS
+        # 查詢只會丟出沒有訊息的 AssertionError，工具回傳空白錯誤很難排查，所以載入時先比對維度，
+        # 不符就捨棄舊索引重建
+        dim = len(embeddings.embed_query('dimension check'))
+        if vs.index.d != dim:
+            logger.warning(f'[MCP] FAISS 索引維度 {vs.index.d} 與目前 embedding 模型 {dim} 不符，重建索引')
+            vs = None
+
+    if vs is None:
         logger.info('[MCP] 讀取外部知識庫並建立 FAISS...')
         loader = DirectoryLoader(
             str(KB_DIR), glob='*.txt',

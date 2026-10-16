@@ -1,0 +1,145 @@
+{
+  "label": "uvicorn ASGI 3w (eval)",
+  "base_url": "http://127.0.0.1:8001",
+  "duration": 15,
+  "results": {
+    "health": [
+      {
+        "concurrency": 1,
+        "requests": 301,
+        "ok": 301,
+        "qps": 20.0,
+        "p50_ms": 50.0,
+        "p95_ms": 53.0,
+        "p99_ms": 53.8,
+        "error_rate": 0.0,
+        "errors": {}
+      },
+      {
+        "concurrency": 10,
+        "requests": 2778,
+        "ok": 2778,
+        "qps": 184.5,
+        "p50_ms": 51.4,
+        "p95_ms": 61.5,
+        "p99_ms": 65.3,
+        "error_rate": 0.0,
+        "errors": {}
+      },
+      {
+        "concurrency": 30,
+        "requests": 6417,
+        "ok": 6417,
+        "qps": 425.8,
+        "p50_ms": 69.0,
+        "p95_ms": 84.4,
+        "p99_ms": 94.4,
+        "error_rate": 0.0,
+        "errors": {}
+      },
+      {
+        "concurrency": 50,
+        "requests": 6032,
+        "ok": 6032,
+        "qps": 399.3,
+        "p50_ms": 124.0,
+        "p95_ms": 152.4,
+        "p99_ms": 167.3,
+        "error_rate": 0.0,
+        "errors": {}
+      }
+    ],
+    "history": [
+      {
+        "concurrency": 1,
+        "requests": 841,
+        "ok": 841,
+        "qps": 56.1,
+        "p50_ms": 17.9,
+        "p95_ms": 20.0,
+        "p99_ms": 20.8,
+        "error_rate": 0.0,
+        "errors": {}
+      },
+      {
+        "concurrency": 10,
+        "requests": 3424,
+        "ok": 3424,
+        "qps": 227.7,
+        "p50_ms": 45.2,
+        "p95_ms": 55.0,
+        "p99_ms": 60.8,
+        "error_rate": 0.0,
+        "errors": {}
+      },
+      {
+        "concurrency": 30,
+        "requests": 3660,
+        "ok": 3660,
+        "qps": 242.5,
+        "p50_ms": 113.5,
+        "p95_ms": 160.1,
+        "p99_ms": 331.6,
+        "error_rate": 0.0,
+        "errors": {}
+      },
+      {
+        "concurrency": 50,
+        "requests": 3588,
+        "ok": 3588,
+        "qps": 237.3,
+        "p50_ms": 193.5,
+        "p95_ms": 385.1,
+        "p99_ms": 464.1,
+        "error_rate": 0.0,
+        "errors": {}
+      }
+    ],
+    "posture": [
+      {
+        "concurrency": 1,
+        "requests": 140,
+        "ok": 140,
+        "qps": 9.3,
+        "p50_ms": 121.0,
+        "p95_ms": 129.0,
+        "p99_ms": 133.1,
+        "error_rate": 0.0,
+        "errors": {}
+      },
+      {
+        "concurrency": 10,
+        "requests": 824,
+        "ok": 824,
+        "qps": 54.2,
+        "p50_ms": 188.4,
+        "p95_ms": 278.8,
+        "p99_ms": 321.7,
+        "error_rate": 0.0,
+        "errors": {}
+      },
+      {
+        "concurrency": 30,
+        "requests": 876,
+        "ok": 876,
+        "qps": 57.0,
+        "p50_ms": 523.9,
+        "p95_ms": 802.2,
+        "p99_ms": 924.0,
+        "error_rate": 0.0,
+        "errors": {}
+      },
+      {
+        "concurrency": 50,
+        "requests": 879,
+        "ok": 879,
+        "qps": 56.3,
+        "p50_ms": 869.3,
+        "p95_ms": 1358.8,
+        "p99_ms": 1557.8,
+        "error_rate": 0.0,
+        "errors": {}
+      }
+    ]
+  }
+}

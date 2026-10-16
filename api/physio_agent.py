@@ -124,6 +124,17 @@ def _flatten_content(content) -> str:
     return str(content)
 
 
+def _leaf_error_message(e: BaseException) -> str:
+    """
+    MCP client 底層用 anyio TaskGroup，真正的錯誤（連線被拒、OpenAI 429…）會被包進
+    ExceptionGroup，str(e) 只剩「unhandled errors in a TaskGroup」。攤平取出所有子例外的
+    類型與訊息，下面的錯誤分類字串比對才對得到。
+    """
+    if isinstance(e, BaseExceptionGroup):
+        return ' | '.join(_leaf_error_message(sub) for sub in e.exceptions)
+    return f'{type(e).__name__}: {e}'
+
+
 async def _run_react(question: str, api_key: str) -> tuple[str, list]:
     """
     手寫 ReAct 迴圈：Thought（模型回覆）→ Action（MCP 工具呼叫）→ Observation（工具回傳）→ 再思考。
@@ -245,15 +256,15 @@ def get_advice(posture: str = '', user_id: int = 0, user_message: str = '') -> t
         logger.error(f'[PhysioAgent] OpenAI 請求逾時（{_LLM_TIMEOUT_SECONDS}秒）')
         raise RuntimeError('Physio Agent 請求逾時，請稍後再試') from e
     except Exception as e:
-        msg = str(e)
+        msg = _leaf_error_message(e)
         if '429' in msg or 'insufficient_quota' in msg or 'rate_limit' in msg.lower():
-            logger.error(f'[PhysioAgent] OpenAI 額度/速率限制：{e}')
+            logger.error(f'[PhysioAgent] OpenAI 額度/速率限制：{msg}')
             raise RuntimeError('OpenAI API 額度或速率已達上限，請稍後再試（全組共用同一組金鑰）') from e
         if any(s in msg for s in ('Connection refused', 'Connect call failed', 'ConnectError', 'getaddrinfo failed')):
-            logger.error(f'[PhysioAgent] 無法連線 MCP Server：{e}')
+            logger.error(f'[PhysioAgent] 無法連線 MCP Server：{msg}')
             raise RuntimeError(
                 f'無法連線到 MCP Server（{settings.MCP_SERVER_HOST}:{settings.MCP_SERVER_PORT}），'
                 '請確認 python manage.py mcp_server 是否已啟動'
             ) from e
-        logger.error(f'[PhysioAgent] Physio Agent 呼叫失敗：{e}')
+        logger.error(f'[PhysioAgent] Physio Agent 呼叫失敗：{msg}', exc_info=True)
         raise RuntimeError(f'Physio Agent 發生未預期錯誤，請稍後再試或聯絡開發者：{msg[:200]}') from e

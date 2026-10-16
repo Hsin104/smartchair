@@ -4,6 +4,10 @@ djangorestframework==3.16.0
 django-cors-headers==4.9.0
 python-dotenv==1.1.0
 
+# 正式部署：WSGI server（取代 runserver）＋靜態檔服務（admin／DRF 頁面的 CSS/JS）
+gunicorn==23.0.0
+whitenoise==6.11.0
+
 # 資料庫
 psycopg2-binary==2.9.10
 

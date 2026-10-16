@@ -52,6 +52,8 @@ AUTH_USER_MODEL = 'api.User'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    # Gunicorn 不像 runserver 會自動提供靜態檔，改由 WhiteNoise 直接從 STATIC_ROOT 回應
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -92,6 +94,12 @@ DATABASES = {
         'PASSWORD': os.getenv('DB_PASSWORD', 'admin123'),
         'HOST': os.getenv('DB_HOST', 'localhost'),
         'PORT': os.getenv('DB_PORT', '5432'),
+        # 持久連線：預設 0 代表每個請求都新開一條 DB 連線、用完即關。Gunicorn 壓測時每秒開關數百條連線，
+        # 關掉的連線在 TIME_WAIT 佔住本機埠，最後埠耗盡出現 "Cannot assign requested address"（health 503、
+        # history 500）。docker-compose 的 django 服務設成 60 秒重用連線；本機 runserver 每個請求一條新
+        # thread，持久連線反而會殘留，維持預設 0。
+        'CONN_MAX_AGE': int(os.getenv('DB_CONN_MAX_AGE', 0)),
+        'CONN_HEALTH_CHECKS': True,  # 重用前先確認連線還活著（例如 DB 容器重啟過）
     }
 }
 
@@ -131,6 +139,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'  # Dockerfile build 時 collectstatic 收集到這裡
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 

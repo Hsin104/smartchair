@@ -1,0 +1,145 @@
+{
+  "label": "gunicorn 3w x 8t (after)",
+  "base_url": "http://localhost:8000",
+  "duration": 15,
+  "results": {
+    "health": [
+      {
+        "concurrency": 1,
+        "requests": 9566,
+        "ok": 9566,
+        "qps": 637.7,
+        "p50_ms": 1.5,
+        "p95_ms": 1.9,
+        "p99_ms": 2.2,
+        "error_rate": 0.0,
+        "errors": {}
+      },
+      {
+        "concurrency": 10,
+        "requests": 21212,
+        "ok": 21212,
+        "qps": 1413.4,
+        "p50_ms": 6.9,
+        "p95_ms": 10.6,
+        "p99_ms": 12.7,
+        "error_rate": 0.0,
+        "errors": {}
+      },
+      {
+        "concurrency": 30,
+        "requests": 20253,
+        "ok": 20253,
+        "qps": 1348.1,
+        "p50_ms": 21.4,
+        "p95_ms": 35.2,
+        "p99_ms": 42.5,
+        "error_rate": 0.0,
+        "errors": {}
+      },
+      {
+        "concurrency": 50,
+        "requests": 18195,
+        "ok": 18195,
+        "qps": 1210.1,
+        "p50_ms": 39.7,
+        "p95_ms": 65.2,
+        "p99_ms": 78.1,
+        "error_rate": 0.0,
+        "errors": {}
+      }
+    ],
+    "history": [
+      {
+        "concurrency": 1,
+        "requests": 1984,
+        "ok": 1984,
+        "qps": 132.2,
+        "p50_ms": 7.5,
+        "p95_ms": 8.5,
+        "p99_ms": 9.7,
+        "error_rate": 0.0,
+        "errors": {}
+      },
+      {
+        "concurrency": 10,
+        "requests": 7961,
+        "ok": 7961,
+        "qps": 530.0,
+        "p50_ms": 17.0,
+        "p95_ms": 29.4,
+        "p99_ms": 34.5,
+        "error_rate": 0.0,
+        "errors": {}
+      },
+      {
+        "concurrency": 30,
+        "requests": 7588,
+        "ok": 7588,
+        "qps": 504.2,
+        "p50_ms": 54.9,
+        "p95_ms": 90.9,
+        "p99_ms": 98.7,
+        "error_rate": 0.0,
+        "errors": {}
+      },
+      {
+        "concurrency": 50,
+        "requests": 8067,
+        "ok": 8067,
+        "qps": 533.9,
+        "p50_ms": 90.3,
+        "p95_ms": 114.9,
+        "p99_ms": 309.5,
+        "error_rate": 0.0,
+        "errors": {}
+      }
+    ],
+    "posture": [
+      {
+        "concurrency": 1,
+        "requests": 249,
+        "ok": 249,
+        "qps": 16.6,
+        "p50_ms": 59.5,
+        "p95_ms": 101.7,
+        "p99_ms": 127.2,
+        "error_rate": 0.0,
+        "errors": {}
+      },
+      {
+        "concurrency": 10,
+        "requests": 1161,
+        "ok": 1161,
+        "qps": 76.8,
+        "p50_ms": 141.4,
+        "p95_ms": 202.0,
+        "p99_ms": 263.2,
+        "error_rate": 0.0,
+        "errors": {}
+      },
+      {
+        "concurrency": 30,
+        "requests": 1129,
+        "ok": 1129,
+        "qps": 74.0,
+        "p50_ms": 457.3,
+        "p95_ms": 580.0,
+        "p99_ms": 700.7,
+        "error_rate": 0.0,
+        "errors": {}
+      },
+      {
+        "concurrency": 50,
+        "requests": 1112,
+        "ok": 1112,
+        "qps": 71.0,
+        "p50_ms": 726.0,
+        "p95_ms": 920.0,
+        "p99_ms": 1086.6,
+        "error_rate": 0.0,
+        "errors": {}
+      }
+    ]
+  }
+}

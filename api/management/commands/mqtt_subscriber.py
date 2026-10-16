@@ -281,6 +281,14 @@ def _dispatch_message(topic, payload):
         _sensor_buffer.pop(username, None)
 
 
+def on_log(client, userdata, level, buf):
+    # 椅子沒人坐時不會有任何訊息進來，只靠 on_message 更新心跳的話，連線正常但閒置超過
+    # 120 秒就會被 healthcheck.py 誤判為不健康。keepalive=60 時 paho 在閒置期間每 60 秒
+    # 送一次 PINGREQ，收到 broker 的 PINGRESP 代表網路迴圈還在跑、連線也真的通，用它更新心跳。
+    if buf.startswith('Received PINGRESP'):
+        _write_heartbeat(connected=True)
+
+
 def on_disconnect(client, userdata, disconnect_flags, reason_code, properties=None):
     print(f'[MQTT] 連線中斷（代碼：{reason_code}），嘗試重新連線...')
     _write_heartbeat(connected=False)
@@ -309,6 +317,7 @@ class Command(BaseCommand):
         client.on_connect    = on_connect
         client.on_message    = on_message
         client.on_disconnect = on_disconnect
+        client.on_log        = on_log
         client.reconnect_delay_set(min_delay=1, max_delay=30)
 
         try:

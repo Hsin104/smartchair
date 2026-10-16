@@ -17,6 +17,10 @@ ENV PYTHONUNBUFFERED=1
 
 COPY . .
 
+# 收集 admin／DRF 的靜態檔供 WhiteNoise 提供（Gunicorn 本身不處理靜態檔）
+RUN python manage.py collectstatic --noinput
+
 EXPOSE 8000 8010
 
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+# 正式 WSGI server，設定與選型理由見 gunicorn.conf.py
+CMD ["gunicorn", "smartchair_backend.wsgi:application", "-c", "gunicorn.conf.py"]
