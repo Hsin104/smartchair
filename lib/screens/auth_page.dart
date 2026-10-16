@@ -204,9 +204,9 @@ class _AuthPageState extends State<AuthPage> {
                 code: _forgotPasswordCodeController.text,
                 newPassword: _forgotPasswordNewPasswordController.text,
               );
+              if (!mounted || !dialogContext.mounted) return;
               setDialogState(() => isBusy = false);
               if (result.success) {
-                if (!mounted) return;
                 Navigator.of(dialogContext).pop();
                 ScaffoldMessenger.of(
                   context,
@@ -243,7 +243,9 @@ class _AuthPageState extends State<AuthPage> {
                         ),
                       ),
                     ] else ...[
-                      Text('驗證碼已寄到 ${_forgotPasswordEmailController.text}，請於 10 分鐘內完成設定。'),
+                      Text(
+                        '驗證碼已寄到 ${_forgotPasswordEmailController.text}，請於 10 分鐘內完成設定。',
+                      ),
                       const SizedBox(height: 16),
                       TextField(
                         controller: _forgotPasswordCodeController,

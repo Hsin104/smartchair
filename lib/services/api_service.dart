@@ -447,6 +447,7 @@ class ApiService {
       String message,
       String? postureDisplay,
       String? posture,
+      List<Map<String, dynamic>> recommendedExercises,
     })
   >
   getAdvice(String postureCode, {String userMessage = ''}) async {
@@ -458,6 +459,7 @@ class ApiService {
           message: '請先登入後再取得 AI 建議。',
           postureDisplay: null,
           posture: null,
+          recommendedExercises: const <Map<String, dynamic>>[],
         );
       }
 
@@ -484,6 +486,9 @@ class ApiService {
           message: '取得 AI 建議成功',
           postureDisplay: data?['posture_display']?.toString(),
           posture: data?['posture']?.toString(),
+          recommendedExercises: _decodeRecommendedExercises(
+            data?['recommended_exercises'],
+          ),
         );
       }
 
@@ -495,6 +500,7 @@ class ApiService {
           message: schemaError,
           postureDisplay: null,
           posture: null,
+          recommendedExercises: const <Map<String, dynamic>>[],
         );
       }
 
@@ -507,6 +513,7 @@ class ApiService {
         ),
         postureDisplay: null,
         posture: null,
+        recommendedExercises: const <Map<String, dynamic>>[],
       );
     } on TimeoutException {
       return (
@@ -515,6 +522,7 @@ class ApiService {
         message: 'AI 等待超時，請稍後再試。',
         postureDisplay: null,
         posture: null,
+        recommendedExercises: const <Map<String, dynamic>>[],
       );
     } catch (_) {
       return (
@@ -523,8 +531,19 @@ class ApiService {
         message: '網路錯誤，無法取得 AI 建議。',
         postureDisplay: null,
         posture: null,
+        recommendedExercises: const <Map<String, dynamic>>[],
       );
     }
+  }
+
+  static List<Map<String, dynamic>> _decodeRecommendedExercises(Object? value) {
+    if (value is! List) return [];
+    return value
+        .whereType<Map>()
+        .map((item) => item.cast<String, dynamic>())
+        .where((item) => item['name']?.toString().trim().isNotEmpty ?? false)
+        .take(3)
+        .toList();
   }
 
   // ── 通知 ────────────────────────────────────────────────────
@@ -880,4 +899,3 @@ class ApiService {
     }
   }
 }
-

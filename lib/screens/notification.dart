@@ -1,23 +1,32 @@
 import 'package:flutter/material.dart';
 import '../state/chair_sync_controller.dart';
+import '../state/wellness_controller.dart';
 
 class NotificationPage extends StatefulWidget {
-  const NotificationPage({super.key, required this.controller});
+  const NotificationPage({
+    super.key,
+    required this.controller,
+    required this.wellnessController,
+  });
 
   final ChairSyncController controller;
+  final WellnessController wellnessController;
 
   @override
   State<NotificationPage> createState() => _NotificationPageState();
 }
 
 class _NotificationPageState extends State<NotificationPage> {
-  final String _selectedFilter = '全部';
+  String _selectedFilter = '提醒';
+  static const _filterOptions = ['提醒', '周報'];
 
   bool _matchesFilter(Map<String, dynamic> item) {
-    if (_selectedFilter == '全部') return true;
     final color = item['color'] as Color;
     final category = _categoryFromColor(color);
-    return category == _selectedFilter;
+    if (_selectedFilter == '提醒') {
+      return category == '警示' || category == '提醒';
+    }
+    return category == '其它';
   }
 
   String _categoryFromColor(Color color) {
@@ -57,7 +66,10 @@ class _NotificationPageState extends State<NotificationPage> {
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: widget.controller,
+      animation: Listenable.merge([
+        widget.controller,
+        widget.wellnessController,
+      ]),
       builder: (context, _) {
         final notifications = widget.controller.notifications
             .where(_matchesFilter)
@@ -92,6 +104,14 @@ class _NotificationPageState extends State<NotificationPage> {
                       ),
                     ),
                     const SizedBox(height: 4),
+                    Text(
+                      '今日已完成 ${widget.wellnessController.records.where((record) => record.dateKey == _todayKey()).length} 個健康介入任務',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
                     const Text(
                       '此處列出已記錄的坐姿狀態，方便快速回看異常類型。',
                       style: TextStyle(color: Colors.white70, fontSize: 13),
@@ -121,6 +141,38 @@ class _NotificationPageState extends State<NotificationPage> {
               ),
 
               const SizedBox(height: 12),
+
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: _filterOptions.map((filter) {
+                    final selected = filter == _selectedFilter;
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: ChoiceChip(
+                        label: Text(filter),
+                        selected: selected,
+                        onSelected: (_) => setState(() {
+                          _selectedFilter = filter;
+                        }),
+                        avatar: Icon(
+                          filter == '提醒'
+                              ? Icons.notifications_active_rounded
+                              : Icons.auto_awesome_rounded,
+                          size: 17,
+                        ),
+                        selectedColor: const Color(0xFFDBEAFE),
+                        labelStyle: TextStyle(
+                          color: selected
+                              ? const Color(0xFF1D4ED8)
+                              : const Color(0xFF475569),
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
 
               const SizedBox(height: 12),
 
@@ -175,13 +227,9 @@ class _NotificationPageState extends State<NotificationPage> {
                               ),
                             ),
                             const SizedBox(height: 6),
-                            Text(
+                            _buildMessage(
                               item['message'] as String,
-                              style: const TextStyle(
-                                fontSize: 15,
-                                color: Color(0xFF334155),
-                                fontWeight: FontWeight.w700,
-                              ),
+                              isWeeklyReport: _categoryFromColor(color) == '其它',
                             ),
                           ],
                         ),
@@ -211,5 +259,82 @@ class _NotificationPageState extends State<NotificationPage> {
         );
       },
     );
+  }
+
+  String _todayKey() {
+    final now = DateTime.now();
+    return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+  }
+
+  Widget _buildMessage(String message, {required bool isWeeklyReport}) {
+    if (!isWeeklyReport) {
+      return Text(
+        message,
+        style: const TextStyle(
+          fontSize: 15,
+          color: Color(0xFF334155),
+          fontWeight: FontWeight.w700,
+        ),
+      );
+    }
+
+    final lines = message.split('\n');
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: lines.map(_buildWeeklyLine).toList(),
+    );
+  }
+
+  Widget _buildWeeklyLine(String rawLine) {
+    final trimmedLine = rawLine.trim();
+    if (trimmedLine.isEmpty) return const SizedBox(height: 8);
+    if (trimmedLine == '---') {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 6),
+        child: Divider(height: 1, color: Color(0xFFCBD5E1)),
+      );
+    }
+
+    final isHeading = RegExp(r'^#{1,6}\s*').hasMatch(trimmedLine);
+    final withoutHeading = trimmedLine.replaceFirst(RegExp(r'^#{1,6}\s*'), '');
+    final isBullet = RegExp(r'^[-*]\s+').hasMatch(withoutHeading);
+    final content = withoutHeading.replaceFirst(RegExp(r'^[-*]\s+'), '');
+    final displayText = isBullet ? '• $content' : content;
+    final textStyle = TextStyle(
+      fontSize: isHeading ? 16 : 14,
+      height: 1.55,
+      color: const Color(0xFF334155),
+      fontWeight: isHeading ? FontWeight.w900 : FontWeight.w600,
+    );
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 5),
+      child: _buildBoldText(displayText, textStyle),
+    );
+  }
+
+  Widget _buildBoldText(String text, TextStyle style) {
+    final spans = <InlineSpan>[];
+    final pattern = RegExp(r'\*\*(.+?)(?:\*\*|$)');
+    var currentIndex = 0;
+
+    for (final match in pattern.allMatches(text)) {
+      if (match.start > currentIndex) {
+        spans.add(TextSpan(text: text.substring(currentIndex, match.start)));
+      }
+      spans.add(
+        TextSpan(
+          text: match.group(1) ?? '',
+          style: style.copyWith(fontWeight: FontWeight.w900),
+        ),
+      );
+      currentIndex = match.end;
+    }
+
+    if (currentIndex < text.length) {
+      spans.add(TextSpan(text: text.substring(currentIndex)));
+    }
+
+    return Text.rich(TextSpan(style: style, children: spans));
   }
 }

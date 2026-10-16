@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'screens/home_page.dart';
 import 'state/chair_sync_controller.dart';
+import 'state/wellness_controller.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,11 +17,9 @@ class SmartChairApp extends StatefulWidget {
 
 class _SmartChairAppState extends State<SmartChairApp> {
   late final ChairSyncController chairSyncController;
-  static const _appFont = 'SmartChairTimes';
-  static const _fontFallback = [
-    'SmartChairKai',
-    'serif',
-  ];
+  late final WellnessController wellnessController;
+  static const _appFont = 'SmartChairKai';
+  static const _fontFallback = ['SmartChairKai'];
   static const _appFontStyle = TextStyle(
     fontFamily: _appFont,
     fontFamilyFallback: _fontFallback,
@@ -30,11 +29,13 @@ class _SmartChairAppState extends State<SmartChairApp> {
   void initState() {
     super.initState();
     chairSyncController = ChairSyncController();
+    wellnessController = WellnessController();
   }
 
   @override
   void dispose() {
     chairSyncController.dispose();
+    wellnessController.dispose();
     super.dispose();
   }
 
@@ -112,7 +113,10 @@ class _SmartChairAppState extends State<SmartChairApp> {
         ),
         tooltipTheme: const TooltipThemeData(textStyle: _appFontStyle),
       ),
-      home: HomePage(chairSyncController: chairSyncController),
+      home: HomePage(
+        chairSyncController: chairSyncController,
+        wellnessController: wellnessController,
+      ),
     );
   }
 }

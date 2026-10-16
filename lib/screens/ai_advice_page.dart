@@ -1,16 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
 import '../state/chair_sync_controller.dart';
+import '../state/wellness_controller.dart';
 
 class AiAdvicePage extends StatefulWidget {
   const AiAdvicePage({
     super.key,
     required this.controller,
     required this.isLoggedIn,
+    required this.wellnessController,
   });
 
   final ChairSyncController controller;
   final bool isLoggedIn;
+  final WellnessController wellnessController;
 
   @override
   State<AiAdvicePage> createState() => _AiAdvicePageState();
@@ -21,6 +25,7 @@ class _AiAdvicePageState extends State<AiAdvicePage> {
   bool _adviceVisible = false;
   bool _isFetchingAdvice = false;
   String _advice = '請先取得 AI 建議，系統將根據你的姿勢與症狀提供治療建議。';
+  List<Map<String, dynamic>> _recommendedExercises = const [];
 
   late final VoidCallback _controllerListener;
 
@@ -82,6 +87,7 @@ class _AiAdvicePageState extends State<AiAdvicePage> {
       _isFetchingAdvice = true;
       _adviceVisible = true;
       _advice = 'AI 建議生成中，請稍候...';
+      _recommendedExercises = const [];
     });
 
     try {
@@ -96,12 +102,14 @@ class _AiAdvicePageState extends State<AiAdvicePage> {
         setState(() {
           _advice = result.advice.isNotEmpty ? result.advice : '目前沒有可用建議。';
           _adviceVisible = true;
+          _recommendedExercises = result.recommendedExercises;
         });
       } else {
         messenger.showSnackBar(SnackBar(content: Text(result.message)));
         setState(() {
           _adviceVisible = false;
           _advice = '按下「取得 AI 建議」以查看 AI 建議。';
+          _recommendedExercises = const [];
         });
       }
     } catch (_) {
@@ -110,6 +118,7 @@ class _AiAdvicePageState extends State<AiAdvicePage> {
       setState(() {
         _adviceVisible = false;
         _advice = '按下「取得 AI 建議」以查看 AI 建議。';
+        _recommendedExercises = const [];
       });
     } finally {
       if (mounted) {
@@ -118,22 +127,86 @@ class _AiAdvicePageState extends State<AiAdvicePage> {
     }
   }
 
-  Widget _buildAdviceText(String text) {
-    const baseStyle = TextStyle(
-      fontSize: 14,
-      height: 1.6,
-      color: Color(0xFF334155),
+  Future<void> _acceptRecommendation() async {
+    final task = widget.wellnessController.taskForPosture(
+      widget.controller.postureCode,
     );
-    final boldStyle = baseStyle.copyWith(fontWeight: FontWeight.w800);
+    await widget.wellnessController.acceptTask(task);
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('已接受建議，請到健康花園完成伸展並留下回饋。')));
+  }
+
+  Widget _buildAdviceText(String text) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: text.split('\n').map(_buildAdviceLine).toList(),
+    );
+  }
+
+  Widget _buildAdviceLine(String rawLine) {
+    final line = rawLine.trimRight();
+    if (line.trim().isEmpty) return const SizedBox(height: 8);
+    if (line.trim() == '---') {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 8),
+        child: Divider(height: 1, color: Color(0xFFCBD5E1)),
+      );
+    }
+
+    final heading = RegExp(r'^#{1,6}\s+(.+)$').firstMatch(line.trim());
+    if (heading != null) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: _buildInlineAdviceText(
+          heading.group(1)!,
+          const TextStyle(
+            fontSize: 17,
+            height: 1.45,
+            fontWeight: FontWeight.w900,
+            color: Color(0xFF1E3A5F),
+          ),
+        ),
+      );
+    }
+
+    final bullet = RegExp(r'^[-*]\s+(.+)$').firstMatch(line.trim());
+    if (bullet != null) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 5),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              '• ',
+              style: TextStyle(fontSize: 15, color: Color(0xFF0F766E)),
+            ),
+            Expanded(child: _buildInlineAdviceText(bullet.group(1)!)),
+          ],
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 5),
+      child: _buildInlineAdviceText(line),
+    );
+  }
+
+  Widget _buildInlineAdviceText(String text, [TextStyle? style]) {
+    final baseStyle =
+        style ??
+        const TextStyle(fontSize: 14, height: 1.6, color: Color(0xFF334155));
+    final boldStyle = baseStyle.copyWith(fontWeight: FontWeight.w900);
     final spans = <InlineSpan>[];
-    final pattern = RegExp(r'\*\*(.+?)\*\*');
+    final pattern = RegExp(r'\*\*(.+?)(?:\*\*|$)');
     var currentIndex = 0;
 
     for (final match in pattern.allMatches(text)) {
       if (match.start > currentIndex) {
         spans.add(TextSpan(text: text.substring(currentIndex, match.start)));
       }
-
       spans.add(TextSpan(text: match.group(1) ?? '', style: boldStyle));
       currentIndex = match.end;
     }
@@ -143,6 +216,135 @@ class _AiAdvicePageState extends State<AiAdvicePage> {
     }
 
     return Text.rich(TextSpan(style: baseStyle, children: spans));
+  }
+
+  Future<void> _openExercise(Map<String, dynamic> exercise) async {
+    final rawUrl = exercise['youtube_url']?.toString().trim() ?? '';
+    final uri = Uri.tryParse(rawUrl);
+    if (uri == null || !uri.hasScheme || !uri.hasAuthority) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('影片連結目前無法開啟。')));
+      }
+      return;
+    }
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('無法開啟 YouTube 影片。')));
+    }
+  }
+
+  Widget _buildExerciseCards() {
+    if (_recommendedExercises.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          '推薦伸展影片',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
+            color: Color(0xFF0F172A),
+          ),
+        ),
+        const SizedBox(height: 10),
+        ..._recommendedExercises.map(_buildExerciseCard),
+      ],
+    );
+  }
+
+  Widget _buildExerciseCard(Map<String, dynamic> exercise) {
+    final name = exercise['name']?.toString() ?? '推薦伸展';
+    final target = exercise['target_muscles']?.toString() ?? '';
+    final reps = exercise['reps']?.toString() ?? '';
+    final description = exercise['description']?.toString() ?? '';
+    final duration = exercise['duration_sec']?.toString() ?? '';
+    final title = exercise['youtube_title']?.toString().trim() ?? '';
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFBAE6FD)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(
+                Icons.play_circle_fill_rounded,
+                color: Color(0xFFDC2626),
+                size: 30,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  name,
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              if (duration.isNotEmpty)
+                Text(
+                  '$duration秒',
+                  style: const TextStyle(
+                    color: Color(0xFF64748B),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+            ],
+          ),
+          if (target.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              '目標肌群：$target',
+              style: const TextStyle(color: Color(0xFF475569), fontSize: 13),
+            ),
+          ],
+          if (reps.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              '建議：$reps',
+              style: const TextStyle(color: Color(0xFF475569), fontSize: 13),
+            ),
+          ],
+          if (description.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              description,
+              style: const TextStyle(color: Color(0xFF334155), height: 1.4),
+            ),
+          ],
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => _openExercise(exercise),
+              icon: const Icon(Icons.open_in_new_rounded, size: 18),
+              label: Text(
+                title.isEmpty ? '在 YouTube 開啟影片' : title,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Color _postureColor(String code) {
@@ -320,6 +522,8 @@ class _AiAdvicePageState extends State<AiAdvicePage> {
                               ),
                             ),
                     ),
+                    const SizedBox(height: 16),
+                    _buildExerciseCards(),
                     const SizedBox(height: 16),
                     TextField(
                       controller: _userMessageController,

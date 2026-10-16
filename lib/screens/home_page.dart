@@ -3,15 +3,21 @@ import '../services/api_service.dart';
 import '../state/chair_sync_controller.dart';
 import 'auth_page.dart';
 import 'dashboard.dart';
-import 'report.dart';
 import 'notification.dart';
 import 'setting.dart';
 import 'ai_advice_page.dart';
+import 'health_garden_page.dart';
+import '../state/wellness_controller.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key, required this.chairSyncController});
+  const HomePage({
+    super.key,
+    required this.chairSyncController,
+    required this.wellnessController,
+  });
 
   final ChairSyncController chairSyncController;
+  final WellnessController wellnessController;
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -23,9 +29,9 @@ class _HomePageState extends State<HomePage> {
   String? _userEmail;
 
   final List<Map<String, dynamic>> navItems = const [
-    {'icon': Icons.event_seat, 'label': '儀表板', 'hint': '即時坐姿'},
+    {'icon': Icons.event_seat, 'label': '健康總覽', 'hint': '坐姿與報表'},
     {'icon': Icons.psychology_alt_rounded, 'label': 'AI 建議', 'hint': '治療師建議'},
-    {'icon': Icons.bar_chart_rounded, 'label': '報表', 'hint': '今日分析'},
+    {'icon': Icons.local_florist_rounded, 'label': '健康花園', 'hint': '每日養成'},
     {'icon': Icons.notifications_active_rounded, 'label': '通知', 'hint': '提醒中心'},
     {'icon': Icons.tune_rounded, 'label': '設定', 'hint': '個人偏好'},
   ];
@@ -40,6 +46,7 @@ class _HomePageState extends State<HomePage> {
     final wasLoggedIn = _isLoggedIn;
     final loggedIn = await ApiService.isLoggedIn();
     final email = await ApiService.getUserEmail();
+    await widget.wellnessController.initialize(email);
     if (mounted) {
       setState(() {
         _isLoggedIn = loggedIn;
@@ -107,18 +114,28 @@ class _HomePageState extends State<HomePage> {
       DashboardPage(
         controller: widget.chairSyncController,
         isLoggedIn: _isLoggedIn,
-        onOpenReport: () => setState(() => currentIndex = 2),
-        onStartStretch: () => setState(() => currentIndex = 3),
+        wellnessController: widget.wellnessController,
+        onOpenAi: () => setState(() => currentIndex = 1),
+        onOpenGarden: () => setState(() => currentIndex = 2),
+        onOpenSettings: () => setState(() => currentIndex = 4),
       ),
       AiAdvicePage(
         controller: widget.chairSyncController,
         isLoggedIn: _isLoggedIn,
+        wellnessController: widget.wellnessController,
       ),
-      ReportPage(controller: widget.chairSyncController),
-      NotificationPage(controller: widget.chairSyncController),
+      HealthGardenPage(
+        controller: widget.wellnessController,
+        postureCode: widget.chairSyncController.postureCode,
+      ),
+      NotificationPage(
+        controller: widget.chairSyncController,
+        wellnessController: widget.wellnessController,
+      ),
       SettingPage(
         isLoggedIn: _isLoggedIn,
         userEmail: _userEmail,
+        wellnessController: widget.wellnessController,
         onLogout: _logout,
         onProfileChanged: _refreshAuthState,
       ),

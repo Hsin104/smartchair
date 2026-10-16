@@ -31,7 +31,7 @@ class ChairSyncController extends ChangeNotifier {
     postureLabel = label;
     postureScore = score;
     isGoodPosture = isGood;
-    latestAdvice = advice;
+    latestAdvice = _cleanAdviceText(advice);
     updatedAt = DateTime.now();
 
     addPostureHistory(label: label, score: score, isGood: isGood);
@@ -256,10 +256,11 @@ class ChairSyncController extends ChangeNotifier {
     postureLabel = displayName;
     postureScore = score;
     isGoodPosture = code == 'normal' || displayName == '姿勢正常';
-    latestAdvice =
-        source['physio_advice']?.toString() ??
-        source['advice']?.toString() ??
-        (isGoodPosture ? '目前姿勢良好，請繼續維持。' : '請依照後端建議調整姿勢。');
+    latestAdvice = _cleanAdviceText(
+      source['physio_advice']?.toString() ??
+          source['advice']?.toString() ??
+          (isGoodPosture ? '目前姿勢良好，請繼續維持。' : '請依照後端建議調整姿勢。'),
+    );
 
     if (displayName == '無人就坐') {
       sessionOpenedAt = null;
@@ -271,6 +272,10 @@ class ChairSyncController extends ChangeNotifier {
     }
 
     _lastPostureWasSedentary = isSedentary;
+  }
+
+  String _cleanAdviceText(String text) {
+    return text.replaceAll('**', '').trim();
   }
 
   Map<String, dynamic> _postureSource(Map<String, dynamic> payload) {

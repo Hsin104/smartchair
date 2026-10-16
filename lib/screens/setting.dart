@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
+import '../state/wellness_controller.dart';
 
 class SettingPage extends StatefulWidget {
   const SettingPage({
@@ -9,12 +10,14 @@ class SettingPage extends StatefulWidget {
     this.userEmail,
     this.onLogout,
     this.onProfileChanged,
+    required this.wellnessController,
   });
 
   final bool isLoggedIn;
   final String? userEmail;
   final Future<void> Function()? onLogout;
   final Future<void> Function()? onProfileChanged;
+  final WellnessController wellnessController;
 
   @override
   State<SettingPage> createState() => _SettingPageState();
@@ -563,6 +566,33 @@ class _SettingPageState extends State<SettingPage> {
               ],
             ),
           ),
+
+          AnimatedBuilder(
+            animation: widget.wellnessController,
+            builder: (context, _) {
+              final wellness = widget.wellnessController;
+              return _sectionPanel(
+                title: '健康介入偏好',
+                icon: Icons.spa_rounded,
+                accent: const Color(0xFF16A34A),
+                children: [
+                  Text(
+                    '目前 Lv.${wellness.level}，已累積 ${wellness.points} 點能量，連續完成 ${wellness.streak} 天。',
+                    style: const TextStyle(
+                      color: Color(0xFF166534),
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'AI 建議會轉成每日任務；完成後的回饋會影響花園成長與研究統計。',
+                    style: TextStyle(color: Color(0xFF64748B), height: 1.45),
+                  ),
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 14),
 
           LayoutBuilder(
             builder: (context, constraints) {

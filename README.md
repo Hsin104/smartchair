@@ -1,97 +1,143 @@
 # Smart Chair App
 
-智慧座椅管理與監控的 Flutter 應用程式。
+智慧座椅 Flutter 前端，將坐姿監測延伸為 AI 主動健康介入。使用者可以查看即時姿勢、取得 AI 物理治療師建議、觀看推薦伸展影片，並將完成的健康任務累積到健康養成花園。
 
-此專案目前提供多頁面結構與基礎儀表板流程，適合作為智慧座椅資料視覺化與使用者通知功能的開發起點。
+## 目前功能
 
-## 功能概覽
-
-- Dashboard: 顯示座椅狀態與核心資訊入口
-- Report: 圖表與報表頁面（使用 `fl_chart`）
-- Alert: 通知與提醒頁面
-- Setting: 使用者設定頁面
-- Bottom Navigation: 以底部分頁快速切換主要功能
+- **儀表板**：即時姿勢、分數、風險、就座時間、提醒次數與健康花園進度。
+- **AI 物理治療師**：呼叫 `/api/agent` 取得文字建議與 `recommended_exercises`，分開呈現兩種資料。
+- **推薦伸展影片**：最多顯示 3 張影片卡片，可直接開啟 YouTube。
+- **健康養成花園**：接受建議、完成每日任務、回報身體感受、累積能量與連續天數。
+- **歷史報表**：已整合在「健康總覽」，顯示姿勢分布、平均分數、提醒次數、有效健康介入與最近紀錄。
+- **通知**：姿勢提醒紀錄與當日健康介入數。
+- **設定**：帳號、個人資料、頭像與健康介入進度。
 
 ## 技術堆疊
 
-- Flutter
-- Dart (SDK `^3.11.1`)
-- `fl_chart`
+- Flutter / Dart SDK `^3.11.1`
+- `http`：REST API 呼叫
+- `shared_preferences`：登入狀態、個人設定與健康花園本地持久化
+- `fl_chart`：姿勢報表圖表
+- `url_launcher`：開啟 YouTube 推薦影片
 
-## 開發環境需求
+## 開發環境
 
-- Flutter SDK（建議使用穩定版）
-- Dart SDK（由 Flutter 一併提供）
-- Android Studio / VS Code（擇一）
-- 可用的模擬器或實機裝置
+- Flutter SDK stable
+- Dart SDK（由 Flutter 提供）
+- VS Code 或 Android Studio
+- Chrome、Android、iOS、Windows、macOS 或 Linux 執行環境
 
 ## 快速開始
 
-1. 下載專案
-
-```bash
-git clone https://github.com/daipeizhen/smart_chair_app.git
-cd smart_chair_app
-```
-
-2. 安裝套件
-
-```bash
+```powershell
+cd C:\Users\DPZ\smart_chair_app
 flutter pub get
 ```
 
-3. 啟動 App
+一般啟動：
 
-```bash
+```powershell
 flutter run
 ```
 
-如果你是要啟動 Web 版本，請改用下面這條指令，才能保留登入與本地設定：
+Web 預覽建議使用固定 port，以保留瀏覽器登入與本地設定：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts/start_web.ps1 -FixedPort 7357 -ApiBaseUrl "https://sandbar-badass-subfloor.ngrok-free.dev/api"
 ```
 
-不要直接使用 `flutter run -d chrome --web-port 0`，因為它會改變瀏覽器的 origin，關閉後可能讀不到先前資料。
+也可以直接使用 [開啟網頁指令.txt](開啟網頁指令.txt) 內的 Web 指令。API 網址也能透過 `--dart-define` 覆寫：
 
-4. （可選）檢查程式品質
-
-```bash
-flutter analyze
-flutter test
+```powershell
+flutter run -d chrome --dart-define=API_BASE_URL=https://example.com
 ```
+
+預設 API 網址目前是 `https://sandbar-badass-subfloor.ngrok-free.dev`，正式環境請使用自己的後端網址，不要依賴 ngrok 預設值。
+
+## API 整合
+
+目前前端使用的主要端點：
+
+- `/api/login`
+- `/api/users/exists`
+- `/api/me`
+- `/api/posture/history`
+- `/api/chair/status`
+- `/api/notification/history`
+- `/api/agent`
+
+`POST /api/agent` 的成功回應可包含：
+
+```json
+{
+	"posture": "left",
+	"posture_display": "身體左傾",
+	"advice": "文字建議",
+	"steps": [],
+	"recommended_exercises": [
+		{
+			"id": 5,
+			"name": "坐姿側身伸展",
+			"target_muscles": "腰側肌群、闊背肌",
+			"reps": "左右各維持 20 秒",
+			"duration_sec": 40,
+			"youtube_url": "https://www.youtube.com/watch?v=example",
+			"youtube_title": "伸展影片",
+			"description": "動作說明"
+		}
+	]
+}
+```
+
+`advice` 與 `recommended_exercises` 是獨立資料。即使文字建議為空，只要陣列有內容，前端仍會顯示影片卡片；前端最多渲染 3 筆。
 
 ## 專案結構
 
 ```text
 lib/
 	main.dart
+	models/
+		wellness_models.dart
+	services/
+		api_service.dart
+	state/
+		chair_sync_controller.dart
+		wellness_controller.dart
 	screens/
-		dashboard.dart
 		home_page.dart
+		dashboard.dart
+		ai_advice_page.dart
+		health_garden_page.dart
 		notification.dart
-		report.dart
 		setting.dart
+		auth_page.dart
+test/
+	widget_test.dart
+	wellness_controller_test.dart
 ```
 
-## 版本控制流程（建議）
+主要資料流程：
 
-```bash
-git checkout -b feature/your-feature-name
-git add .
-git commit -m "feat: add your feature"
-git push -u origin feature/your-feature-name
+```text
+姿勢同步
+	-> ChairSyncController
+	-> AI Advice Page / Dashboard
+	-> 接受伸展建議
+	-> WellnessController
+	-> 完成任務與身體回饋
+	-> 健康花園、報表、通知與設定
 ```
 
-## 後續可擴充方向
+## 品質檢查
 
-- 串接感測器或後端 API（座椅壓力、姿勢、使用時長）
-- 新增登入與使用者權限管理
-- 導入推播服務（例如 FCM）
-- 增加圖表互動與資料篩選能力
+```powershell
+flutter analyze
+flutter test
+```
+
+健康花園目前以 `SharedPreferences` 保存本地資料；若要進行跨裝置研究或正式上線，應再將介入接受、完成時間、姿勢前後分數與主觀回饋同步到後端。研究定位、資料欄位與比較實驗指標請參考 [AI_HEALTH_INTERVENTION_RESEARCH.md](AI_HEALTH_INTERVENTION_RESEARCH.md)。
 
 ## 授權
 
-目前尚未指定授權條款。若要開源，建議加入 `MIT` 或 `Apache-2.0` 授權檔案。
+目前尚未指定授權條款。
 
-<!-- 桌面版啟動相關說明已移除（桌寵功能已刪除） -->
