@@ -20,14 +20,20 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-# 快速開發設定（不適用於正式環境）
-# 正式部署前請參閱：https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
+# 安全設定：DEBUG 與 SECRET_KEY 都從 .env 讀取，不寫死在程式碼裡（repo 是公開的）。
+# DEBUG 預設關閉；開著的話任何錯誤頁都會對外顯示完整路由表、程式路徑與部分設定值。
+# 本機開發要看詳細錯誤頁，在本機 .env 設 DJANGO_DEBUG=true。
+DEBUG = os.getenv('DJANGO_DEBUG', 'false').lower() == 'true'
 
-# 安全警告：請勿將 SECRET_KEY 洩漏至版本控制或公開環境！
-SECRET_KEY = 'django-insecure-w%*nn(%0v5!&b3r9*q_7s$g!*hznocoz9%in21lp66a%0u_)v)'
-
-# 安全警告：正式環境請將 DEBUG 設為 False！
-DEBUG = True
+# 舊金鑰從初始提交起就寫死在公開 repo 裡，已作廢。產生新金鑰：
+#   python -c "import secrets; print(secrets.token_urlsafe(50))"
+# 本機開發（DEBUG=true）沒設定時用一把開發專用的假金鑰；正式環境沒設定直接報錯，不默默用弱金鑰啟動。
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', '')
+if not SECRET_KEY:
+    if not DEBUG:
+        from django.core.exceptions import ImproperlyConfigured
+        raise ImproperlyConfigured('未設定 DJANGO_SECRET_KEY，請在 .env 加上（產生方式見 settings.py 註解）')
+    SECRET_KEY = 'django-insecure-local-dev-only'
 
 ALLOWED_HOSTS = ['*']  # 開發階段允許所有 host，部署前需改為實際 IP 或域名
 

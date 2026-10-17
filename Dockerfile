@@ -18,7 +18,8 @@ ENV PYTHONUNBUFFERED=1
 COPY . .
 
 # 收集 admin／DRF 的靜態檔供 WhiteNoise 提供（Gunicorn 本身不處理靜態檔）
-RUN python manage.py collectstatic --noinput
+# build 階段沒有 .env，settings.py 沒有 SECRET_KEY 會拒絕啟動；collectstatic 只複製檔案、不簽章，給一把佔位值即可
+RUN DJANGO_SECRET_KEY=build-only-placeholder python manage.py collectstatic --noinput
 
 EXPOSE 8000 8010
 
