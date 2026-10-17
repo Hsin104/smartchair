@@ -378,7 +378,7 @@ def health(request):
     GET /api/health — 健康檢查端點，供 Docker HEALTHCHECK／監控用，不需要登入。
 
     只驗證資料庫連線是否正常；MQTT／MCP Server 是獨立服務，各自有自己的健康檢查方式
-    （mqtt-subscriber 用心跳檔案，mcp 用 TCP 連線檢查，見 docker-compose.yml）。
+    （mqtt-subscriber 用心跳檔案，mcp 用 HTTP 檢查，見 healthcheck.py）。
     """
     from django.db import connection
     try:

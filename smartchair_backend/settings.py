@@ -37,6 +37,13 @@ if not SECRET_KEY:
 
 ALLOWED_HOSTS = ['*']  # 開發階段允許所有 host，部署前需改為實際 IP 或域名
 
+# ngrok 對外是 https、轉進 Django 時是 http，admin 登入表單的 Origin（https://…）與 Django 認定的
+# 網址（http://…）對不上，CSRF 檢查會直接 403。列在這裡的來源才放行；App 走 Token 驗證不受影響。
+# 多個來源用逗號分隔，ngrok 網域變更時改 .env 的 CSRF_TRUSTED_ORIGINS 即可。
+CSRF_TRUSTED_ORIGINS = os.getenv(
+    'CSRF_TRUSTED_ORIGINS', 'https://sandbar-badass-subfloor.ngrok-free.dev'
+).split(',')
+
 
 # 已安裝的應用程式
 
