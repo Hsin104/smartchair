@@ -648,7 +648,8 @@ def agent_advice(request):
         return Response({'schema_error': error}, status=status.HTTP_400_BAD_REQUEST)
 
     posture      = request.data.get('posture', '')
-    user_message = request.data.get('user_message', '')
+    # 選填欄位：沒帶、空字串、null、只有空白都視同沒填，不把空白當成症狀描述交給 Agent
+    user_message = (request.data.get('user_message') or '').strip()
 
     try:
         advice, steps = get_advice(posture, request.user.id, user_message)

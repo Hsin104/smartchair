@@ -137,14 +137,15 @@ AVATAR_SCHEMA = {
 AGENT_SCHEMA = {
     "type": "object",
     # posture 必填：一定要結合偵測到的坐姿，不接受純症狀描述、不綁定坐姿的用法。
-    # user_message 選填，用來補充症狀描述。
+    # user_message 選填，用來補充症狀描述。前端輸入框沒填時常會送空字串或 null，
+    # 這兩種都要接受（views.agent_advice 會視同沒填），不能因為格式檢查變相成為必填。
     "required": ["posture"],
     "properties": {
         "posture": {
             "type": "string",
             "enum": ["normal", "left", "right", "forward", "recline", "sedentary"],
         },
-        "user_message": {"type": "string", "minLength": 1, "maxLength": 500},
+        "user_message": {"type": ["string", "null"], "maxLength": 500},
     },
     "additionalProperties": False,
 }
