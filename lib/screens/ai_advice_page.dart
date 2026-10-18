@@ -503,17 +503,22 @@ class _AiAdvicePageState extends State<AiAdvicePage> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
-                      ),
-                      child: _adviceVisible
-                          ? _buildAdviceText(_advice)
-                          : Text(
+                    _adviceVisible
+                        ? Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF8FAFC),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: const Color(0xFFE2E8F0),
+                              ),
+                            ),
+                            child: _buildAdviceText(_advice),
+                          )
+                        : Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: Text(
                               _advice,
                               style: const TextStyle(
                                 fontSize: 14,
@@ -521,7 +526,7 @@ class _AiAdvicePageState extends State<AiAdvicePage> {
                                 color: Color(0xFF334155),
                               ),
                             ),
-                    ),
+                          ),
                     const SizedBox(height: 16),
                     _buildExerciseCards(),
                     const SizedBox(height: 16),

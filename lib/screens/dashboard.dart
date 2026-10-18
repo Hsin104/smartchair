@@ -457,23 +457,11 @@ class _DashboardPageState extends State<DashboardPage> {
   Widget _buildReportSnapshot() {
     final history = widget.controller.postureHistory;
     final total = history.length;
-    final averageScore = total == 0
-        ? 0
-        : (history
-                      .map((item) => item['score'] as int)
-                      .reduce((left, right) => left + right) /
-                  total)
-              .round();
     final postureCounts = <String, int>{};
     for (final item in history) {
       final label = item['label'] as String;
       postureCounts[label] = (postureCounts[label] ?? 0) + 1;
     }
-    final topPosture = postureCounts.entries.isEmpty
-        ? '尚無資料'
-        : postureCounts.entries
-              .reduce((left, right) => left.value >= right.value ? left : right)
-              .key;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -485,45 +473,6 @@ class _DashboardPageState extends State<DashboardPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              const Expanded(
-                child: Text(
-                  '報表總覽',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFF0F172A),
-                  ),
-                ),
-              ),
-              Text(
-                total == 0 ? '等待資料' : '$total 筆紀錄',
-                style: const TextStyle(
-                  color: Color(0xFF64748B),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              _ReportMetric(
-                label: '平均分數',
-                value: '$averageScore',
-                color: const Color(0xFF0F766E),
-              ),
-              const SizedBox(width: 10),
-              _ReportMetric(
-                label: '主要狀態',
-                value: topPosture,
-                color: const Color(0xFF7C3AED),
-              ),
-            ],
-          ),
-          const SizedBox(height: 18),
           const Text(
             '今日坐姿分布',
             style: TextStyle(
@@ -890,58 +839,6 @@ class _OverviewTile extends StatelessWidget {
                 color: Color(0xFF334155),
                 fontSize: 12,
                 height: 1.35,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ReportMetric extends StatelessWidget {
-  const _ReportMetric({
-    required this.label,
-    required this.value,
-    required this.color,
-  });
-
-  final String label;
-  final String value;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        constraints: const BoxConstraints(minHeight: 70),
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: color,
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              value,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Color(0xFF0F172A),
-                fontSize: 16,
-                fontWeight: FontWeight.w900,
               ),
             ),
           ],
