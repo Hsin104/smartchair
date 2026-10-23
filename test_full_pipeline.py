@@ -28,7 +28,14 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 
 from api.models import PostureRecord, Notification, MotorLog, ChairSession
+from api.management.commands import mqtt_subscriber
 from api.management.commands.mqtt_subscriber import _handle_pressure_01, STABLE_READINGS, _posture_state
+
+# 攔截馬達指令：_handle_pressure_01 確認壞坐姿時會呼叫 publish_motor_command，
+# 原本會照 .env 的 MQTT 設定真的送到雲端 broker，讓正在使用中的真實椅子震動。
+# 測試只記錄「本來要送出的指令」供比對，絕不連線任何 broker。
+_published_motor_commands = []
+mqtt_subscriber.publish_motor_command = lambda motors, **kwargs: _published_motor_commands.append(list(motors))
 from api.views import _check_sedentary, POSTURE_DISPLAY
 from api.motor_constants import MOTOR_MAP
 
@@ -136,6 +143,10 @@ def main():
         if posture != 'normal':
             after_count = Notification.objects.filter(user=user).count()
             check(f'{posture:8s} 觸發通知（Notification）', after_count > before_count)
+            sent = _published_motor_commands[-1] if _published_motor_commands else None
+            check(f'{posture:8s} 發出對應馬達指令（已攔截，未實際送出）',
+                  sent == MOTOR_MAP.get(record.posture if record else posture, []), f'{sent}')
+        _published_motor_commands.clear()
 
     # ── 第二段：久坐邏輯（不良坐姿之外的時間判斷，模擬時間流逝）────────────
     print('\n[第二段] 久坐未動（sedentary）時間邏輯測試（模擬 6 分鐘前離座）')
