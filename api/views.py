@@ -18,7 +18,7 @@ from rest_framework.authtoken.models import Token
 
 from .models import (
     User, PostureRecord, AgentLog, Notification, ChairSession, MotorLog,
-    PasswordResetCode,
+    PasswordResetCode, AgentJob,
 )
 from .serializers import (
     RegisterSerializer, UserSerializer, PostureRecordSerializer
@@ -33,39 +33,8 @@ from .physio_agent import get_advice, POSTURE_DISPLAY
 from .mqtt_publisher import publish_motor_command
 from .motor_constants import MOTOR_MAP
 
-# ── 伸展計劃資料（lazy load） ──────────────────────────────────────────────────
-
-_STRETCH_MAP = None
-
-def _get_stretch_map():
-    global _STRETCH_MAP
-    if _STRETCH_MAP is None:
-        map_path = Path(__file__).resolve().parent.parent / 'knowledge_base' / 'stretch_video_map.json'
-        with open(map_path, encoding='utf-8') as f:
-            _STRETCH_MAP = json.load(f)
-    return _STRETCH_MAP
-
-
-def _recommend_exercises(posture, limit=3):
-    """依單一坐姿直接查表回傳建議伸展動作（含 YouTube 連結），不經過 LLM。"""
-    stretch_map     = _get_stretch_map()
-    exercises_by_id = {ex['id']: ex for ex in stretch_map['exercises']}
-    ex_ids          = stretch_map['posture_exercise_map'].get(posture, [])
-
-    return [
-        {
-            'id':             ex['id'],
-            'name':           ex['name'],
-            'target_muscles': ex['target_muscles'],
-            'reps':           ex['reps'],
-            'duration_sec':   ex['duration_sec'],
-            'youtube_url':    ex['youtube_url'],
-            'youtube_title':  ex['youtube_title'],
-            'description':    ex['description'],
-        }
-        for ex_id in ex_ids[:limit]
-        if (ex := exercises_by_id.get(ex_id))
-    ]
+# 伸展動作查表（不經過 LLM），實作在 api/stretch.py
+from .stretch import get_stretch_map as _get_stretch_map, recommend_exercises as _recommend_exercises
 
 # ── 模型路徑 ──────────────────────────────────────────────────────────────────
 
@@ -630,6 +599,9 @@ def agent_advice(request):
     """
     POST /api/agent — 查詢 Physio Agent 建議，posture 必填，user_message 選填。
 
+    【舊版同步介面，保留給尚未改版的 App】整個請求要等 OpenAI 回應（6～25 秒）才結束，
+    期間佔住一條網頁伺服器執行緒。新流程請改用非同步任務：POST /api/agent/jobs → GET /api/agent/jobs/<id>。
+
     payload: { "posture": "left", "user_message": "我肩膀很痠" }  ← user_message 可省略
     回傳:    { "posture": "left", "posture_display": "身體左傾", "advice": "...",
                "steps": [{ "step": 1, "thought": "...", "action": "search_knowledge_base",
@@ -674,6 +646,62 @@ def agent_advice(request):
         'steps':                 steps,
         'recommended_exercises': _recommend_exercises(posture),
     })
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def agent_job_create(request):
+    """
+    POST /api/agent/jobs — 送出 Physio Agent 非同步任務，立刻回 202 與任務編號。
+
+    payload 與 POST /api/agent 相同：{ "posture": "left", "user_message": "" }（user_message 選填）
+    回傳:    { "job_id": "...", "status": "queued", "poll_url": "/api/agent/jobs/<job_id>" }
+
+    這支 API 只把請求存成一筆任務，不等 OpenAI，所以回應時間是毫秒等級；
+    實際由 agent_worker 以 async/await 同時處理多筆任務，App 之後用 poll_url 查詢結果。
+    """
+    error = validate_request(request.data, AGENT_SCHEMA)
+    if error:
+        return Response({'schema_error': error}, status=status.HTTP_400_BAD_REQUEST)
+
+    job = AgentJob.objects.create(
+        user=request.user,
+        posture=request.data.get('posture', ''),
+        user_message=(request.data.get('user_message') or '').strip(),
+    )
+    return Response({
+        'job_id':   str(job.id),
+        'status':   job.status,
+        'poll_url': f'/api/agent/jobs/{job.id}',
+    }, status=status.HTTP_202_ACCEPTED)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def agent_job_detail(request, job_id):
+    """
+    GET /api/agent/jobs/<job_id> — 查詢 Physio Agent 任務狀態與結果（只能查自己的任務）。
+
+    status：queued（排隊中）／running（處理中）／done（完成）／failed（失敗）
+    done   時另外帶 posture、posture_display、advice、steps、recommended_exercises（與 POST /api/agent 相同）
+    failed 時另外帶 error（中文失敗原因，例如 OpenAI 逾時）
+    """
+    job = AgentJob.objects.filter(id=job_id, user=request.user).first()
+    if job is None:
+        return Response({'error': '找不到此任務'}, status=status.HTTP_404_NOT_FOUND)
+
+    data = {
+        'job_id':      str(job.id),
+        'status':      job.status,
+        'created_at':  job.created_at,
+        'started_at':  job.started_at,
+        'finished_at': job.finished_at,
+    }
+    if job.status == AgentJob.STATUS_DONE and job.result:
+        data.update(job.result)
+    elif job.status == AgentJob.STATUS_FAILED:
+        data['error'] = job.error
+    return Response(data)
 
 
 @api_view(['GET'])

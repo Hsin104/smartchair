@@ -210,13 +210,9 @@ def _validate_response(response: str) -> str:
 
 # ── 對外介面 ───────────────────────────────────────────────────────────────────
 
-def get_advice(posture: str = '', user_id: int = 0, user_message: str = '') -> tuple[str, list]:
+def _build_question(posture: str, user_id: int, user_message: str) -> str:
     """
-    回傳 (advice, steps)：
-        advice — 最終回覆文字（已通過防幻覺驗證）
-        steps  — ReAct 迴圈逐步紀錄（Thought/Action/Observation），供 AgentLog.steps 落地保存
-
-    posture、user_message 至少會有一個非空（由 AGENT_SCHEMA 保證），三種組合對應不同開場問法：
+    posture、user_message 至少會有一個非空，三種組合對應不同開場問法：
         只有 posture         → 針對偵測到的坐姿分析
         posture + user_message → 針對偵測到的坐姿 + 使用者補充症狀
         只有 user_message     → 不綁定特定坐姿，純粹依症狀描述回答（Step 1 仍會查詢近期坐姿紀錄輔助判斷）
@@ -242,15 +238,41 @@ def get_advice(posture: str = '', user_id: int = 0, user_message: str = '') -> t
             f'偵測坐姿：「{posture_name}」\n'
             f'請查詢外部知識庫後分析坐姿問題並提供改善建議。'
         )
+    return question
+
+
+def get_advice(posture: str = '', user_id: int = 0, user_message: str = '') -> tuple[str, list]:
+    """
+    同步版本，給舊的 POST /api/agent 與每週報告（weekly_advice）使用，內部直接跑非同步版本。
+    新的 App 流程請走非同步任務（POST /api/agent/jobs → agent_worker 處理），不佔用網頁伺服器執行緒。
+    """
+    return asyncio.run(get_advice_async(posture, user_id, user_message))
+
+
+async def get_advice_async(posture: str = '', user_id: int = 0, user_message: str = '') -> tuple[str, list]:
+    """
+    回傳 (advice, steps)：
+        advice — 最終回覆文字（已通過防幻覺驗證）
+        steps  — ReAct 迴圈逐步紀錄（Thought/Action/Observation），供 AgentLog.steps 落地保存
+
+    整段以 asyncio.wait_for 包住：OpenAI／MCP 沒回應時最多等 _LLM_TIMEOUT_SECONDS 秒就放棄，
+    不會讓呼叫端無限期等待。
+    """
+    fake_latency = getattr(settings, 'AGENT_FAKE_LATENCY_SECONDS', 0)
+    if fake_latency:
+        # 僅供壓力測試：模擬 OpenAI 回應時間，不真的呼叫 OpenAI，避免 1000 次測試請求產生費用
+        logger.warning(f'[PhysioAgent] 壓測模式：模擬 {fake_latency} 秒延遲，未呼叫 OpenAI')
+        await asyncio.sleep(fake_latency)
+        return f'（壓測模式模擬回覆：{POSTURE_DISPLAY.get(posture, posture)}）', []
+
+    question = _build_question(posture, user_id, user_message)
 
     api_key = settings.OPENAI_API_KEY
     if not api_key:
         raise ValueError('未設定 OPENAI_API_KEY，請確認 .env 檔案')
 
     try:
-        output, steps = asyncio.run(
-            asyncio.wait_for(_run_react(question, api_key), timeout=_LLM_TIMEOUT_SECONDS)
-        )
+        output, steps = await asyncio.wait_for(_run_react(question, api_key), timeout=_LLM_TIMEOUT_SECONDS)
         return _validate_response(output.strip()), steps
     except asyncio.TimeoutError as e:
         logger.error(f'[PhysioAgent] OpenAI 請求逾時（{_LLM_TIMEOUT_SECONDS}秒）')

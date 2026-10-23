@@ -22,6 +22,8 @@ urlpatterns = [
 
     # Physio Agent
     path('agent',                views.agent_advice, name='agent-advice'),
+    path('agent/jobs',           views.agent_job_create, name='agent-job-create'),
+    path('agent/jobs/<uuid:job_id>', views.agent_job_detail, name='agent-job-detail'),
     path('agent/stretch-plan',   views.stretch_plan, name='stretch-plan'),
 
     # 馬達觸發

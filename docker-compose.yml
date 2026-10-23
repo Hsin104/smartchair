@@ -68,6 +68,28 @@ services:
       retries: 3
       start_period: 30s
 
+  # Physio Agent 非同步任務處理：App 透過 POST /api/agent/jobs 送出的任務在這裡以 async/await 處理，
+  # 不佔用 django（Gunicorn）的執行緒。負載高時可直接多開：docker compose up -d --scale agent-worker=3
+  agent-worker:
+    build: .
+    init: true
+    restart: unless-stopped
+    depends_on:
+      - db
+      - mcp
+    env_file: .env
+    environment:
+      DB_HOST: db
+      DB_CONN_MAX_AGE: 60
+      MCP_SERVER_HOST: mcp
+    command: python manage.py agent_worker
+    healthcheck:
+      test: ["CMD", "python", "healthcheck.py", "agent"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
   mcp:
     build: .
     # tini 當 PID 1：healthcheck.py 連續失敗時才能 SIGKILL 卡住的主程式，讓 restart policy 重啟容器

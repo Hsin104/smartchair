@@ -9,13 +9,17 @@
     # 對照兩次結果
     python load_test.py --compare loadtest_runserver.json loadtest_gunicorn.json
 
+    # 延遲測試：每個端點循序（單一連線）打固定 100 次，量單次請求的延遲分布
+    python load_test.py --fixed 100 --label latency --out loadtest_latency.json
+
 測試端點（刻意不測 /api/agent：每次呼叫都會花 OpenAI 費用，且瓶頸在外部 LLM，不在 server）：
     health   GET  /api/health           — 最輕量，只驗證 DB 連線，量 server 本身的上限
     history  GET  /api/posture/history  — Token 驗證＋DB 查詢＋序列化，代表前端一般查詢
     posture  POST /api/posture          — schema 驗證＋TensorFlow 推論＋DB 寫入，最重的真實請求
 
 每個「端點 × 併發數」組合是封閉迴圈測試：N 個 thread 在 duration 秒內不斷送請求，
-一個回來才送下一個，統計成功 QPS、延遲 p50/p95/p99、錯誤率。
+一個回來才送下一個。統計值：請求次數、成功 QPS、延遲平均／標準差／最小／最大／p50／p95／p99、
+錯誤率（依 HTTP 狀態碼／連線例外分類）、請求與回應封包大小（HTTP body 位元組數）。
 
 注意：posture 會把紀錄寫進「目前 active ChairSession 的使用者」名下（見 views.posture_create），
 所以有人正在使用椅子時腳本會直接中止，避免壓測資料污染真實使用者紀錄。
@@ -71,28 +75,36 @@ def build_request(endpoint, base, token):
     raise ValueError(endpoint)
 
 
-def run_case(send, concurrency, duration):
+def run_case(send, concurrency, duration=None, count=None):
+    """duration：封閉迴圈跑滿這麼多秒；count：每個 thread 剛好送這麼多次（延遲測試用）。"""
     latencies, errors = [], Counter()
+    req_bytes, resp_bytes = [], []
     lock = threading.Lock()
-    deadline = time.perf_counter() + duration
+    deadline = time.perf_counter() + duration if duration else None
 
     def worker():
         s = requests.Session()
-        local_lat, local_err = [], Counter()
-        while time.perf_counter() < deadline:
+        local_lat, local_err, local_req, local_resp = [], Counter(), [], []
+        sent = 0
+        while (deadline and time.perf_counter() < deadline) or (count and sent < count):
+            sent += 1
             t0 = time.perf_counter()
             try:
-                code = send(s).status_code
-                err = f'HTTP {code}' if code >= 400 else None
+                r = send(s)
+                err = f'HTTP {r.status_code}' if r.status_code >= 400 else None
             except requests.RequestException as e:
                 err = type(e).__name__
             if err:
                 local_err[err] += 1
             else:
                 local_lat.append(time.perf_counter() - t0)
+                local_req.append(len(r.request.body or b''))
+                local_resp.append(len(r.content))
         with lock:
             latencies.extend(local_lat)
             errors.update(local_err)
+            req_bytes.extend(local_req)
+            resp_bytes.extend(local_resp)
 
     threads = [threading.Thread(target=worker) for _ in range(concurrency)]
     t_start = time.perf_counter()
@@ -104,31 +116,46 @@ def run_case(send, concurrency, duration):
 
     n_err = sum(errors.values())
     total = len(latencies) + n_err
-    if latencies:
+    nan = float('nan')
+    if len(latencies) >= 2:
         q = statistics.quantiles(latencies, n=100)
         p50, p95, p99 = q[49], q[94], q[98]
+        mean, std = statistics.mean(latencies), statistics.stdev(latencies)
+        lo, hi = min(latencies), max(latencies)
     else:
-        p50 = p95 = p99 = float('nan')
+        p50 = p95 = p99 = mean = std = lo = hi = nan
+
+    def ms(v):
+        return round(v * 1000, 1)
+
     return {
-        'concurrency': concurrency,
-        'requests':    total,
-        'ok':          len(latencies),
-        'qps':         round(len(latencies) / elapsed, 1),
-        'p50_ms':      round(p50 * 1000, 1),
-        'p95_ms':      round(p95 * 1000, 1),
-        'p99_ms':      round(p99 * 1000, 1),
-        'error_rate':  round(n_err / total * 100, 2) if total else 0.0,
-        'errors':      dict(errors),
+        'concurrency':    concurrency,
+        'requests':       total,
+        'ok':             len(latencies),
+        'qps':            round(len(latencies) / elapsed, 1),
+        'mean_ms':        ms(mean),
+        'std_ms':         ms(std),
+        'min_ms':         ms(lo),
+        'max_ms':         ms(hi),
+        'p50_ms':         ms(p50),
+        'p95_ms':         ms(p95),
+        'p99_ms':         ms(p99),
+        'req_bytes_avg':  round(statistics.mean(req_bytes)) if req_bytes else 0,
+        'resp_bytes_avg': round(statistics.mean(resp_bytes)) if resp_bytes else 0,
+        'error_rate':     round(n_err / total * 100, 2) if total else 0.0,
+        'errors':         dict(errors),
     }
 
 
 def print_table(label, results):
     print(f'\n=== {label} ===')
-    print(f'{"endpoint":<9}{"conc":>6}{"QPS":>9}{"p50(ms)":>10}{"p95(ms)":>10}{"p99(ms)":>10}{"err%":>8}')
+    print(f'{"endpoint":<9}{"conc":>5}{"n":>7}{"QPS":>8}{"mean":>8}{"std":>8}{"min":>8}{"max":>8}'
+          f'{"p95":>8}{"req B":>7}{"resp B":>8}{"err%":>7}   （延遲單位 ms，封包單位 bytes）')
     for ep, rows in results.items():
         for r in rows:
-            print(f'{ep:<9}{r["concurrency"]:>6}{r["qps"]:>9}{r["p50_ms"]:>10}'
-                  f'{r["p95_ms"]:>10}{r["p99_ms"]:>10}{r["error_rate"]:>8}')
+            print(f'{ep:<9}{r["concurrency"]:>5}{r["requests"]:>7}{r["qps"]:>8}{r["mean_ms"]:>8}'
+                  f'{r["std_ms"]:>8}{r["min_ms"]:>8}{r["max_ms"]:>8}{r["p95_ms"]:>8}'
+                  f'{r["req_bytes_avg"]:>7}{r["resp_bytes_avg"]:>8}{r["error_rate"]:>7}')
 
 
 def compare(path_a, path_b):
@@ -150,9 +177,12 @@ def compare(path_a, path_b):
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument('--base-url', default='http://localhost:8000')
-    p.add_argument('--endpoints', default='health,history,posture')
+    p.add_argument('--endpoints', default='health,posture,history',
+                   help='依序測試；posture 排在 history 前面，history 才有資料可查')
     p.add_argument('--concurrency', default='1,10,30,50')
     p.add_argument('--duration', type=float, default=15, help='每個組合的測試秒數')
+    p.add_argument('--fixed', type=int, metavar='N',
+                   help='延遲測試：單一連線、每個端點循序送剛好 N 次（忽略 --concurrency／--duration）')
     p.add_argument('--label', default='run')
     p.add_argument('--out')
     p.add_argument('--compare', nargs=2, metavar=('BEFORE', 'AFTER'))
@@ -169,22 +199,24 @@ def main():
                  f'請先 checkout 再測。')
 
     token = get_token(base)
-    levels = [int(c) for c in args.concurrency.split(',')]
+    levels = [1] if args.fixed else [int(c) for c in args.concurrency.split(',')]
     results = {}
     for ep in args.endpoints.split(','):
         send = build_request(ep, base, token)
         send(requests.Session())  # 暖機（第一次請求可能觸發 lazy import／模型載入）
         results[ep] = []
         for c in levels:
-            r = run_case(send, c, args.duration)
+            r = run_case(send, c, count=args.fixed) if args.fixed else run_case(send, c, duration=args.duration)
             results[ep].append(r)
-            print(f'  {ep} c={c}: {r["qps"]} QPS, p95 {r["p95_ms"]} ms, err {r["error_rate"]}%'
+            print(f'  {ep} c={c} n={r["requests"]}: {r["qps"]} QPS, mean {r["mean_ms"]}±{r["std_ms"]} ms, '
+                  f'p95 {r["p95_ms"]} ms, err {r["error_rate"]}%'
                   + (f' {r["errors"]}' if r['errors'] else ''), flush=True)
 
     print_table(args.label, results)
     if args.out:
         with open(args.out, 'w', encoding='utf-8') as f:
-            json.dump({'label': args.label, 'base_url': base, 'duration': args.duration,
+            json.dump({'label': args.label, 'base_url': base,
+                       'mode': f'fixed {args.fixed}' if args.fixed else f'duration {args.duration}s',
                        'results': results}, f, ensure_ascii=False, indent=2)
         print(f'\n結果已存到 {args.out}')
 

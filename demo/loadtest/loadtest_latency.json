@@ -1,0 +1,64 @@
+{
+  "label": "Gunicorn latency (100 次循序)",
+  "base_url": "http://localhost:8000",
+  "mode": "fixed 100",
+  "results": {
+    "health": [
+      {
+        "concurrency": 1,
+        "requests": 100,
+        "ok": 100,
+        "qps": 523.0,
+        "mean_ms": 1.9,
+        "std_ms": 2.7,
+        "min_ms": 1.4,
+        "max_ms": 28.4,
+        "p50_ms": 1.6,
+        "p95_ms": 2.1,
+        "p99_ms": 28.2,
+        "req_bytes_avg": 0,
+        "resp_bytes_avg": 25,
+        "error_rate": 0.0,
+        "errors": {}
+      }
+    ],
+    "posture": [
+      {
+        "concurrency": 1,
+        "requests": 100,
+        "ok": 100,
+        "qps": 17.9,
+        "mean_ms": 56.0,
+        "std_ms": 29.4,
+        "min_ms": 11.2,
+        "max_ms": 115.1,
+        "p50_ms": 54.7,
+        "p95_ms": 104.6,
+        "p99_ms": 115.1,
+        "req_bytes_avg": 176,
+        "resp_bytes_avg": 344,
+        "error_rate": 0.0,
+        "errors": {}
+      }
+    ],
+    "history": [
+      {
+        "concurrency": 1,
+        "requests": 100,
+        "ok": 100,
+        "qps": 253.8,
+        "mean_ms": 3.9,
+        "std_ms": 0.5,
+        "min_ms": 3.4,
+        "max_ms": 7.5,
+        "p50_ms": 3.9,
+        "p95_ms": 4.6,
+        "p99_ms": 7.5,
+        "req_bytes_avg": 0,
+        "resp_bytes_avg": 6911,
+        "error_rate": 0.0,
+        "errors": {}
+      }
+    ]
+  }
+}

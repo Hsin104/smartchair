@@ -1,10 +1,11 @@
 """
-三個後端服務共用的 Docker HEALTHCHECK 腳本，偵測到服務卡死時會真的讓容器重啟。
+後端服務共用的 Docker HEALTHCHECK 腳本，偵測到服務卡死時會真的讓容器重啟。
 
 用法（docker-compose.yml 的 healthcheck.test）：
     python healthcheck.py http http://localhost:8000/api/health   # django
     python healthcheck.py http http://localhost:8010/mcp           # mcp
     python healthcheck.py mqtt                                     # mqtt-subscriber
+    python healthcheck.py agent                                    # agent-worker
 
 為什麼不能只靠 Docker 的 healthcheck＋restart policy：
   一般 Docker（非 Swarm）只會把容器標成 unhealthy，不會因此重啟；restart: unless-stopped
@@ -44,6 +45,10 @@ STARTUP_GRACE_SECONDS = 90
 HEARTBEAT_PATH = Path(tempfile.gettempdir()) / 'mqtt_heartbeat.json'
 HEARTBEAT_TIMEOUT = 120     # 遠大於 keepalive 60 秒與 reconnect_delay_set 的 max_delay=30
 
+# agent_worker.py 主迴圈每 0.5 秒更新一次；60 秒沒更新代表 event loop 卡住
+AGENT_HEARTBEAT_PATH = Path(tempfile.gettempdir()) / 'agent_worker_heartbeat.json'
+AGENT_HEARTBEAT_TIMEOUT = 60
+
 
 def check_http(url):
     """回傳 (healthy, 是否應計入重啟)。收到任何 HTTP 回應都代表 server 沒卡死。"""
@@ -59,17 +64,18 @@ def check_http(url):
         return False, True, f'無回應：{e}'
 
 
-def check_mqtt():
+def check_heartbeat(path, timeout):
     try:
-        data = json.loads(HEARTBEAT_PATH.read_text())
+        data = json.loads(path.read_text())
     except FileNotFoundError:
         return False, True, '心跳檔案尚未建立'
     except Exception as e:
         return False, True, f'讀取心跳檔案失敗：{e}'
     age = time.time() - data['ts']
-    if age > HEARTBEAT_TIMEOUT:
-        return False, True, f'心跳已 {age:.0f} 秒未更新（上限 {HEARTBEAT_TIMEOUT} 秒）'
-    return True, False, f'心跳 {age:.0f} 秒前更新，connected={data.get("connected")}'
+    if age > timeout:
+        return False, True, f'心跳已 {age:.0f} 秒未更新（上限 {timeout} 秒）'
+    extra = {k: v for k, v in data.items() if k != 'ts'}
+    return True, False, f'心跳 {age:.0f} 秒前更新 {extra}'
 
 
 def _read_fail_count():
@@ -108,9 +114,11 @@ def main():
     if mode == 'http' and len(sys.argv) > 2:
         healthy, count_failure, detail = check_http(sys.argv[2])
     elif mode == 'mqtt':
-        healthy, count_failure, detail = check_mqtt()
+        healthy, count_failure, detail = check_heartbeat(HEARTBEAT_PATH, HEARTBEAT_TIMEOUT)
+    elif mode == 'agent':
+        healthy, count_failure, detail = check_heartbeat(AGENT_HEARTBEAT_PATH, AGENT_HEARTBEAT_TIMEOUT)
     else:
-        print('用法：healthcheck.py http <url> | healthcheck.py mqtt')
+        print('用法：healthcheck.py http <url> | healthcheck.py mqtt | healthcheck.py agent')
         sys.exit(2)
 
     if healthy:

@@ -1,3 +1,5 @@
+import uuid
+
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
@@ -143,3 +145,50 @@ class MotorLog(models.Model):
 
     def __str__(self):
         return f'{self.user.username} — {self.posture} — {",".join(self.motors)}'
+
+
+class AgentJob(models.Model):
+    """
+    Physio Agent 非同步任務。
+
+    App 呼叫 POST /api/agent/jobs 只建立一筆 queued 任務就立刻回應（202），
+    由獨立的 agent_worker（python manage.py agent_worker）以 async/await 同時處理多筆，
+    App 再用 GET /api/agent/jobs/<id> 查詢結果。OpenAI 回應再慢也不會佔住網頁伺服器的執行緒。
+    """
+
+    STATUS_QUEUED  = 'queued'
+    STATUS_RUNNING = 'running'
+    STATUS_DONE    = 'done'
+    STATUS_FAILED  = 'failed'
+    STATUS_CHOICES = [
+        (STATUS_QUEUED,  '排隊中'),
+        (STATUS_RUNNING, '處理中'),
+        (STATUS_DONE,    '完成'),
+        (STATUS_FAILED,  '失敗'),
+    ]
+
+    id           = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user         = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='agent_jobs', verbose_name='使用者'
+    )
+    posture      = models.CharField(max_length=20, verbose_name='坐姿')
+    user_message = models.TextField(blank=True, verbose_name='使用者補充描述')
+    status       = models.CharField(
+        max_length=10, choices=STATUS_CHOICES, default=STATUS_QUEUED, verbose_name='狀態'
+    )
+    # 完成時的完整回應（posture、posture_display、advice、steps、recommended_exercises），
+    # 格式與舊的同步 POST /api/agent 相同，App 不用改解析邏輯
+    result       = models.JSONField(null=True, blank=True, verbose_name='結果')
+    error        = models.TextField(blank=True, verbose_name='失敗原因')
+    created_at   = models.DateTimeField(auto_now_add=True, verbose_name='建立時間')
+    started_at   = models.DateTimeField(null=True, blank=True, verbose_name='開始處理時間')
+    finished_at  = models.DateTimeField(null=True, blank=True, verbose_name='完成時間')
+
+    class Meta:
+        ordering = ['created_at']
+        verbose_name = 'Agent 非同步任務'
+        # worker 每次輪詢都查「狀態 = queued、依建立時間排序」，加複合索引避免任務累積後全表掃描
+        indexes = [models.Index(fields=['status', 'created_at'])]
+
+    def __str__(self):
+        return f'{self.user.username} — {self.posture} — {self.get_status_display()}'

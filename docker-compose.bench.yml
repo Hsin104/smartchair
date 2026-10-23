@@ -1,0 +1,10 @@
+# 僅供 benchmark_agent.py 壓力測試使用：Physio Agent 不呼叫 OpenAI，改成固定等待 10 秒。
+# 測完務必用一般指令重新啟動，回到正式設定：docker compose up -d django agent-worker
+services:
+  django:
+    environment:
+      AGENT_FAKE_LATENCY_SECONDS: 10
+  agent-worker:
+    environment:
+      AGENT_FAKE_LATENCY_SECONDS: 10
+      AGENT_WORKER_CONCURRENCY: 1000

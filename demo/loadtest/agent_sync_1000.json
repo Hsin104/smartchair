@@ -1,0 +1,18 @@
+{
+  "mode": "sync",
+  "users": 1000,
+  "completed_in_90s": 193,
+  "success_rate": 19.3,
+  "wall_time_s": 91.1,
+  "failures": {
+    "超過 90 秒未回應": 807
+  },
+  "completion_time": {
+    "n": 193,
+    "mean_s": 45.36,
+    "std_s": 23.15,
+    "min_s": 10.04,
+    "max_s": 89.91,
+    "p95_s": 80.22
+  }
+}

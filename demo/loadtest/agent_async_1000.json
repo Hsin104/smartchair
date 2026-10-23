@@ -1,0 +1,24 @@
+{
+  "mode": "async",
+  "users": 1000,
+  "completed_in_90s": 1000,
+  "success_rate": 100.0,
+  "wall_time_s": 21.9,
+  "failures": {},
+  "completion_time": {
+    "n": 1000,
+    "mean_s": 16.58,
+    "std_s": 2.17,
+    "min_s": 12.05,
+    "max_s": 20.73,
+    "p95_s": 18.83
+  },
+  "submit_time": {
+    "n": 1000,
+    "mean_ms": 542.06,
+    "std_ms": 218.23,
+    "min_ms": 13.46,
+    "max_ms": 875.09,
+    "p95_ms": 740.47
+  }
+}
