@@ -2,3 +2,7 @@
 __pycache__/
 .vscode/
 *.pyc
+
+# 密碼 / 金鑰：只留在本機，不上傳
+.env
+secrets.h

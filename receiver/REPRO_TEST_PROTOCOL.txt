@@ -1,0 +1,72 @@
+智慧椅可重現性測試規範（ESP-32S + 鈕扣型微型振動馬達）
+===========================================================
+
+目的
+----
+讓其他研究者依照本規範重做後，可得到同型態結果與可比較指標。
+
+測試環境紀錄（每次必填）
+----------------------
+1) 日期時間：
+2) 韌體版本（ESP32）：
+3) 接收端程式版本（commit 或檔案時間）：
+4) Broker / Topic：
+5) 網路環境（同網段/跨網段、Wi-Fi 強度）：
+6) 供電條件（電壓/電流來源）：
+
+測試項目與合格門檻
+------------------
+T1 ACK 成功率：
+  - 方法：執行 300 次控制命令，統計 ack_ok=1 比例
+  - 合格：>= 99%
+
+T2 STATE 成功率：
+  - 方法：同一批 300 次命令，統計 state_ok=1 比例
+  - 合格：>= 98%
+
+T3 ACK 延遲：
+  - 方法：使用 ack_latency_ms 欄位
+  - 合格：平均 <= 300ms、P95 <= 600ms
+
+T4 STATE 延遲：
+  - 方法：使用 state_latency_ms 欄位
+  - 合格：平均 <= 500ms、P95 <= 1000ms
+
+T5 參數夾限正確率（clamp）：
+  - 方法：--clamp-iterations 30（含越界輸入）
+  - 合格：100%
+
+T6 長時間穩定性（Soak）：
+  - 方法：iterations >= 1000，連續運行 >= 2 小時
+  - 合格：整體失敗率 <= 1%
+
+建議評等
+--------
+A 級：
+  ACK >= 99.5%、STATE >= 99%、ACK P95 <= 500ms、失敗率 <= 0.5%
+B 級：
+  ACK >= 99%、STATE >= 98%、ACK P95 <= 600ms、失敗率 <= 1%
+C 級：
+  ACK >= 97%、STATE >= 95%、ACK P95 <= 1000ms、失敗率 <= 2%
+
+執行指令（建議）
+--------------
+完整批次：
+  python mqtt_repro_test_runner.py --iterations 300 --clamp-iterations 30 --tls-insecure
+
+長時間穩定性：
+  python mqtt_repro_test_runner.py --iterations 1200 --clamp-iterations 0 --per-case-sleep-sec 0.1 --tls-insecure --run-label soak
+
+只測夾限：
+  python mqtt_repro_test_runner.py --clamp-only --clamp-iterations 30
+
+壓力測試（不建議當主要論文指標）：
+  python mqtt_repro_test_runner.py --iterations 300 --clamp-iterations 0 --pacing-mode fixed --per-case-sleep-sec 0.05 --ack-retries 0 --tls-insecure --run-label stress
+
+論文建議引用欄位
+--------------
+1) ACK 成功率：summary.json -> ack_success_rate_pct
+2) STATE 成功率：summary.json -> state_success_rate_pct
+3) ACK 延遲平均/P95：summary.json -> ack_latency_avg_ms / ack_latency_p95_ms
+4) STATE 延遲平均/P95：summary.json -> state_latency_avg_ms / state_latency_p95_ms
+5) 逐筆證據：runs.csv

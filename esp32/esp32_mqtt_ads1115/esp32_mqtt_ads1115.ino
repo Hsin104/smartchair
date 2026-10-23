@@ -3,24 +3,19 @@
 #include <PubSubClient.h>
 #include <Wire.h>
 #include <Adafruit_ADS1X15.h>
+#include <ArduinoOTA.h>
+#include "secrets.h"
 
-const char* WIFI_SSID = "xiao";
-const char* WIFI_PASSWORD = "1234567890";
-
-const char* MQTT_BROKER = "d8806e09.ala.eu-central-1.emqxsl.com";  // EMQX Cloud
-const int   MQTT_PORT   = 8883;  // TLS
 const char* MQTT_TOPIC_SENSOR = "chair/pressure/01";
 const char* MQTT_TOPIC_VIB_CMD = "chair/vibration/01/cmd";
 const char* MQTT_TOPIC_VIB_ACK = "chair/vibration/01/ack";
 const char* MQTT_TOPIC_VIB_STATE = "chair/vibration/01/state";
 const char* MQTT_TOPIC_VIB_STATUS = "chair/vibration/01/status";
-const char* MQTT_CLIENT_ID = "esp32-chair-01";
-const char* MQTT_USER   = "xiao";
-const char* MQTT_PASS   = "zxzcindy1";
 
-// 💡 定義外接指示燈腳位在 D2 (GPIO 2)
+// 💡 定義外接指示燈腳位在 D2 (GPIO 2)123
 const int DETECT_LED_PIN = 2; 
 
+const int SENSOR_COUNT = 11;
 const int MOTOR_COUNT = 4;
 const int MOTOR_PINS[MOTOR_COUNT] = {14, 27, 26, 25};  // D14, D27, D26, D25
 const int MOTOR_PWM_CHANNELS[MOTOR_COUNT] = {0, 1, 2, 3};
@@ -37,14 +32,39 @@ const int SENSOR_SIGNAL_THRESHOLD_RAW = 120;
 const int SENSOR_NOISE_BAND_RAW = 40;
 const unsigned long SENSOR_DETECT_WINDOW_MS = 15000;
 
+const int BATTERY_VP_PIN = 36;  // VP = GPIO36 (ADC1_CH0)
+// 分壓比 = 電池電壓 / VP 腳電壓。
+// 校正方式：用三用電表同時量「電池正極對 GND」與「VP 對 GND」，兩者相除填入。
+// 也可用電阻算：(電池到 VP 之間的電阻總和 + VP 到 GND 的電阻) / VP 到 GND 的電阻。
+// 目前接線：電池+ → 10k → 10k → VP → 10k → GND，比值 = 30k / 10k = 3.0（滿電 8.4V 時 VP ≈ 2.8V）。
+const float BATTERY_DIVIDER_RATIO = 3.0f;
+const float BATTERY_EMPTY_V = 6.0f;  // 2S Li-ion 預設低壓保護值
+const float BATTERY_FULL_V = 8.4f;  // 2S Li-ion 滿電電壓
+const float BATTERY_PRESENT_MIN_V = 3.0f;  // 換算後低於此值視為沒接電池 / VP 空接
+const int BATTERY_SAMPLE_COUNT = 16;  // 每次取樣平均次數，降低 ADC 雜訊
+const float BATTERY_SMOOTHING_ALPHA = 0.2f;  // 電壓指數平滑係數，避免 % 數跳動
+
+const float SENSOR_X_POS[SENSOR_COUNT] = {0.82f, 0.82f, 0.82f, 0.50f, 0.50f, 0.18f, 0.18f, 0.18f, 0.35f, 0.50f, 0.65f};
+const float SENSOR_Y_POS[SENSOR_COUNT] = {0.18f, 0.42f, 0.72f, 0.18f, 0.72f, 0.72f, 0.42f, 0.18f, 0.10f, 0.05f, 0.10f};
+const int SEAT_SENSOR_COUNT = 8;  // S1~S8 為坐墊，S9~S11 為椅背，重心只看坐墊
+// 重心落在「中立點」半徑 POSE_NORMAL_RADIUS 內（demo 的綠環）判定為 normal，超出則依偏移最大的方向判定。
+// 中立點 = 坐墊 8 顆感測器平均受力時的重心（座標平均值），於 setup() 計算。
+const float POSE_NORMAL_RADIUS = 0.07f;
+float poseNeutralX = 0.5f;
+float poseNeutralY = 0.5f;
+const unsigned long BAD_POSTURE_FIRST_ALERT_MS = 10000UL;
+const unsigned long BAD_POSTURE_SECOND_ALERT_MS = 25000UL;
+const unsigned long BAD_POSTURE_THIRD_ALERT_MS = 45000UL;
+const unsigned long BAD_POSTURE_REPEAT_MS = 30000UL;
+const unsigned long POSE_CONFIRM_MS = 2000UL;
+const unsigned long SEDENTARY_REMINDER_MS = 1800000UL;  // 30 分鐘
+
 WiFiClientSecure wifiClient;
 PubSubClient mqttClient(wifiClient);
 
 Adafruit_ADS1115 ads1;  // 位址 0x48，ADDR 接 GND
 Adafruit_ADS1115 ads2;  // 位址 0x49，ADDR 接 3V3
 Adafruit_ADS1115 ads3;  // 位址 0x4A，ADDR 接 SDA（預留）
-
-const int SENSOR_COUNT = 11;
 
 bool ads1_available = false;
 bool ads2_available = false;
@@ -66,6 +86,16 @@ int adcMax[SENSOR_COUNT] = {
   20500, 20500, 20500, 20500, 20500, 20500, 20500, 20500, 20500, 20500, 20500
 };
 
+float batteryFilteredV = -1.0f;
+
+struct BatteryReading {
+  int raw;            // VP 平均 ADC 原始值
+  float pinVoltage;   // VP 腳實際電壓（已用晶片校正）
+  float voltage;      // 換算回分壓前的電池電壓（平滑後）
+  int pct;            // 電量百分比 0~100
+  bool present;       // 是否偵測到電池
+};
+
 unsigned long lastPublishMs = 0;
 const unsigned long PUBLISH_INTERVAL_MS = 500;  // 每秒 2 次
 unsigned long lastMotorStateMs = 0;
@@ -80,7 +110,29 @@ struct MotorRuntime {
   unsigned long stopAtMs;
 };
 
+struct PostureSummary {
+  float totalPressure;
+  float leftTotal;
+  float rightTotal;
+  float frontTotal;
+  float backTotal;
+  float leftRightBalance;
+  float frontBackBalance;
+  float centerX;
+  float centerY;
+  float stability;
+  String label;
+  float confidence;
+};
+
 MotorRuntime motors[MOTOR_COUNT];
+unsigned long lastPoseUpdateMs = 0;
+unsigned long lastGoodPoseMs = 0;
+unsigned long badPoseStartMs = 0;
+unsigned long lastSedentaryReminderMs = 0;
+String lastPoseLabel = "normal";
+int lastReminderLevel = 0;
+unsigned long lastReminderAtMs = 0;
 
 #if defined(ESP_ARDUINO_VERSION_MAJOR) && (ESP_ARDUINO_VERSION_MAJOR >= 3)
 void pwmAttachMotor(int motorIndex) {
@@ -457,6 +509,200 @@ int normalizeTo100(int value, int vmin, int vmax) {
   return (int)(ratio * 100.0f + 0.5f);
 }
 
+void computePoseNeutralPoint() {
+  float sumX = 0.0f;
+  float sumY = 0.0f;
+  for (int i = 0; i < SEAT_SENSOR_COUNT; i++) {
+    sumX += SENSOR_X_POS[i];
+    sumY += SENSOR_Y_POS[i];
+  }
+  poseNeutralX = sumX / SEAT_SENSOR_COUNT;
+  poseNeutralY = sumY / SEAT_SENSOR_COUNT;
+}
+
+// 依重心相對中立點的偏移判定姿勢。座標：x 小 = 左、y 小 = 後（靠椅背）、y 大 = 前。
+String decidePoseLabel(float offsetX, float offsetY, float totalPressure) {
+  if (totalPressure < 8.0f) return "no_occupancy";
+  if (sqrtf(offsetX * offsetX + offsetY * offsetY) < POSE_NORMAL_RADIUS) return "normal";
+  if (fabs(offsetX) >= fabs(offsetY)) {
+    return (offsetX < 0.0f) ? "left_lean" : "right_lean";
+  }
+  return (offsetY > 0.0f) ? "forward_lean" : "backward_lean";
+}
+
+// normalized[] 為 0-based：normalized[0] = S1 ... normalized[7] = S8
+PostureSummary computePostureSummary(const int normalized[]) {
+  PostureSummary summary;
+  summary.totalPressure = 0.0f;
+  for (int i = 0; i < SEAT_SENSOR_COUNT; i++) {
+    summary.totalPressure += normalized[i];
+  }
+
+  summary.leftTotal = normalized[5] + normalized[6] + normalized[7];   // S6 S7 S8
+  summary.rightTotal = normalized[0] + normalized[1] + normalized[2];  // S1 S2 S3
+  summary.frontTotal = normalized[2] + normalized[4] + normalized[5];  // S3 S5 S6
+  summary.backTotal = normalized[0] + normalized[3] + normalized[7];   // S1 S4 S8
+
+  // < 0 偏左 / > 0 偏右
+  float denom = max(summary.leftTotal + summary.rightTotal, 1.0f);
+  summary.leftRightBalance = (summary.rightTotal - summary.leftTotal) / denom;
+
+  // < 0 偏前 / > 0 偏後
+  float fbDenom = max(summary.frontTotal + summary.backTotal, 1.0f);
+  summary.frontBackBalance = (summary.backTotal - summary.frontTotal) / fbDenom;
+
+  float xNumer = 0.0f;
+  float yNumer = 0.0f;
+  for (int i = 0; i < SEAT_SENSOR_COUNT; i++) {
+    float value = (float)normalized[i];
+    xNumer += value * SENSOR_X_POS[i];
+    yNumer += value * SENSOR_Y_POS[i];
+  }
+  summary.centerX = (summary.totalPressure > 0.0f) ? xNumer / summary.totalPressure : poseNeutralX;
+  summary.centerY = (summary.totalPressure > 0.0f) ? yNumer / summary.totalPressure : poseNeutralY;
+
+  float offsetX = summary.centerX - poseNeutralX;
+  float offsetY = summary.centerY - poseNeutralY;
+  float offset = sqrtf(offsetX * offsetX + offsetY * offsetY);
+  // 偏移達綠環半徑 3 倍（demo 最外圈）時穩定度歸零
+  summary.stability = clampFloat(1.0f - offset / (POSE_NORMAL_RADIUS * 3.0f), 0.0f, 1.0f);
+
+  summary.label = decidePoseLabel(offsetX, offsetY, summary.totalPressure);
+  summary.confidence = summary.stability;
+  return summary;
+}
+
+bool triggerMotorReminderByPose(const String& postureLabel, int reminderLevel) {
+  if (postureLabel == "no_occupancy" || postureLabel == "normal") {
+    return false;
+  }
+
+  unsigned long nowMs = millis();
+  if ((nowMs - lastReminderAtMs) < BAD_POSTURE_REPEAT_MS) {
+    return false;
+  }
+
+  int intensity = 28;
+  int durationMs = 120;
+  if (reminderLevel == 2) {
+    intensity = 42;
+    durationMs = 170;
+  } else if (reminderLevel >= 3) {
+    intensity = 60;
+    durationMs = 220;
+  }
+
+  stopAllMotors();
+
+  if (postureLabel == "left_lean") {
+    scheduleSingleCommand(3, intensity, durationMs, 0, 0);
+    scheduleSingleCommand(4, intensity, durationMs, 1, 0);
+  } else if (postureLabel == "right_lean") {
+    scheduleSingleCommand(1, intensity, durationMs, 0, 0);
+    scheduleSingleCommand(2, intensity, durationMs, 1, 0);
+  } else if (postureLabel == "forward_lean") {
+    scheduleSingleCommand(1, intensity, durationMs, 0, 0);
+    scheduleSingleCommand(4, intensity, durationMs, 1, 0);
+  } else if (postureLabel == "backward_lean") {
+    scheduleSingleCommand(2, intensity, durationMs, 0, 0);
+    scheduleSingleCommand(3, intensity, durationMs, 1, 0);
+  }
+
+  lastReminderLevel = reminderLevel;
+  lastReminderAtMs = nowMs;
+  return true;
+}
+
+void evaluatePoseReminder(const PostureSummary& summary, unsigned long nowMs) {
+  if (summary.label == "normal" || summary.label == "no_occupancy") {
+    lastGoodPoseMs = nowMs;
+    badPoseStartMs = 0;
+    lastReminderLevel = 0;
+    lastReminderAtMs = 0;
+    lastPoseLabel = "normal";
+    return;
+  }
+
+  if (badPoseStartMs == 0) {
+    badPoseStartMs = nowMs;
+    lastPoseLabel = summary.label;
+    return;
+  }
+
+  if (summary.label != lastPoseLabel) {
+    lastPoseLabel = summary.label;
+    badPoseStartMs = nowMs;
+    return;
+  }
+
+  if (nowMs - badPoseStartMs < BAD_POSTURE_FIRST_ALERT_MS) {
+    return;
+  }
+
+  unsigned long badPoseDuration = nowMs - badPoseStartMs;
+  int reminderLevel = 0;
+  if (badPoseDuration >= BAD_POSTURE_THIRD_ALERT_MS) {
+    reminderLevel = 3;
+  } else if (badPoseDuration >= BAD_POSTURE_SECOND_ALERT_MS) {
+    reminderLevel = 2;
+  } else if (badPoseDuration >= BAD_POSTURE_FIRST_ALERT_MS) {
+    reminderLevel = 1;
+  }
+
+  if (reminderLevel > 0) {
+    triggerMotorReminderByPose(summary.label, reminderLevel);
+    publishMotorStatus("posture_reminder", summary.label.c_str());
+  }
+}
+
+float clampFloat(float value, float minValue, float maxValue) {
+  if (value < minValue) return minValue;
+  if (value > maxValue) return maxValue;
+  return value;
+}
+
+int voltageToBatteryPercent(float batteryVoltage) {
+  float ratio = (batteryVoltage - BATTERY_EMPTY_V) / (BATTERY_FULL_V - BATTERY_EMPTY_V);
+  ratio = clampFloat(ratio, 0.0f, 1.0f);
+  return (int)(ratio * 100.0f + 0.5f);
+}
+
+BatteryReading readBattery() {
+  long rawSum = 0;
+  long milliVoltSum = 0;
+  for (int i = 0; i < BATTERY_SAMPLE_COUNT; i++) {
+    rawSum += analogRead(BATTERY_VP_PIN);
+    // analogReadMilliVolts 會套用晶片出廠校正，比 raw/4095*3.3 準確
+    milliVoltSum += analogReadMilliVolts(BATTERY_VP_PIN);
+  }
+
+  BatteryReading reading;
+  reading.raw = (int)(rawSum / BATTERY_SAMPLE_COUNT);
+  reading.pinVoltage = (milliVoltSum / (float)BATTERY_SAMPLE_COUNT) / 1000.0f;
+
+  // 1. 先換算回分壓前的電池電壓
+  float packVoltage = reading.pinVoltage * BATTERY_DIVIDER_RATIO;
+  reading.present = packVoltage >= BATTERY_PRESENT_MIN_V;
+  if (!reading.present) {
+    batteryFilteredV = -1.0f;
+    reading.voltage = packVoltage;
+    reading.pct = 0;
+    return reading;
+  }
+
+  // 2. 平滑電壓，避免馬達震動等負載造成 % 數跳動
+  if (batteryFilteredV < 0.0f) {
+    batteryFilteredV = packVoltage;
+  } else {
+    batteryFilteredV = batteryFilteredV * (1.0f - BATTERY_SMOOTHING_ALPHA) + packVoltage * BATTERY_SMOOTHING_ALPHA;
+  }
+  reading.voltage = batteryFilteredV;
+
+  // 3. 與滿電 / 沒電電壓比較，換算 %
+  reading.pct = voltageToBatteryPercent(reading.voltage);
+  return reading;
+}
+
 void connectWiFi() {
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
@@ -482,6 +728,31 @@ void connectWiFi() {
   Serial.println(WiFi.localIP());
 }
 
+void setupArduinoOTA() {
+  ArduinoOTA.setHostname(OTA_HOSTNAME);
+  ArduinoOTA.setPassword(OTA_PASSWORD);
+  ArduinoOTA.onStart([]() {
+    String type = (ArduinoOTA.getCommand() == U_FLASH) ? "sketch" : "filesystem";
+    Serial.println("OTA 開始更新: " + type);
+  });
+  ArduinoOTA.onEnd([]() {
+    Serial.println("\nOTA 更新完成");
+  });
+  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+    Serial.printf("OTA 進度: %u%%\r", (progress / (total == 0 ? 1 : total)) * 100);
+  });
+  ArduinoOTA.onError([](ota_error_t error) {
+    Serial.printf("OTA 錯誤[%u]: ", error);
+    if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
+    else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
+    else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
+    else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
+    else if (error == OTA_END_ERROR) Serial.println("End Failed");
+  });
+  ArduinoOTA.begin();
+  Serial.println("OTA 已啟用，主機名: " + String(OTA_HOSTNAME));
+}
+
 void connectMQTT() {
   Serial.print("連線 MQTT Broker: ");
   Serial.println(MQTT_BROKER);
@@ -501,7 +772,7 @@ void connectMQTT() {
   }
 }
 
-String buildPayload(const int raw[], const int normalized[], unsigned long ts) {
+String buildPayload(const int raw[], const int normalized[], const PostureSummary& pose, unsigned long ts, const BatteryReading& battery) {
   unsigned long nowMs = millis();
   String payload = "{\"device_id\":\"chair_01\",\"ts\":";
   payload += String(ts);
@@ -518,7 +789,24 @@ String buildPayload(const int raw[], const int normalized[], unsigned long ts) {
     payload += String(normalized[i]);
   }
 
-  payload += "],\"sensor_detected\":[";
+  payload += "],\"pose\":{";
+  payload += "\"label\":\"" + pose.label + "\",";
+  payload += "\"left_right_balance\":" + String(pose.leftRightBalance, 3) + ",";
+  payload += "\"front_back_balance\":" + String(pose.frontBackBalance, 3) + ",";
+  payload += "\"center_x\":" + String(pose.centerX, 3) + ",";
+  payload += "\"center_y\":" + String(pose.centerY, 3) + ",";
+  payload += "\"neutral_x\":" + String(poseNeutralX, 3) + ",";
+  payload += "\"neutral_y\":" + String(poseNeutralY, 3) + ",";
+  payload += "\"normal_radius\":" + String(POSE_NORMAL_RADIUS, 3) + ",";
+  payload += "\"stability\":" + String(pose.stability, 3) + ",";
+  payload += "\"confidence\":" + String(pose.confidence, 3) + ",";
+  payload += "\"total_pressure\":" + String(pose.totalPressure, 1) + ",";
+  payload += "\"left_total\":" + String(pose.leftTotal, 1) + ",";
+  payload += "\"right_total\":" + String(pose.rightTotal, 1) + ",";
+  payload += "\"front_total\":" + String(pose.frontTotal, 1) + ",";
+  payload += "\"back_total\":" + String(pose.backTotal, 1) + "}";
+
+  payload += ",\"sensor_detected\":[";
   for (int i = 0; i < SENSOR_COUNT; i++) {
     bool detected = false;
     if (i < 4) {
@@ -540,7 +828,19 @@ String buildPayload(const int raw[], const int normalized[], unsigned long ts) {
     payload += "\"";
   }
 
-  payload += "]}";
+  payload += "],\"power\":{";
+  payload += "\"pin\":\"VP(GPIO36)\",";
+  payload += "\"raw\":";
+  payload += String(battery.raw);
+  payload += ",\"vp_v\":";
+  payload += String(battery.pinVoltage, 3);
+  payload += ",\"voltage_v\":";
+  payload += String(battery.voltage, 3);
+  payload += ",\"battery_pct\":";
+  payload += String(battery.pct);
+  payload += ",\"battery_present\":";
+  payload += battery.present ? "true" : "false";
+  payload += "}}";
   return payload;
 }
 
@@ -552,6 +852,12 @@ void setup() {
   // 初始化外接指示燈腳位
   pinMode(DETECT_LED_PIN, OUTPUT);
   digitalWrite(DETECT_LED_PIN, LOW); 
+
+  computePoseNeutralPoint();
+
+  // VP 監測外接電源電量（GPIO36）
+  analogReadResolution(12);
+  analogSetPinAttenuation(BATTERY_VP_PIN, ADC_11db);
 
   for (int i = 0; i < SENSOR_COUNT; i++) {
     sensorSeenSignal[i] = false;
@@ -641,6 +947,7 @@ void setup() {
 
   // 連線網路與雲端（放在硬體自檢後面，確保不受網路搶電干擾）
   connectWiFi();
+  setupArduinoOTA();
   wifiClient.setInsecure();  
   mqttClient.setServer(MQTT_BROKER, MQTT_PORT);
   mqttClient.setCallback(mqttCallback);
@@ -652,6 +959,8 @@ void setup() {
 }
 
 void loop() {
+  ArduinoOTA.handle();
+
   if (WiFi.status() != WL_CONNECTED) {
     connectWiFi();
   }
@@ -686,6 +995,10 @@ void loop() {
 
   int raw[SENSOR_COUNT];
   int normalized[SENSOR_COUNT];
+  for (int i = 0; i < SENSOR_COUNT; i++) {
+    raw[i] = 0;
+    normalized[i] = 0;
+  }
 
   // 📊 處理 S1-S4：來自 ADS1115 #1
   for (int i = 0; i < 4; i++) {
@@ -737,9 +1050,14 @@ void loop() {
     }
   }
 
+  BatteryReading battery = readBattery();
+
+  PostureSummary pose = computePostureSummary(normalized);
+  evaluatePoseReminder(pose, millis());
+
   // 打包 MQTT JSON 封包
   unsigned long ts = (unsigned long)(millis() / 1000);
-  String payload = buildPayload(raw, normalized, ts);
+  String payload = buildPayload(raw, normalized, pose, ts, battery);
   mqttClient.publish(MQTT_TOPIC_SENSOR, payload.c_str());
   Serial.println(payload);
 }
