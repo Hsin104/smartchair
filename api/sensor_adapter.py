@@ -60,6 +60,23 @@ def parse_esp32_payload(payload: dict):
     return seat_data, back_data
 
 
+# ESP32 pose.label → 後端坐姿代碼（demo/MQTT資料說明.md 第 4.2 節）
+DEVICE_LABEL_MAP = {
+    'normal':        'normal',
+    'left_lean':     'left',
+    'right_lean':    'right',
+    'forward_lean':  'forward',
+    'backward_lean': 'recline',
+    'no_occupancy':  'empty',
+}
+
+
+def device_posture(payload: dict):
+    """取出 ESP32 自己判斷的坐姿並轉成後端代碼；舊韌體沒有 pose 欄位時回傳 None。"""
+    label = (payload.get('pose') or {}).get('label')
+    return DEVICE_LABEL_MAP.get(label, label) if label else None
+
+
 def total_pressure(payload: dict) -> float:
     """判斷是否有人就坐用的總壓力（norm/raw 陣列絕對值總和）。"""
     arr = payload.get('norm') or payload.get('raw') or []

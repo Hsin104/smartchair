@@ -28,14 +28,19 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 
 from api.models import PostureRecord, Notification, MotorLog, ChairSession
-from api.management.commands import mqtt_subscriber
+from types import SimpleNamespace
+from api import mqtt_publisher
 from api.management.commands.mqtt_subscriber import _handle_pressure_01, STABLE_READINGS, _posture_state
 
-# 攔截馬達指令：_handle_pressure_01 確認壞坐姿時會呼叫 publish_motor_command，
-# 原本會照 .env 的 MQTT 設定真的送到雲端 broker，讓正在使用中的真實椅子震動。
-# 測試只記錄「本來要送出的指令」供比對，絕不連線任何 broker。
-_published_motor_commands = []
-mqtt_subscriber.publish_motor_command = lambda motors, **kwargs: _published_motor_commands.append(list(motors))
+# 攔截所有 MQTT 發送：後端任何地方要送 MQTT 訊息（例如馬達指令）都會照 .env 的設定
+# 真的送到雲端 broker，讓正在使用中的真實椅子震動。測試只記錄「本來要送出的訊息」，絕不連線任何 broker。
+_published_mqtt = []
+mqtt_publisher.mqtt_publish = SimpleNamespace(
+    single=lambda topic, payload=None, **kwargs: _published_mqtt.append((topic, payload)))
+
+# 後端坐姿代碼 → ESP32 pose.label（模擬新韌體 payload 帶的椅子端判斷結果）
+ESP32_LABEL = {'normal': 'normal', 'left': 'left_lean', 'right': 'right_lean',
+               'forward': 'forward_lean', 'recline': 'backward_lean'}
 from api.views import _check_sedentary, POSTURE_DISPLAY
 from api.motor_constants import MOTOR_MAP
 
@@ -117,6 +122,7 @@ def main():
             'ts': int(timezone.now().timestamp()),
             'norm': seat_to_norm(data['seat']),
             'back': data['back'],
+            'pose': {'label': ESP32_LABEL[posture]},
         }
         # 各坐姿視為獨立情境測試，先清空通知，避免踩到真實存在的
         # 「1 分鐘冷卻」防洗版機制（同一使用者 1 分鐘內只發一次通知）；
@@ -140,13 +146,17 @@ def main():
             bool(record and record.back_pressure_data),
             str(record.back_pressure_data if record else {}),
         )
+        check(
+            f'{posture:8s} 椅子端判斷存入 device_posture',
+            bool(record and record.device_posture == posture),
+            f'device_posture={record.device_posture if record else None}',
+        )
         if posture != 'normal':
             after_count = Notification.objects.filter(user=user).count()
             check(f'{posture:8s} 觸發通知（Notification）', after_count > before_count)
-            sent = _published_motor_commands[-1] if _published_motor_commands else None
-            check(f'{posture:8s} 發出對應馬達指令（已攔截，未實際送出）',
-                  sent == MOTOR_MAP.get(record.posture if record else posture, []), f'{sent}')
-        _published_motor_commands.clear()
+        # 即時震動交給 ESP32 內建提醒，後端處理感測資料時不應送出任何 MQTT 訊息
+        check(f'{posture:8s} 後端未發震動指令（交給 ESP32）', not _published_mqtt, f'{_published_mqtt}')
+        _published_mqtt.clear()
 
     # ── 第二段：久坐邏輯（不良坐姿之外的時間判斷，模擬時間流逝）────────────
     print('\n[第二段] 久坐未動（sedentary）時間邏輯測試（模擬 6 分鐘前離座）')
@@ -171,10 +181,10 @@ def main():
 
     # ── 第三段：馬達觸發決策（MOTOR_MAP，對應 POST /api/motor/trigger 邏輯）──
     print('\n[第三段] 馬達觸發決策邏輯（坐姿 → 對應馬達）')
-    # 比照 api/motor_constants.py 的「同側提醒」設計（left→左手軸+左腰，right→右手軸+右腰）
+    # 依硬體實際位置（M1 右前、M2 右後、M3 左後、M4 左前，demo/MQTT資料說明.md），震動偏移的那一側
     EXPECTED_MOTORS = {
-        'forward': ['M1', 'M2'], 'recline': ['M3', 'M4'],
-        'left': ['M1', 'M3'], 'right': ['M2', 'M4'],
+        'forward': ['M1', 'M4'], 'recline': ['M2', 'M3'],
+        'left': ['M3', 'M4'], 'right': ['M1', 'M2'],
         'sedentary': ['M1', 'M2', 'M3', 'M4'], 'normal': [],
     }
     for posture, expected in EXPECTED_MOTORS.items():

@@ -47,6 +47,9 @@ class PostureRecord(models.Model):
     source             = models.CharField(max_length=10, choices=SOURCE_CHOICES, default='auto', verbose_name='資料來源')
     # 模型 softmax 最大機率值（信心分數），0~1；規則層覆蓋判斷（極端姿勢）或手動輸入 posture 時無意義，留 null
     confidence         = models.FloatField(null=True, blank=True, verbose_name='模型信心分數')
+    # ESP32 依重心規則自己判斷的坐姿（payload 的 pose.label，已轉成跟 posture 相同的代碼）。
+    # 正式紀錄以雲端 AI 模型的 posture 為準，這欄留作對照：兩者不一致的比例可用來評估邊緣端判斷的可靠度
+    device_posture     = models.CharField(max_length=20, null=True, blank=True, verbose_name='椅子端判斷坐姿')
 
     class Meta:
         ordering = ['-timestamp']

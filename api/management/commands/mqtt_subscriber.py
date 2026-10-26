@@ -27,12 +27,10 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 
-from api.models import PostureRecord, ChairSession, Notification, MotorLog
+from api.models import PostureRecord, ChairSession, Notification
 from api.views import predict_posture, _check_sedentary
 from api.physio_agent import POSTURE_DISPLAY
-from api.sensor_adapter import parse_esp32_payload, total_pressure
-from api.mqtt_publisher import publish_motor_command
-from api.motor_constants import MOTOR_MAP
+from api.sensor_adapter import parse_esp32_payload, total_pressure, device_posture
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -116,6 +114,7 @@ def _handle_pressure_01(payload: dict):
                     seat_pressure_data={},
                     back_pressure_data={},
                     source='auto',
+                    device_posture=device_posture(payload),
                 )
                 print(f'[MQTT] 無人坐著 → 寫入 empty：{session.user.username}')
             else:
@@ -163,6 +162,7 @@ def _handle_pressure_01(payload: dict):
         back_pressure_data=back_data,
         source='auto',
         confidence=confidence,
+        device_posture=device_posture(payload),
     )
     print(f'[MQTT] 寫入資料庫 [{mode_label}] — {user.username}: {posture}')
 
@@ -181,21 +181,14 @@ def _handle_pressure_01(payload: dict):
     if just_confirmed:
         state['confirmed'] = posture
 
-    # 邊緣觸發：只在坐姿「確認變成」這個壞坐姿的那一刻提醒＋震動一次，
+    # 邊緣觸發：只在坐姿「確認變成」這個壞坐姿的那一刻產生一則通知（給 App），
     # 同一個壞坐姿持續多久都不重複，直到坐姿變回 normal/empty 再變差才會重新觸發。
+    # 震動不在這裡發：ESP32 內建自動姿勢提醒（壞坐姿 10 秒後自己震動對應馬達，斷網也能用），
+    # 後端若再發一次指令會重複震動。手動測試請用 POST /api/motor/trigger。
     if posture not in ('normal', 'empty') and just_confirmed:
         posture_name = POSTURE_DISPLAY.get(posture, posture)
         Notification.objects.create(user=user, message=f'坐姿提醒：{posture_name}')
         print(f'[MQTT] 產生通知 — {user.username}: {posture_name}')
-
-        # 震動馬達：即時偵測管線直接觸發（不經過 Agent，見 mcp_server.py 開頭說明）。
-        motors = MOTOR_MAP.get(posture, [])
-        if motors:
-            MotorLog.objects.create(
-                user=user, posture=posture, motors=motors, reason=posture_name,
-            )
-            publish_motor_command(motors)
-            print(f'[MQTT] 觸發馬達 — {user.username}: {motors}')
 
 
 # ── paho 事件回調 ────────────────────────────────────────────────────────────

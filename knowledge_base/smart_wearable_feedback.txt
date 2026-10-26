@@ -17,7 +17,7 @@
 - 搭配歷史坐姿統計，讓使用者了解長期改善趨勢，強化行為改變的正向回饋
 
 智慧椅研究補充（學術來源）：
-- 智慧椅之馬達觸發規則依坐姿類別分派對應馬達（前傾→手軸、後仰→腰部、久坐→全部觸發），即依循「部位對應式回饋優於無差別提醒」之實證原則設計
+- 本專題智慧椅的震動提醒由椅子端（ESP32）即時觸發，依重心偏移方向震動同側的椅墊馬達（左傾→左側、右傾→右側、前傾→前側、後仰→後側），壞坐姿持續越久強度越強，即依循「部位對應式回饋優於無差別提醒」之實證原則設計；斷網時仍可運作
 
 參考文獻：
 - Effectiveness of Wearable Devices for Posture Correction: A Systematic Review of Evidence from Randomized and Quasi-Experimental Studies. MDPI Applied Sciences. https://www.mdpi.com/2076-3417/16/1/81
