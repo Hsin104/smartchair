@@ -99,6 +99,9 @@ def _build_retriever():
         # chunk_size 拉大到可涵蓋知識庫文件的完整小節（原 400 常把「立即改善動作」清單從中切斷）
         splitter = RecursiveCharacterTextSplitter(chunk_size=700, chunk_overlap=100)
         split_docs = splitter.split_documents(docs)
+        # 曾嘗試在每段前加「檔名＋主題」標頭來修正右傾查錯成左傾，但實測無效（right.txt 仍排不進前 4），
+        # 反而讓只有書目的「參考文獻」段落也帶上主題、排名擠過「立即改善動作」段落，已移除；
+        # 右傾問題改由 search_knowledge_base 的關鍵字導向解決（見 POSTURE_KEYWORD_SOURCES）
         vs = FAISS.from_documents(split_docs, embeddings)
         FAISS_DIR.mkdir(parents=True, exist_ok=True)
         vs.save_local(str(FAISS_DIR))
@@ -110,11 +113,39 @@ def _build_retriever():
 
 # ── MCP Tools ─────────────────────────────────────────────────────────────────
 
+# 坐姿名稱 → 對應的坐姿文獻（一對一）。查詢明確提到某個坐姿時，保證該文獻一定在結果裡。
+# 原因：中文 embedding 幾乎分不出「左傾／右傾」，right.txt 內文又大量出現「左」（加強左側核心、改左手用滑鼠），
+# 防幻覺評測發現查「身體右傾」時 right.txt 常排不進前 4 名、改查到 left.txt，會給出方向相反的伸展建議。
+POSTURE_KEYWORD_SOURCES = [
+    (('右傾',), 'right.txt'),
+    (('左傾',), 'left.txt'),
+    (('前傾', '烏龜頸'), 'forward.txt'),
+    (('後仰',), 'recline.txt'),
+    (('久坐',), 'sedentary.txt'),
+    (('標準坐姿', '正確坐姿'), 'normal.txt'),
+]
+_PINNED_CHUNKS = 2  # 每個被點名的坐姿文獻補進幾段
+
+
+def _keyword_pinned_docs(query: str, vs, docs: list) -> list:
+    """關鍵字導向＋語意檢索：把查詢點名、但語意檢索沒找到的坐姿文獻補到最前面。"""
+    have = {Path(d.metadata.get('source', '')).name for d in docs}
+    pinned = []
+    for keywords, fname in POSTURE_KEYWORD_SOURCES:
+        if fname in have or not any(k in query for k in keywords):
+            continue
+        pinned += vs.similarity_search(
+            query, k=_PINNED_CHUNKS, fetch_k=50,
+            filter=lambda md, f=fname: Path(md.get('source', '')).name == f,
+        )
+    return pinned + docs
+
+
 @mcp.tool()
 def search_knowledge_base(query: str) -> str:
     """從外部醫學文獻知識庫搜尋坐姿、物理治療相關資訊。回答任何建議前必須先呼叫此工具。"""
     retriever = _build_retriever()
-    docs = retriever.invoke(query)
+    docs = _keyword_pinned_docs(query, retriever.vectorstore, retriever.invoke(query))
     if not docs:
         return (
             '【知識庫查詢結果：無相關文獻】\n'
