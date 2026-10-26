@@ -214,7 +214,9 @@ def _validate_response(response: str) -> str:
             response = response[:idx].strip()
             break
 
-    if not has_citation:
+    # 拒答（規則 3）本來就不會附來源，不該再加「未附來源」警告，否則使用者會看到拒答句後面跟著一段系統提示
+    is_refusal = '無法回答' in response and '知識庫' in response
+    if not has_citation and not is_refusal:
         response += (
             '\n\n---\n⚠️ 系統提示：此回覆未包含知識庫來源引用，'
             '建議僅參考有附出處的資訊，或諮詢專業物理治療師。'
