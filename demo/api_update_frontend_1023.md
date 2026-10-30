@@ -64,3 +64,17 @@ HTTP 200
 - 通常 6～25 秒會完成；後端最多等 AI 60 秒，超過會變成 `failed`，所以 App 不用自己設很長的 timeout，**查詢到 90 秒還沒結果就可以停止**。
 - 只能查自己的任務，查別人的會回 404。
 - 使用者等待時 App 畫面不會卡住，可以讓使用者先做別的事，回來再看結果。
+
+---
+
+# 補充（10/30）：多張椅子
+
+後端已支援多張椅子，**現在的 App 不用改也能照常運作**（不帶椅子編號時就是原本的 chair_01）。之後要支援多張椅子時：
+
+| API | 新增的參數 | 說明 |
+|---|---|---|
+| `POST /api/chair/checkin` | body `{"device_id": "chair_A1B2C3"}` | 坐上指定的椅子；同一張椅子原本的人、以及自己原本坐的其他椅子會自動結束 |
+| `GET /api/chair/status` | `?device_id=chair_A1B2C3` | 查詢指定椅子；回應多了 `device_id`、`online` |
+| `GET /api/chairs` | （新 API，不需登入） | 列出所有椅子：`device_id`、`online`、`username`、`since` |
+
+`device_id` 印在椅子的標籤上（`chair_` ＋ 6 碼），App 可以讓使用者輸入或掃 QR code 選椅子。

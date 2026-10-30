@@ -27,7 +27,11 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 
-from api.models import PostureRecord, ChairSession, Notification
+from api.models import PostureRecord, Notification
+from api.chairs import (
+    ACK_TOPIC_PATTERN, LEGACY_PRESSURE_TOPIC, PRESSURE_TOPIC_PATTERN,
+    active_session, chair_for_device, device_id_from_topic,
+)
 from api.views import predict_posture, _check_sedentary
 from api.physio_agent import POSTURE_DISPLAY
 from api.sensor_adapter import parse_esp32_payload, total_pressure, device_posture
@@ -57,7 +61,9 @@ STABLE_READINGS = 10
 
 # 所有訂閱 Topic
 TOPICS = [
-    'chair/pressure/01',
+    PRESSURE_TOPIC_PATTERN,      # chair/+/pressure：每張椅子各自的感測資料（新韌體）
+    ACK_TOPIC_PATTERN,           # chair/+/vibration/ack
+    'chair/pressure/01',         # 舊韌體（device_id 固定 chair_01）
     'chair/vibration/01/ack',
     'smartchair/sensor/seat',
     'smartchair/sensor/back',
@@ -79,10 +85,11 @@ def _write_heartbeat(connected: bool):
 # 暫存緩衝區：{ username: { 'seat': ..., 'back': ... } }
 _sensor_buffer = {}
 
-# 上一次空椅狀態（True=有人, False=無人, None=初始）
-_last_occupied = None
+# 每張椅子上一次的空椅狀態：{ device_id: True=有人 / False=無人 }（沒有 key＝初始）
+_last_occupied = {}
 
-# 坐姿防手震狀態：{ username: {'candidate': 候選坐姿, 'count': 連續次數, 'confirmed': 上次確認的坐姿} }
+# 坐姿防手震狀態：{ 'device_id:username': {'candidate': 候選坐姿, 'count': 連續次數, 'confirmed': 上次確認的坐姿} }
+# 以「椅子＋使用者」為單位，多張椅子各自計數，不會互相干擾
 _posture_state = {}
 
 
@@ -93,20 +100,25 @@ def _get_buffer(username):
 
 
 def _handle_pressure_01(payload: dict):
-    """
-    處理 chair/pressure/01 的訊息，自動預測坐姿後寫入資料庫。
+    """舊 topic chair/pressure/01 的進入點（舊韌體與整合測試使用），device_id 取自 payload，預設 chair_01。"""
+    _handle_pressure(device_id_from_topic(LEGACY_PRESSURE_TOPIC, payload), payload)
 
-    支援 ESP32 格式：{"device_id":"chair_01","ts":123,"raw":[...],"norm":[...]}
-    使用者需先呼叫 POST /api/chair/checkin 登記為目前座椅使用者。
-    """
-    global _last_occupied
 
-    # 椅子空置檢查：norm/raw 總壓力過低則寫入 sedentary（僅在狀態轉換時寫一次）
+def _handle_pressure(device_id: str, payload: dict):
+    """
+    處理一張椅子的感測資料（chair/{device_id}/pressure 或舊的 chair/pressure/01），預測坐姿後寫入資料庫。
+
+    支援 ESP32 格式：{"device_id":"chair_01","ts":123,"norm":[...],"pose":{...}}
+    資料寫進「這張椅子」目前入座的使用者名下（POST /api/chair/checkin 帶 device_id 登記）。
+    """
+    chair = chair_for_device(device_id)
+    session = active_session(chair)
+
+    # 椅子空置檢查：norm/raw 總壓力過低則寫入 empty（每張椅子各自判斷，僅在狀態轉換時寫一次）
     pressure = total_pressure(payload)
     if pressure < MIN_SEAT_PRESSURE:
-        if _last_occupied is not False:
-            _last_occupied = False
-            session = ChairSession.objects.filter(is_active=True).select_related('user').first()
+        if _last_occupied.get(device_id) is not False:
+            _last_occupied[device_id] = False
             if session:
                 PostureRecord.objects.create(
                     user=session.user,
@@ -116,17 +128,16 @@ def _handle_pressure_01(payload: dict):
                     source='auto',
                     device_posture=device_posture(payload),
                 )
-                print(f'[MQTT] 無人坐著 → 寫入 empty：{session.user.username}')
+                print(f'[MQTT] {device_id} 無人坐著 → 寫入 empty：{session.user.username}')
             else:
-                print(f'[MQTT] 無人坐著（總壓力 {pressure} < {MIN_SEAT_PRESSURE}），無 active session')
+                print(f'[MQTT] {device_id} 無人坐著（總壓力 {pressure} < {MIN_SEAT_PRESSURE}），無人入座')
         return
 
-    _last_occupied = True
+    _last_occupied[device_id] = True
 
-    session = ChairSession.objects.filter(is_active=True).select_related('user').first()
     if session:
         user = session.user
-        print(f'[MQTT] 寫入 active session 使用者：{user.username}')
+        print(f'[MQTT] {device_id} → 入座使用者：{user.username}')
     else:
         username = payload.get('username', DEFAULT_USERNAME)
         user, created = User.objects.get_or_create(username=username)
@@ -164,12 +175,12 @@ def _handle_pressure_01(payload: dict):
         confidence=confidence,
         device_posture=device_posture(payload),
     )
-    print(f'[MQTT] 寫入資料庫 [{mode_label}] — {user.username}: {posture}')
+    print(f'[MQTT] {device_id} 寫入資料庫 [{mode_label}] — {user.username}: {posture}')
 
     # 防手震：連續 STABLE_READINGS 筆讀值一致才算「真的變成這個坐姿」，
     # 過濾單筆雜訊（例如持續 normal 中間突然閃一筆 right 又跳回 normal）。
     state = _posture_state.setdefault(
-        user.username, {'candidate': None, 'count': 0, 'confirmed': None}
+        f'{device_id}:{user.username}', {'candidate': None, 'count': 0, 'confirmed': None}
     )
     if posture == state['candidate']:
         state['count'] += 1
@@ -227,14 +238,15 @@ def on_message(client, userdata, msg):
 
 
 def _dispatch_message(topic, payload):
-    # ── chair/pressure/01（EMQX Cloud，組員裝置）───────────────────────────
-    if topic == 'chair/pressure/01':
-        _handle_pressure_01(payload)
+    # ── 感測資料：新 chair/{device_id}/pressure 與舊 chair/pressure/01 ─────────
+    device_id = device_id_from_topic(topic, payload)
+    if device_id:
+        _handle_pressure(device_id, payload)
         return
 
-    # ── chair/vibration/01/ack（馬達指令執行回覆，對應 mqtt_publisher.py）────
-    if topic == 'chair/vibration/01/ack':
-        print(f'[MQTT] 馬達 ACK — cmd_id={payload.get("cmd_id")} '
+    # ── 馬達指令執行回覆：新 chair/{device_id}/vibration/ack 與舊 chair/vibration/01/ack ──
+    if topic.startswith('chair/') and topic.endswith('/vibration/ack'):
+        print(f'[MQTT] 馬達 ACK（{topic}）— cmd_id={payload.get("cmd_id")} '
               f'status={payload.get("status")} message={payload.get("message")}')
         return
 

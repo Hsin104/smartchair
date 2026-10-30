@@ -27,7 +27,7 @@ from datetime import timedelta
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 
-from api.models import PostureRecord, Notification, MotorLog, ChairSession
+from api.models import PostureRecord, Notification, MotorLog, ChairSession, Chair
 from types import SimpleNamespace
 from api import mqtt_publisher
 from api.management.commands.mqtt_subscriber import _handle_pressure_01, STABLE_READINGS, _posture_state
@@ -48,6 +48,8 @@ User = get_user_model()
 WITH_AI = '--with-ai' in sys.argv
 
 TEST_USERNAME = 'integration_test_user'
+# 測試專用的椅子：只動這張椅子的入座紀錄，不影響正式環境中其他椅子上正在使用的人
+TEST_DEVICE_ID = 'chair_01_test'
 
 # 對應 mqtt_subscriber._parse_esp32_payload 的 norm 索引：
 # norm[0]=right_back, [1]=right_mid, [2]=right_front, [3]=center_back,
@@ -110,15 +112,17 @@ def main():
 
     # ── 前置：測試使用者 + active ChairSession ─────────────────────────────
     user, _ = User.objects.get_or_create(username=TEST_USERNAME)
-    ChairSession.objects.filter(is_active=True).update(is_active=False)
-    ChairSession.objects.create(user=user)
-    print(f'\n[前置] 測試使用者：{user.username}（已 check-in）')
+    chair, _ = Chair.objects.get_or_create(device_id=TEST_DEVICE_ID)
+    ChairSession.objects.filter(is_active=True, chair=chair).update(is_active=False)
+    ChairSession.objects.filter(is_active=True, user=user).update(is_active=False)
+    ChairSession.objects.create(user=user, chair=chair)
+    print(f'\n[前置] 測試使用者：{user.username}（已 check-in 測試椅 {TEST_DEVICE_ID}）')
 
     # ── 第一段：MQTT payload → 20 特徵預測 → PostureRecord ─────────────────
     print('\n[第一段] MQTT payload 模擬（chair/pressure/01，含椅背 3 點）→ 坐姿預測')
     for posture, data in POSTURE_PAYLOADS.items():
         payload = {
-            'device_id': 'chair_01_test',
+            'device_id': TEST_DEVICE_ID,
             'ts': int(timezone.now().timestamp()),
             'norm': seat_to_norm(data['seat']),
             'back': data['back'],
@@ -128,7 +132,7 @@ def main():
         # 「1 分鐘冷卻」防洗版機制（同一使用者 1 分鐘內只發一次通知）；
         # 同時重置防手震狀態，避免上一個坐姿的 confirmed 狀態跨情境污染判斷
         Notification.objects.filter(user=user).delete()
-        _posture_state.pop(user.username, None)
+        _posture_state.pop(f'{TEST_DEVICE_ID}:{user.username}', None)
         before_count = 0
         # 防手震機制需連續 STABLE_READINGS 筆讀值一致才算「確認變成」該坐姿並觸發通知
         # （見 mqtt_subscriber.py，2026-09-02 加入），單次呼叫不會觸發，須重複送同一份 payload
@@ -214,6 +218,7 @@ def main():
     Notification.objects.filter(user=user).delete()
     MotorLog.objects.filter(user=user).delete()
     ChairSession.objects.filter(user=user).update(is_active=False)
+    Chair.objects.filter(device_id=TEST_DEVICE_ID).delete()   # 測試椅不留在 GET /api/chairs 清單裡
 
     # ── 總結 ────────────────────────────────────────────────────────────
     print('\n' + '=' * 70)

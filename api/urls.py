@@ -35,6 +35,7 @@ urlpatterns = [
     path('chair/calibrate',      views.chair_calibrate,      name='chair-calibrate'),
     path('chair/calibrate/auto', views.chair_calibrate_auto, name='chair-calibrate-auto'),
     path('chair/status',    views.chair_status,    name='chair-status'),
+    path('chairs',          views.chair_list,      name='chair-list'),
 
     # 震動馬達通知（ESP32 輪詢用）
     path('notification/history', views.notification_history, name='notification-history'),

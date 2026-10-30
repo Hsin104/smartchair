@@ -78,6 +78,8 @@ POSTURE_CREATE_SCHEMA = {
         },
         "seat_pressure_data": SEAT_PRESSURE_SCHEMA,
         "back_pressure_data": BACK_PRESSURE_SCHEMA,
+        # 選填：資料來自哪張椅子，存到那張椅子目前入座的使用者名下
+        "device_id": {"type": "string", "minLength": 1, "maxLength": 40},
     },
     "additionalProperties": False,
 }

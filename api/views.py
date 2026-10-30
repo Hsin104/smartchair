@@ -32,6 +32,8 @@ from .schemas import (
 from .physio_agent import get_advice, POSTURE_DISPLAY
 from .mqtt_publisher import publish_motor_command
 from .motor_constants import MOTOR_MAP
+from .chairs import active_session, chair_for_device, is_online, motor_topic, user_session
+from .models import Chair
 
 # 伸展動作查表（不經過 LLM），實作在 api/stretch.py
 from .stretch import get_stretch_map as _get_stretch_map, recommend_exercises as _recommend_exercises
@@ -546,18 +548,20 @@ def posture_create(request):
     """
     POST /api/posture — 儲存坐姿感測數據。
 
-    優先存到目前 active ChairSession 的 user，
-    避免 ESP32 帳號與前端登入帳號不同導致前端看不到資料。
-    沒有 active session 時退回使用 request.user。
+    帶 device_id 時存到「那張椅子」目前入座的使用者名下（避免上傳裝置的帳號與前端登入帳號不同，
+    導致前端看不到資料）；沒帶 device_id 時用呼叫者自己目前坐的椅子；都沒有就存在呼叫者名下。
+    （正式的感測資料走 MQTT，這支主要給測試工具用）
     """
     error = validate_request(request.data, POSTURE_CREATE_SCHEMA)
     if error:
         return Response({'schema_error': error}, status=status.HTTP_400_BAD_REQUEST)
 
-    session = ChairSession.objects.filter(is_active=True).select_related('user').first()
+    device_id = request.data.get('device_id')
+    session = active_session(chair_for_device(device_id)) if device_id else user_session(request.user)
     target_user = session.user if session else request.user
 
     data = request.data.copy()
+    data.pop('device_id', None)
 
     if not data.get('posture'):
         baseline_seat = session.baseline_seat if session else None
@@ -780,10 +784,18 @@ def notification_ack(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def chair_checkin(request):
-    """POST /api/chair/checkin — 使用者坐上椅子，成為目前的感測對象。"""
-    ChairSession.objects.filter(is_active=True).update(is_active=False)
-    ChairSession.objects.create(user=request.user)
-    return Response({'status': 'checked_in', 'username': request.user.username})
+    """
+    POST /api/chair/checkin — 使用者坐上某張椅子，之後這張椅子的感測資料都算在他名下。
+
+    payload: { "device_id": "chair_A1B2C3" }   ← 選填；不帶時為舊韌體的 chair_01（舊版 App 不用改）
+    同一張椅子原本坐的人、以及這位使用者原本坐的其他椅子，都會自動結束（一張椅子一人、一人一張椅子）。
+    """
+    device_id = (request.data.get('device_id') or Chair.LEGACY_DEVICE_ID).strip()
+    chair = chair_for_device(device_id)
+    ChairSession.objects.filter(is_active=True, chair=chair).update(is_active=False)
+    ChairSession.objects.filter(is_active=True, user=request.user).update(is_active=False)
+    ChairSession.objects.create(user=request.user, chair=chair)
+    return Response({'status': 'checked_in', 'username': request.user.username, 'device_id': chair.device_id})
 
 
 @api_view(['POST'])
@@ -803,8 +815,8 @@ def chair_calibrate(request):
     payload: { "seat_pressure_data": {...}, "back_pressure_data": {...} }
     回傳:    { "status": "calibrated", "calibrated": true }
     """
-    session = ChairSession.objects.filter(is_active=True).select_related('user').first()
-    if not session or session.user != request.user:
+    session = user_session(request.user)
+    if not session:
         return Response(
             {'error': '請先 check-in 坐上椅子再進行校準'},
             status=status.HTTP_400_BAD_REQUEST,
@@ -833,8 +845,8 @@ def chair_calibrate_auto(request):
 
     回傳: { "status": "calibrated", "baseline_seat": {...}, "samples": N }
     """
-    session = ChairSession.objects.filter(is_active=True).select_related('user').first()
-    if not session or session.user != request.user:
+    session = user_session(request.user)
+    if not session:
         return Response(
             {'error': '請先 check-in 坐上椅子再進行校準'},
             status=status.HTTP_400_BAD_REQUEST,
@@ -882,16 +894,45 @@ def chair_calibrate_auto(request):
 
 @api_view(['GET'])
 def chair_status(request):
-    """GET /api/chair/status — 查詢目前是誰在使用椅子（不需要登入）。"""
-    session = ChairSession.objects.filter(is_active=True).select_related('user').first()
+    """
+    GET /api/chair/status?device_id=chair_A1B2C3 — 查詢某張椅子目前是誰在使用（不需要登入）。
+
+    不帶 device_id 時查舊韌體的 chair_01（舊版 App 不用改）。回傳欄位與舊版相同，另外多 device_id、online。
+    """
+    chair = Chair.objects.filter(device_id=request.query_params.get('device_id') or Chair.LEGACY_DEVICE_ID).first()
+    session = active_session(chair) if chair else None
+    base = {'device_id': chair.device_id if chair else None, 'online': bool(chair and is_online(chair))}
     if session:
         return Response({
+            **base,
             'active':     True,
             'username':   session.user.username,
             'since':      session.started_at,
             'calibrated': bool(session.baseline_seat),
         })
-    return Response({'active': False, 'username': None, 'calibrated': False})
+    return Response({**base, 'active': False, 'username': None, 'calibrated': False})
+
+
+@api_view(['GET'])
+def chair_list(request):
+    """
+    GET /api/chairs — 列出所有已登記的椅子與目前狀態（不需要登入）。
+
+    椅子在後端第一次收到它的 MQTT 資料時自動登記。online＝最近 15 秒內有收到資料。
+    """
+    chairs = []
+    for chair in Chair.objects.all():
+        session = active_session(chair)
+        chairs.append({
+            'device_id':  chair.device_id,
+            'name':       chair.name,
+            'online':     is_online(chair),
+            'last_seen':  chair.last_seen,
+            'active':     bool(session),
+            'username':   session.user.username if session else None,
+            'since':      session.started_at if session else None,
+        })
+    return Response({'count': len(chairs), 'chairs': chairs})
 
 
 # ── 伸展計劃 ───────────────────────────────────────────────────────────────────
@@ -975,11 +1016,11 @@ def motor_trigger(request):
     POST /api/motor/trigger — 依坐姿觸發對應馬達震動並寫入 MotorLog。
 
     payload: { "posture": "left" }
-    回傳:    { "posture": "left", "motors": ["M2","M4"], "triggered": true }
+    回傳:    { "posture": "left", "motors": ["M3","M4"], "triggered": true, "device_id": "..." }
 
-    觸發規則（同 PPT 第 11 頁）：
-        前傾 → M1 M2 | 後仰 → M3 M4
-        左傾 → M2 M4 | 右傾 → M1 M3 | 久坐 → M1 M2 M3 M4
+    手動觸發／測試用（即時提醒由椅子自己震動）。對應依硬體實際位置（api/motor_constants.py）：
+        左傾 → M3 M4 | 右傾 → M1 M2 | 前傾 → M1 M4 | 後仰 → M2 M3 | 久坐 → M1 M2 M3 M4
+    指令只送到呼叫者目前坐的那張椅子；沒有入座時送到舊韌體的 chair_01。
     """
     error = validate_request(request.data, MOTOR_TRIGGER_SCHEMA)
     if error:
@@ -1009,8 +1050,10 @@ def motor_trigger(request):
         reason=posture_name,
     )
 
-    # 發布真實馬達指令到硬體（chair/vibration/01/cmd）；硬體未連線時安靜失敗，不影響本次回應
-    published = publish_motor_command(motors)
+    # 發布真實馬達指令到使用者坐的那張椅子；硬體未連線時安靜失敗，不影響本次回應
+    session = user_session(request.user)
+    device_id = session.chair.device_id if session and session.chair else Chair.LEGACY_DEVICE_ID
+    published = publish_motor_command(motors, topic=motor_topic(device_id))
 
     return Response({
         'posture':         posture,
@@ -1019,4 +1062,5 @@ def motor_trigger(request):
         'triggered':       True,
         'message':         message,
         'mqtt_published':  published is not None,
+        'device_id':       device_id,
     })

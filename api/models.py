@@ -78,8 +78,34 @@ class Notification(models.Model):
         return f'{self.user.username} - {self.message}'
 
 
+class Chair(models.Model):
+    """
+    一張實體智慧椅，以 ESP32 的 device_id 識別（例如 chair_A1B2C3）。
+
+    後端第一次收到某張椅子的 MQTT 資料就會自動登記，量產時不需要先手動建立。
+    舊韌體固定送 chair/pressure/01、device_id 為 chair_01，視為 LEGACY_DEVICE_ID 這張椅子；
+    App 呼叫 checkin 沒指定椅子時也預設坐這張，舊版 App 不用改。
+    """
+    LEGACY_DEVICE_ID = 'chair_01'
+
+    device_id  = models.CharField(max_length=40, unique=True, verbose_name='裝置 ID')
+    name       = models.CharField(max_length=100, blank=True, verbose_name='名稱（例如擺放位置）')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='首次登記時間')
+    last_seen  = models.DateTimeField(null=True, blank=True, verbose_name='最後收到資料時間')
+
+    class Meta:
+        ordering = ['device_id']
+        verbose_name = '智慧椅'
+
+    def __str__(self):
+        return self.name or self.device_id
+
+
 class ChairSession(models.Model):
-    """記錄目前正在使用椅子的使用者（全系統只會有一筆 is_active=True）。"""
+    """記錄誰坐在哪張椅子上：每張椅子最多一筆 is_active=True，每位使用者同一時間也只坐一張。"""
+    chair         = models.ForeignKey(
+        Chair, on_delete=models.CASCADE, related_name='sessions', null=True, blank=True, verbose_name='椅子'
+    )
     user          = models.ForeignKey(User, on_delete=models.CASCADE, related_name='chair_sessions')
     started_at    = models.DateTimeField(auto_now_add=True)
     is_active     = models.BooleanField(default=True)
@@ -90,7 +116,7 @@ class ChairSession(models.Model):
         verbose_name = '座椅使用紀錄'
 
     def __str__(self):
-        return f'{self.user.username} — {"使用中" if self.is_active else "已結束"}'
+        return f'{self.chair} — {self.user.username} — {"使用中" if self.is_active else "已結束"}'
 
 
 class AgentLog(models.Model):

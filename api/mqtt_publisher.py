@@ -71,9 +71,10 @@ def build_stop_command(cmd_id=None):
 
 def publish_motor_command(motors, intensity=DEFAULT_INTENSITY,
                            duration_ms=DEFAULT_DURATION_MS,
-                           stagger_ms=DEFAULT_STAGGER_MS):
+                           stagger_ms=DEFAULT_STAGGER_MS, topic=MOTOR_CMD_TOPIC):
     """
-    發布馬達震動指令到 chair/vibration/01/cmd。
+    發布馬達震動指令。topic 預設為舊韌體的 chair/vibration/01/cmd；
+    多張椅子時傳入 api.chairs.motor_topic(device_id)，只送到使用者坐的那張椅子。
 
     失敗（broker 未連線、硬體未部署等）不拋例外，回傳 None 並記錄警告，
     避免硬體離線時把 /api/motor/trigger 或 Physio Agent 的正常回應一併打斷。
@@ -93,7 +94,7 @@ def publish_motor_command(motors, intensity=DEFAULT_INTENSITY,
 
     try:
         mqtt_publish.single(
-            MOTOR_CMD_TOPIC,
+            topic,
             payload=json.dumps(payload, ensure_ascii=False),
             qos=1,
             hostname=settings.MQTT_HOST,
@@ -102,7 +103,7 @@ def publish_motor_command(motors, intensity=DEFAULT_INTENSITY,
             tls=tls,
             client_id=f'django-publisher-{uuid.uuid4().hex[:6]}',
         )
-        logger.info(f'[MQTT] 已發布馬達指令 → {MOTOR_CMD_TOPIC}: {payload}')
+        logger.info(f'[MQTT] 已發布馬達指令 → {topic}: {payload}')
         return payload
     except Exception as e:
         logger.warning(f'[MQTT] 馬達指令發布失敗（硬體可能未連線）：{e}')
