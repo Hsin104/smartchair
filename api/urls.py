@@ -34,6 +34,7 @@ urlpatterns = [
     path('chair/checkout',  views.chair_checkout,  name='chair-checkout'),
     path('chair/calibrate',      views.chair_calibrate,      name='chair-calibrate'),
     path('chair/calibrate/auto', views.chair_calibrate_auto, name='chair-calibrate-auto'),
+    path('chair/calibration',    views.chair_calibration,    name='chair-calibration'),
     path('chair/status',    views.chair_status,    name='chair-status'),
     path('chairs',          views.chair_list,      name='chair-list'),
 

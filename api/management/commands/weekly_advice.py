@@ -83,7 +83,7 @@ class Command(BaseCommand):
                 agent_reply=advice,
                 steps=steps,
             )
-            Notification.objects.create(user=user, message=f'{REPORT_TAG}{advice}')
+            Notification.objects.create(user=user, message=f'{REPORT_TAG}{advice}', kind=Notification.KIND_WEEKLY)
             created += 1
 
         self.stdout.write(self.style.SUCCESS(

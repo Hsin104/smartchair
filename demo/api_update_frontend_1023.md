@@ -1,5 +1,8 @@
 # 後端 API 更新：AI 建議改成非同步（給 Android／Flutter 前端）
 
+> ⚠️ **已被 [api_frontend_guide.md](api_frontend_guide.md) 取代（2026-10-30）**，請改看那份。
+
+
 教授要求 AI 建議不能讓使用者一直卡著等，所以新增一組「先拿任務編號、再查結果」的 API。
 舊的 `POST /api/agent` 暫時保留，App 改完之後才會移除，所以**現在的 App 不會壞**。
 

@@ -17,6 +17,19 @@ LEGACY_MOTOR_TOPIC = 'chair/vibration/01/cmd'
 # paho 訂閱用的萬用字元 topic
 PRESSURE_TOPIC_PATTERN = 'chair/+/pressure'
 ACK_TOPIC_PATTERN = 'chair/+/vibration/ack'
+# 椅子的系統事件（校正結果 calibrated／calibration_failed、設定套用 config_applied 等）
+STATUS_TOPIC_PATTERN = 'chair/+/vibration/status'
+LEGACY_STATUS_TOPIC = 'chair/vibration/01/status'
+
+
+def device_id_from_status_topic(topic: str):
+    """chair/{device_id}/vibration/status 或舊的 chair/vibration/01/status；其他 topic 回傳 None。"""
+    if topic == LEGACY_STATUS_TOPIC:
+        return Chair.LEGACY_DEVICE_ID
+    parts = topic.split('/')
+    if len(parts) == 4 and parts[0] == 'chair' and parts[2] == 'vibration' and parts[3] == 'status':
+        return parts[1]
+    return None
 
 
 def device_id_from_topic(topic: str, payload: dict):
@@ -51,6 +64,26 @@ def motor_topic(device_id: str) -> str:
     if not device_id or device_id == Chair.LEGACY_DEVICE_ID:
         return LEGACY_MOTOR_TOPIC
     return f'chair/{device_id}/vibration/cmd'
+
+
+AUTO_CHECKOUT_MESSAGE = '已自動離座：椅子 {minutes} 分鐘沒有偵測到人，回來後請重新入座'
+
+
+def auto_checkout(session: ChairSession):
+    """
+    自動離座（設計 4-2）：結束入座、寫一則 auto_checkout 通知（App 讀到時跳出系統通知與「重新入座」），
+    並讓椅子恢復預設中立點，下一位使用者不會沿用前一位的個人校正。
+    """
+    from django.conf import settings
+    from .calibration import push_neutral
+    from .models import Notification
+
+    ChairSession.objects.filter(pk=session.pk).update(is_active=False)
+    minutes = settings.AUTO_CHECKOUT_SECONDS // 60
+    Notification.objects.create(user=session.user, kind=Notification.KIND_AUTO_CHECKOUT,
+                                message=AUTO_CHECKOUT_MESSAGE.format(minutes=minutes))
+    if session.chair:
+        push_neutral(session.chair)
 
 
 def is_online(chair: Chair, within_seconds: int = 15) -> bool:

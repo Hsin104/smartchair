@@ -69,21 +69,14 @@ def build_stop_command(cmd_id=None):
     return {'cmd_id': cmd_id or f'cmd-{uuid.uuid4().hex[:8]}', 'stop_all': True}
 
 
-def publish_motor_command(motors, intensity=DEFAULT_INTENSITY,
-                           duration_ms=DEFAULT_DURATION_MS,
-                           stagger_ms=DEFAULT_STAGGER_MS, topic=MOTOR_CMD_TOPIC):
+def publish_json(topic, payload, retain=False):
     """
-    發布馬達震動指令。topic 預設為舊韌體的 chair/vibration/01/cmd；
-    多張椅子時傳入 api.chairs.motor_topic(device_id)，只送到使用者坐的那張椅子。
+    發布一則 JSON 訊息到 MQTT（馬達指令、椅子設定共用的連線邏輯）。
 
-    失敗（broker 未連線、硬體未部署等）不拋例外，回傳 None 並記錄警告，
-    避免硬體離線時把 /api/motor/trigger 或 Physio Agent 的正常回應一併打斷。
+    retain=True 時 broker 會保留這則訊息，椅子重開機重新訂閱時會立刻收到最後一則（用於椅子設定）。
+    失敗（broker 未連線、硬體未部署等）不拋例外，回傳 False 並記錄警告，
+    避免硬體離線時把 API 的正常回應一併打斷。
     """
-    if not motors:
-        return None
-
-    payload = build_motor_command(motors, intensity, duration_ms, stagger_ms)
-
     auth = None
     if getattr(settings, 'MQTT_USERNAME', ''):
         auth = {'username': settings.MQTT_USERNAME, 'password': settings.MQTT_PASSWORD}
@@ -97,14 +90,29 @@ def publish_motor_command(motors, intensity=DEFAULT_INTENSITY,
             topic,
             payload=json.dumps(payload, ensure_ascii=False),
             qos=1,
+            retain=retain,
             hostname=settings.MQTT_HOST,
             port=settings.MQTT_PORT,
             auth=auth,
             tls=tls,
             client_id=f'django-publisher-{uuid.uuid4().hex[:6]}',
         )
-        logger.info(f'[MQTT] 已發布馬達指令 → {topic}: {payload}')
-        return payload
+        logger.info(f'[MQTT] 已發布 → {topic}: {payload}')
+        return True
     except Exception as e:
-        logger.warning(f'[MQTT] 馬達指令發布失敗（硬體可能未連線）：{e}')
+        logger.warning(f'[MQTT] 發布失敗（{topic}，硬體可能未連線）：{e}')
+        return False
+
+
+def publish_motor_command(motors, intensity=DEFAULT_INTENSITY,
+                           duration_ms=DEFAULT_DURATION_MS,
+                           stagger_ms=DEFAULT_STAGGER_MS, topic=MOTOR_CMD_TOPIC):
+    """
+    發布馬達震動指令。topic 預設為舊韌體的 chair/vibration/01/cmd；
+    多張椅子時傳入 api.chairs.motor_topic(device_id)，只送到使用者坐的那張椅子。
+    失敗時回傳 None（見 publish_json）。
+    """
+    if not motors:
         return None
+    payload = build_motor_command(motors, intensity, duration_ms, stagger_ms)
+    return payload if publish_json(topic, payload) else None

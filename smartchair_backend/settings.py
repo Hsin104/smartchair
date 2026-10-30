@@ -180,6 +180,9 @@ CORS_ALLOW_HEADERS = list(default_headers) + [
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', '')
 OPENAI_MODEL   = os.getenv('OPENAI_MODEL', 'gpt-4o-mini')
 
+# 自動離座：椅子連續這麼多秒沒偵測到人（或椅子離線），就結束入座並通知使用者（設計 4-2、4-3）
+AUTO_CHECKOUT_SECONDS = int(os.getenv('AUTO_CHECKOUT_SECONDS', 600))
+
 # 僅供壓力測試：> 0 時 Physio Agent 不呼叫 OpenAI，改成等待這麼多秒後回傳固定文字，
 # 用來量「上千人同時問 AI」時伺服器的承載能力而不產生 OpenAI 費用。正式環境務必不設定（預設 0）。
 AGENT_FAKE_LATENCY_SECONDS = float(os.getenv('AGENT_FAKE_LATENCY_SECONDS', 0))

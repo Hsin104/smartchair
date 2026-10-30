@@ -25,12 +25,15 @@ django.setup()
 
 from datetime import timedelta
 from django.contrib.auth import get_user_model
+from django.conf import settings
 from django.utils import timezone
 
 from api.models import PostureRecord, Notification, MotorLog, ChairSession, Chair
 from types import SimpleNamespace
 from api import mqtt_publisher
-from api.management.commands.mqtt_subscriber import _handle_pressure_01, STABLE_READINGS, _posture_state
+from api.management.commands.mqtt_subscriber import (
+    _handle_pressure, _handle_pressure_01, STABLE_READINGS, _posture_state, _empty_since, offline_sweep,
+)
 
 # 攔截所有 MQTT 發送：後端任何地方要送 MQTT 訊息（例如馬達指令）都會照 .env 的設定
 # 真的送到雲端 broker，讓正在使用中的真實椅子震動。測試只記錄「本來要送出的訊息」，絕不連線任何 broker。
@@ -212,6 +215,37 @@ def main():
             check('Agent 產生建議（非空）', False, str(e))
     else:
         print('\n[第四段] 已略過 Physio Agent 測試（加 --with-ai 執行，會呼叫 OpenAI API）')
+
+    # ── 第五段：自動離座（以模擬時間取代實際等待 10 分鐘）────────────────────
+    print(f'\n[第五段] 自動離座（AUTO_CHECKOUT_SECONDS={settings.AUTO_CHECKOUT_SECONDS}，以模擬時間驗證）')
+    over = timedelta(seconds=settings.AUTO_CHECKOUT_SECONDS + 1)
+
+    # 情境 1：椅子還在線，但連續沒人坐超過門檻
+    ChairSession.objects.filter(user=user, is_active=True).update(is_active=False)
+    session = ChairSession.objects.create(user=user, chair=chair)
+    Notification.objects.filter(user=user).delete()
+    _published_mqtt.clear()
+    _empty_since[TEST_DEVICE_ID] = timezone.now() - over
+    _handle_pressure(TEST_DEVICE_ID, {'device_id': TEST_DEVICE_ID, 'norm': [0] * 11})
+    session.refresh_from_db()
+    check('連續沒人坐超過門檻 → 自動離座', session.is_active is False)
+    check('寫入 auto_checkout 通知',
+          Notification.objects.filter(user=user, kind=Notification.KIND_AUTO_CHECKOUT).exists())
+    reset_sent = [p for t, p in _published_mqtt if t == f'chair/{TEST_DEVICE_ID}/config']
+    check('椅子恢復預設中立點（reset_neutral）', bool(reset_sent) and '"reset_neutral"' in reset_sent[-1],
+          str(reset_sent[-1:]))
+    _empty_since.pop(TEST_DEVICE_ID, None)
+
+    # 情境 2：椅子直接斷電、不再送任何訊息
+    session = ChairSession.objects.create(user=user, chair=chair)
+    Chair.objects.filter(pk=chair.pk).update(last_seen=timezone.now() - over)
+    offline_sweep(chair_ids=[chair.pk])
+    session.refresh_from_db()
+    check('椅子離線超過門檻 → 自動離座', session.is_active is False)
+    auto = Notification.objects.filter(user=user, kind=Notification.KIND_AUTO_CHECKOUT, is_sent=False)
+    pending = Notification.objects.filter(user=user, is_sent=False, kind=Notification.KIND_POSTURE)  # 同 notification_pending
+    check('自動離座通知不會被硬體輪詢 pending 取走（只回 posture 類型）',
+          auto.count() == 2 and not pending.filter(pk__in=auto).exists(), f'auto_checkout {auto.count()} 則')
 
     # ── 收尾：清除測試資料，避免污染資料庫 ──────────────────────────────────
     PostureRecord.objects.filter(user=user).delete()

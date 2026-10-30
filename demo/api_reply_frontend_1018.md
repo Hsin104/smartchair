@@ -1,5 +1,8 @@
 # SmartChair 後端 API 回覆（給 Android／Flutter 前端）
 
+> ⚠️ **已被 [api_frontend_guide.md](api_frontend_guide.md) 取代（2026-10-30）**，請改看那份。
+
+
 > 以下回應都是 10/18 實際打 API 取得的真實內容（本機與正式環境同一版程式；不需登入的 API 已在正式網址確認一致）。
 
 - 正式網址：`https://sandbar-badass-subfloor.ngrok-free.dev/api`（目前就是正式環境，沒有另一個網址）

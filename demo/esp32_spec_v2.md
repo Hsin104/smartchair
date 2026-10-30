@@ -19,6 +19,8 @@
 | 震動 | **後端不再自動發任何震動指令**，所有震動（壞坐姿＋久坐）都由椅子負責，不會重複震、斷網也能用 |
 | 馬達位置 | 後端手動觸發（測試用）的對應**暫時**改成跟你現在的一致：左傾 M3+M4、右傾 M1+M2、前傾 M1+M4、後仰 M2+M3（等你回覆第五節再定案） |
 | `pose.label` | 後端會存起來（轉成 `left`／`right`／`forward`／`recline`／`empty`），跟雲端 AI 模型的判斷做對照 |
+| 個人校正 | 後端已完成：記住每位使用者的中立點、入座時自動送給椅子、等你回報校正結果、10 秒沒回報改後端計算（見第三節第 4 項） |
+| 多張椅子 | 後端已同時支援新 topic `chair/{device_id}/...` 與舊 topic，你改完 topic 就能直接用 |
 
 ---
 
@@ -67,7 +69,52 @@
 
 開機時在序列埠印出 device_id，方便貼標籤。後端下週會支援新 topic，**過渡期新舊 topic 都收**，你可以先改、不用等後端。
 
-### 4. 精簡每筆資料
+### 4. 個人校正：由椅子計算，並接收中立點設定
+
+設計細節見 `calibration_design.md`。使用者在 App 按「校正」後，**由椅子取樣 5 秒算出他坐正時的重心**（你的 50Hz 資料比後端收到的準）；結果記在使用者身上，之後他坐任何一張椅子，後端都會把中立點送給那張椅子，不用每次重新校正。**預設值也由後端送**，之後依真實資料調整時不用重燒韌體。
+
+**(1) 訂閱兩個 topic**
+
+| Topic | 內容 | 保留訊息 |
+|---|---|---|
+| `chair/{device_id}/config` | 目前該用的中立點 | **是**：重開機重新訂閱時會立刻收到 |
+| `chair/{device_id}/calibration/cmd` | 開始校正指令 | 否 |
+
+**(2) 收到 `config`：套用中立點**
+
+```json
+{"cmd": "set_neutral",   "neutral_x": 0.5,    "neutral_y": 0.4266, "normal_radius": 0.07, "source": "user"}
+{"cmd": "reset_neutral", "neutral_x": 0.5137, "neutral_y": 0.4043, "normal_radius": 0.07, "source": "fleet"}
+```
+- 兩種都直接把 `neutral_x`、`neutral_y`、`normal_radius` 換成訊息裡的值，之後的重心判斷、`pose.label`、自動震動都用它（`reset_neutral` 的值是後端依真實資料算的預設值，不一定是幾何中心）
+- 訊息不含帳號名稱；`source` 只是說明來源（user＝個人校正、chair／fleet＝預設值），不用處理
+- 套用後在 status 回報：`{"event": "config_applied", "cmd": "set_neutral"}`
+- **不要把收到的值存進快閃記憶體**：斷網開機時用你內建的幾何中心（0.5、0.4425、0.07），避免下一個人用到前一個人的值
+
+**(3) 收到 `calibration/cmd`：取樣並回報**
+
+```json
+{"cmd": "calibrate", "duration_s": 5, "request_id": "01a253e2-..."}
+```
+1. 取樣 `duration_s` 秒（使用者會被 App 要求坐正不動）
+2. 檢查：
+   - 期間沒人坐（`no_occupancy`）→ 失敗，`reason: "no_occupancy"`
+   - 重心與平均位置的距離超過 **0.035**（綠環半徑的一半）→ 失敗，`reason: "unstable"`
+3. 成功時回報平均重心與 11 顆感測器的平均 norm（後端給雲端 AI 模型用）
+
+回報在 `chair/{device_id}/vibration/status`（你現有的 status topic），`request_id` 照指令原樣帶回：
+
+```json
+{"event": "calibrated", "request_id": "01a253e2-...", "neutral_x": 0.5, "neutral_y": 0.4266,
+ "norm_avg": [52, 50, 44, 48, 42, 44, 50, 52, 25, 27, 27], "samples": 250}
+{"event": "calibration_failed", "request_id": "01a253e2-...", "reason": "unstable"}
+```
+- 回報後**不用自己改中立點**：後端存好會再送一次 `set_neutral` 給你
+- 後端最多等 10 秒；沒收到回報會改用後端收到的資料計算（所以舊韌體也能校正，只是比較不準）
+
+舊 topic 的椅子（`chair_01`）：設定 topic 為 `chair/chair_01/config`、`chair/chair_01/calibration/cmd`，回報用現有的 `chair/vibration/01/status`。
+
+### 5. 精簡每筆資料
 
 | 欄位 | 改成 |
 |---|---|
@@ -76,7 +123,7 @@
 | `power` | 只放在 `sync` 那筆就好（電量不會幾秒內改變） |
 | `pose` | 保留 |
 
-### 5. `posture_reminder` 不要每 0.5 秒送
+### 6. `posture_reminder` 不要每 0.5 秒送
 
 目前壞坐姿期間每 0.5 秒都送一次。改成**真的震動那一次才送**（也就是最快每 30 秒一次），並帶上震了哪幾顆馬達與強度，例如：
 
@@ -87,13 +134,13 @@
 
 後端會記錄成「這次提醒」，App 也能顯示「椅子剛剛提醒過你」。
 
-### 6. 在文件補上 debouncing 做法
+### 7. 在文件補上 debouncing 做法
 
 教授特別提到感測器按下瞬間的暫態。請在文件寫明你怎麼處理，建議做法：
 - 每顆感測器保留最近 5 次讀值取平均再算重心
 - `pose.label` 要連續 **1 秒**都一樣才更新（避免在綠環邊界來回跳）
 
-### 7.（加分）LED 燈條
+### 8.（加分）LED 燈條
 
 教授 10/19 建議：斷網或後端掛掉時，椅子本身仍要有看得到的提示。震動是「提醒」，LED 是「隨時看得到的狀態」，兩者互補。
 
@@ -208,7 +255,7 @@ void ledUpdate(uint32_t now) {                   // 在 loop() 中每 100 ms 呼
 
 > 震動時白閃一下：在你送出震動的地方，對第 1～7 顆 `setPixelColor(i, strip.Color(255,255,255))` 後 `show()`，下一次 `ledUpdate()` 就會自動恢復原本顏色。
 
-### 8.（可選）NTP 對時
+### 9.（可選）NTP 對時
 
 `ts` 目前是開機秒數，後端會用收到的時間代替，所以不改也可以。要改的話：連上 WiFi 後 `configTime(8 * 3600, 0, "pool.ntp.org");`，`ts` 改送 Unix 秒數。
 

@@ -33,7 +33,12 @@ from .physio_agent import get_advice, POSTURE_DISPLAY
 from .mqtt_publisher import publish_motor_command
 from .motor_constants import MOTOR_MAP
 from .chairs import active_session, chair_for_device, is_online, motor_topic, user_session
-from .models import Chair
+from .models import CalibrationRequest, Chair, UserCalibration
+from .calibration import (
+    CALIBRATION_DURATION_SECONDS, DEVICE_TIMEOUT_SECONDS, FAIL_MESSAGES,
+    calibrate_from_recent, center_of_pressure, push_neutral, refresh_request, start_calibration,
+    user_calibration,
+)
 
 # 伸展動作查表（不經過 LLM），實作在 api/stretch.py
 from .stretch import get_stretch_map as _get_stretch_map, recommend_exercises as _recommend_exercises
@@ -564,8 +569,9 @@ def posture_create(request):
     data.pop('device_id', None)
 
     if not data.get('posture'):
-        baseline_seat = session.baseline_seat if session else None
-        baseline_back = session.baseline_back if session else None
+        calibration = user_calibration(target_user)
+        baseline_seat = calibration.baseline_seat if calibration else None
+        baseline_back = calibration.baseline_back if calibration else None
         predicted, confidence = predict_posture(
             data.get('seat_pressure_data'),
             back_pressure_data=data.get('back_pressure_data'),
@@ -585,7 +591,7 @@ def posture_create(request):
 
     serializer = PostureRecordSerializer(data=data)
     if serializer.is_valid():
-        serializer.save(user=target_user)
+        serializer.save(user=target_user, chair=session.chair if session else None)
         response_data = dict(serializer.data)
 
         detected_posture = data['posture']
@@ -726,8 +732,9 @@ def notification_pending(request):
     回傳尚未發送的通知清單，並同時標記為已發送（is_sent=True）。
     ESP32 收到後即可驅動馬達震動。
     """
+    # 只回傳坐姿提醒：自動離座、週報不應觸發硬體震動
     pending = list(
-        Notification.objects.filter(user=request.user, is_sent=False)
+        Notification.objects.filter(user=request.user, is_sent=False, kind=Notification.KIND_POSTURE)
         .values('id', 'message', 'timestamp')
     )
     if pending:
@@ -748,6 +755,7 @@ def notification_history(request):
     data = [
         {
             'id': n.id,
+            'kind': n.kind,          # posture／auto_checkout／weekly，前端依此決定顯示方式
             'message': n.message,
             'timestamp': n.timestamp,
             'is_sent': n.is_sent,
@@ -789,107 +797,140 @@ def chair_checkin(request):
 
     payload: { "device_id": "chair_A1B2C3" }   ← 選填；不帶時為舊韌體的 chair_01（舊版 App 不用改）
     同一張椅子原本坐的人、以及這位使用者原本坐的其他椅子，都會自動結束（一張椅子一人、一人一張椅子）。
+    中立點送給這張椅子：校正過送個人值，沒校正送預設值（demo/calibration_design.md）。
+    回應的 calibrated=false 時，App 應提示使用者校正（每次入座都提示，直到完成）。
     """
     device_id = (request.data.get('device_id') or Chair.LEGACY_DEVICE_ID).strip()
     chair = chair_for_device(device_id)
+    _end_sessions(ChairSession.objects.filter(is_active=True, user=request.user).exclude(chair=chair))
     ChairSession.objects.filter(is_active=True, chair=chair).update(is_active=False)
-    ChairSession.objects.filter(is_active=True, user=request.user).update(is_active=False)
     ChairSession.objects.create(user=request.user, chair=chair)
-    return Response({'status': 'checked_in', 'username': request.user.username, 'device_id': chair.device_id})
+    push_neutral(chair, request.user)
+    return Response({
+        'status':     'checked_in',
+        'username':   request.user.username,
+        'device_id':  chair.device_id,
+        'calibrated': user_calibration(request.user) is not None,
+    })
+
+
+def _end_sessions(sessions):
+    """結束入座，並讓那些椅子恢復預設中立點（下一位使用者不會沿用前一位的個人校正）。"""
+    for session in sessions.select_related('chair'):
+        ChairSession.objects.filter(pk=session.pk).update(is_active=False)
+        if session.chair:
+            push_neutral(session.chair)
 
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def chair_checkout(request):
-    """POST /api/chair/checkout — 使用者離開椅子。"""
-    ChairSession.objects.filter(user=request.user, is_active=True).update(is_active=False)
+    """POST /api/chair/checkout — 使用者離開椅子，椅子恢復預設中立點。"""
+    _end_sessions(ChairSession.objects.filter(user=request.user, is_active=True))
     return Response({'status': 'checked_out'})
+
+
+def _calibration_data(calibration):
+    return {
+        'neutral_x':     calibration.neutral_x,
+        'neutral_y':     calibration.neutral_y,
+        'samples':       calibration.samples,
+        'method':        calibration.method,
+        'baseline_seat': calibration.baseline_seat,
+        'calibrated_at': calibration.calibrated_at,
+    }
 
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def chair_calibrate(request):
     """
-    POST /api/chair/calibrate — 記錄目前坐姿作為基準值（請保持標準坐姿再送出）。
+    POST /api/chair/calibrate — 直接指定坐正時的感測值作為個人校正（測試工具用；App 請用 /chair/calibration）。
 
     payload: { "seat_pressure_data": {...}, "back_pressure_data": {...} }
-    回傳:    { "status": "calibrated", "calibrated": true }
     """
-    session = user_session(request.user)
-    if not session:
-        return Response(
-            {'error': '請先 check-in 坐上椅子再進行校準'},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
-
     seat = request.data.get('seat_pressure_data')
-    back = request.data.get('back_pressure_data', {})
-    if not seat:
-        return Response(
-            {'error': '請提供 seat_pressure_data 與 back_pressure_data'},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+    back = request.data.get('back_pressure_data') or None
+    center = center_of_pressure(seat or {})
+    if center is None:
+        return Response({'error': '請提供有壓力的 seat_pressure_data'}, status=status.HTTP_400_BAD_REQUEST)
 
-    session.baseline_seat = seat
-    session.baseline_back = back
-    session.save(update_fields=['baseline_seat', 'baseline_back'])
-
-    return Response({'status': 'calibrated', 'calibrated': True})
+    session = user_session(request.user)
+    calibration, _ = UserCalibration.objects.update_or_create(
+        user=request.user,
+        defaults={'neutral_x': center[0], 'neutral_y': center[1], 'baseline_seat': seat, 'baseline_back': back,
+                  'samples': 1, 'method': UserCalibration.METHOD_BACKEND,
+                  'device_id': session.chair.device_id if session and session.chair else ''},
+    )
+    if session and session.chair:
+        push_neutral(session.chair, request.user)
+    return Response({'status': 'calibrated', 'calibrated': True, **_calibration_data(calibration)})
 
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def chair_calibrate_auto(request):
     """
-    POST /api/chair/calibrate/auto — 坐正後呼叫，自動用最近 15 秒資料平均作為基準。
+    POST /api/chair/calibrate/auto — 【舊流程，保留給尚未改版的 App】由後端立即計算校正並回傳結果。
 
-    回傳: { "status": "calibrated", "baseline_seat": {...}, "samples": N }
+    用最近 20 秒收到的感測資料平均；新流程請改用 POST／GET /api/chair/calibration（由椅子計算，較準確）。
+    回傳: { "status": "calibrated", "calibrated": true, "samples": N, "baseline_seat": {...}, "neutral_x", "neutral_y", ... }
     """
     session = user_session(request.user)
-    if not session:
-        return Response(
-            {'error': '請先 check-in 坐上椅子再進行校準'},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+    if not session or not session.chair:
+        return Response({'error': FAIL_MESSAGES['not_seated']}, status=status.HTTP_400_BAD_REQUEST)
 
-    cutoff = timezone.now() - timedelta(seconds=15)
-    recent = list(
-        PostureRecord.objects.filter(
-            user=request.user,
-            seat_pressure_data__isnull=False,
-            timestamp__gte=cutoff,
-        ).order_by('-timestamp')[:10]
-    )
+    calibration, reason = calibrate_from_recent(request.user, session.chair)
+    if reason:
+        return Response({'error': FAIL_MESSAGES.get(reason, reason), 'reason': reason},
+                        status=status.HTTP_404_NOT_FOUND if reason == 'no_data' else status.HTTP_400_BAD_REQUEST)
+    return Response({'status': 'calibrated', 'calibrated': True, **_calibration_data(calibration)})
 
-    if not recent:
-        return Response(
-            {'error': '最近 15 秒內沒有感測器資料，請坐好後稍候再試'},
-            status=status.HTTP_404_NOT_FOUND,
-        )
 
-    # 多筆平均，避免單筆雜訊
-    baseline_seat = {}
-    for k in SEAT_KEYS:
-        vals = [r.seat_pressure_data.get(k, 0) for r in recent if r.seat_pressure_data]
-        baseline_seat[k] = round(sum(vals) / len(vals), 2) if vals else 0
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def chair_calibration(request):
+    """
+    個人坐姿校正（新流程，設計見 demo/calibration_design.md）。
 
-    baseline_back = {}
-    back_records = [r for r in recent if r.back_pressure_data]
-    if back_records:
-        for k in BACK_KEYS:
-            vals = [r.back_pressure_data.get(k, 0) for r in back_records]
-            baseline_back[k] = round(sum(vals) / len(vals), 2)
+    POST /api/chair/calibration — 開始校正：請椅子取樣 5 秒（使用者需坐正不動），立即回 202
+        回傳: { "request_id": "...", "status": "running", "duration_s": 5, "timeout_s": 10 }
+    GET  /api/chair/calibration — 查詢自己最近一次校正（App 每秒查一次）
+        status: running（校正中）／done（完成，附 calibration）／failed（失敗，附 reason 與中文 message）
+        method: device（椅子計算）／backend（椅子 10 秒內沒回應，改用後端資料計算）
+    """
+    if request.method == 'POST':
+        session = user_session(request.user)
+        if not session or not session.chair:
+            return Response({'error': FAIL_MESSAGES['not_seated']}, status=status.HTTP_400_BAD_REQUEST)
+        calibration_request = start_calibration(request.user, session.chair)
+        return Response({
+            'request_id': str(calibration_request.id),
+            'status':     calibration_request.status,
+            'duration_s': CALIBRATION_DURATION_SECONDS,
+            'timeout_s':  DEVICE_TIMEOUT_SECONDS,
+        }, status=status.HTTP_202_ACCEPTED)
 
-    session.baseline_seat = baseline_seat
-    session.baseline_back = baseline_back
-    session.save(update_fields=['baseline_seat', 'baseline_back'])
+    calibration_request = CalibrationRequest.objects.filter(user=request.user).first()
+    if calibration_request is None:
+        calibration = user_calibration(request.user)
+        return Response({'status': 'none', 'calibrated': calibration is not None,
+                         'calibration': _calibration_data(calibration) if calibration else None})
 
-    return Response({
-        'status':        'calibrated',
-        'calibrated':    True,
-        'samples':       len(recent),
-        'baseline_seat': baseline_seat,
-    })
+    calibration_request = refresh_request(calibration_request)
+    data = {
+        'request_id': str(calibration_request.id),
+        'status':     calibration_request.status,
+        'method':     calibration_request.method,
+        'device_id':  calibration_request.chair.device_id,
+        'started_at': calibration_request.created_at,
+    }
+    if calibration_request.status == CalibrationRequest.STATUS_DONE:
+        data['calibration'] = _calibration_data(user_calibration(request.user))
+    elif calibration_request.status == CalibrationRequest.STATUS_FAILED:
+        data['reason'] = calibration_request.reason
+        data['message'] = FAIL_MESSAGES.get(calibration_request.reason, '校正失敗，請再試一次')
+    return Response(data)
 
 
 @api_view(['GET'])
@@ -898,6 +939,7 @@ def chair_status(request):
     GET /api/chair/status?device_id=chair_A1B2C3 — 查詢某張椅子目前是誰在使用（不需要登入）。
 
     不帶 device_id 時查舊韌體的 chair_01（舊版 App 不用改）。回傳欄位與舊版相同，另外多 device_id、online。
+    calibrated：目前坐的人是否已有個人校正（記在使用者身上，換椅子也算）。
     """
     chair = Chair.objects.filter(device_id=request.query_params.get('device_id') or Chair.LEGACY_DEVICE_ID).first()
     session = active_session(chair) if chair else None
@@ -908,7 +950,7 @@ def chair_status(request):
             'active':     True,
             'username':   session.user.username,
             'since':      session.started_at,
-            'calibrated': bool(session.baseline_seat),
+            'calibrated': user_calibration(session.user) is not None,
         })
     return Response({**base, 'active': False, 'username': None, 'calibrated': False})
 

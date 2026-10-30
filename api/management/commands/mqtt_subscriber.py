@@ -16,9 +16,11 @@ MQTT 訂閱服務
 """
 
 import json
+from datetime import timedelta
 import logging
 import ssl
 import tempfile
+import threading
 import time
 from pathlib import Path
 
@@ -27,10 +29,14 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 
-from api.models import PostureRecord, Notification
+from django.db import close_old_connections
+from django.utils import timezone
+
+from api.models import ChairSession, PostureRecord, Notification
+from api.calibration import handle_device_event, user_calibration
 from api.chairs import (
-    ACK_TOPIC_PATTERN, LEGACY_PRESSURE_TOPIC, PRESSURE_TOPIC_PATTERN,
-    active_session, chair_for_device, device_id_from_topic,
+    ACK_TOPIC_PATTERN, LEGACY_PRESSURE_TOPIC, LEGACY_STATUS_TOPIC, PRESSURE_TOPIC_PATTERN, STATUS_TOPIC_PATTERN,
+    active_session, auto_checkout, chair_for_device, device_id_from_status_topic, device_id_from_topic,
 )
 from api.views import predict_posture, _check_sedentary
 from api.physio_agent import POSTURE_DISPLAY
@@ -63,6 +69,8 @@ STABLE_READINGS = 10
 TOPICS = [
     PRESSURE_TOPIC_PATTERN,      # chair/+/pressure：每張椅子各自的感測資料（新韌體）
     ACK_TOPIC_PATTERN,           # chair/+/vibration/ack
+    STATUS_TOPIC_PATTERN,        # chair/+/vibration/status：校正結果、設定套用回報
+    LEGACY_STATUS_TOPIC,
     'chair/pressure/01',         # 舊韌體（device_id 固定 chair_01）
     'chair/vibration/01/ack',
     'smartchair/sensor/seat',
@@ -87,6 +95,9 @@ _sensor_buffer = {}
 
 # 每張椅子上一次的空椅狀態：{ device_id: True=有人 / False=無人 }（沒有 key＝初始）
 _last_occupied = {}
+
+# 每張椅子從什麼時候開始連續沒人坐：{ device_id: datetime }，用於自動離座（設計 4-2）
+_empty_since = {}
 
 # 坐姿防手震狀態：{ 'device_id:username': {'candidate': 候選坐姿, 'count': 連續次數, 'confirmed': 上次確認的坐姿} }
 # 以「椅子＋使用者」為單位，多張椅子各自計數，不會互相干擾
@@ -117,6 +128,12 @@ def _handle_pressure(device_id: str, payload: dict):
     # 椅子空置檢查：norm/raw 總壓力過低則寫入 empty（每張椅子各自判斷，僅在狀態轉換時寫一次）
     pressure = total_pressure(payload)
     if pressure < MIN_SEAT_PRESSURE:
+        # 連續沒人坐超過 AUTO_CHECKOUT_SECONDS → 自動離座（新韌體沒人坐時每 30 秒同步一次，仍會收到訊息）
+        empty_since = _empty_since.setdefault(device_id, timezone.now())
+        if session and (timezone.now() - empty_since).total_seconds() >= settings.AUTO_CHECKOUT_SECONDS:
+            auto_checkout(session)
+            print(f'[MQTT] {device_id} 連續無人 → 自動離座：{session.user.username}')
+            session = None
         if _last_occupied.get(device_id) is not False:
             _last_occupied[device_id] = False
             if session:
@@ -127,6 +144,7 @@ def _handle_pressure(device_id: str, payload: dict):
                     back_pressure_data={},
                     source='auto',
                     device_posture=device_posture(payload),
+                    chair=chair,
                 )
                 print(f'[MQTT] {device_id} 無人坐著 → 寫入 empty：{session.user.username}')
             else:
@@ -134,6 +152,7 @@ def _handle_pressure(device_id: str, payload: dict):
         return
 
     _last_occupied[device_id] = True
+    _empty_since.pop(device_id, None)
 
     if session:
         user = session.user
@@ -149,10 +168,11 @@ def _handle_pressure(device_id: str, payload: dict):
 
     seat_data, back_data = parse_esp32_payload(payload)
 
-    baseline_seat = session.baseline_seat if (session and session.baseline_seat) else None
+    # 個人校正記在使用者身上（換椅子也通用），有校正過就用 AI 模型的校準模式
+    calibration = user_calibration(user)
+    baseline_seat = calibration.baseline_seat if calibration else None
+    baseline_back = calibration.baseline_back if calibration else None
     mode_label = '校準' if baseline_seat else '未校準'
-
-    baseline_back = session.baseline_back if (session and session.baseline_back) else None
 
     predicted, confidence = predict_posture(
         seat_data,
@@ -174,6 +194,7 @@ def _handle_pressure(device_id: str, payload: dict):
         source='auto',
         confidence=confidence,
         device_posture=device_posture(payload),
+        chair=chair,
     )
     print(f'[MQTT] {device_id} 寫入資料庫 [{mode_label}] — {user.username}: {posture}')
 
@@ -244,6 +265,12 @@ def _dispatch_message(topic, payload):
         _handle_pressure(device_id, payload)
         return
 
+    # ── 椅子系統事件：校正結果、設定套用回報（其餘事件如 posture_reminder 不需處理）──
+    status_device = device_id_from_status_topic(topic)
+    if status_device:
+        handle_device_event(status_device, payload)
+        return
+
     # ── 馬達指令執行回覆：新 chair/{device_id}/vibration/ack 與舊 chair/vibration/01/ack ──
     if topic.startswith('chair/') and topic.endswith('/vibration/ack'):
         print(f'[MQTT] 馬達 ACK（{topic}）— cmd_id={payload.get("cmd_id")} '
@@ -299,6 +326,31 @@ def on_disconnect(client, userdata, disconnect_flags, reason_code, properties=No
     _write_heartbeat(connected=False)
 
 
+def offline_sweep(chair_ids=None):
+    """
+    椅子直接斷電或斷網時不會再送任何訊息，上面「連續沒人坐」的判斷永遠不會執行；
+    這裡把最後收到資料已超過 AUTO_CHECKOUT_SECONDS 的椅子視同沒人坐，對上面的使用者自動離座。
+    """
+    close_old_connections()
+    cutoff = timezone.now() - timedelta(seconds=settings.AUTO_CHECKOUT_SECONDS)
+    stale = ChairSession.objects.filter(is_active=True, chair__last_seen__lt=cutoff).select_related('chair', 'user')
+    if chair_ids is not None:      # 測試時只檢查指定的椅子
+        stale = stale.filter(chair_id__in=chair_ids)
+    for session in stale:
+        auto_checkout(session)
+        print(f'[MQTT] {session.chair.device_id} 離線超過 {settings.AUTO_CHECKOUT_SECONDS} 秒 → 自動離座：'
+              f'{session.user.username}')
+
+
+def _offline_sweep_loop(interval_seconds=60):
+    while True:
+        time.sleep(interval_seconds)
+        try:
+            offline_sweep()
+        except Exception as e:
+            logger.error(f'[MQTT] 離線椅子檢查失敗：{e}', exc_info=True)
+
+
 # ── Django management command ────────────────────────────────────────────────
 
 class Command(BaseCommand):
@@ -324,6 +376,8 @@ class Command(BaseCommand):
         client.on_disconnect = on_disconnect
         client.on_log        = on_log
         client.reconnect_delay_set(min_delay=1, max_delay=30)
+
+        threading.Thread(target=_offline_sweep_loop, daemon=True).start()
 
         try:
             client.connect(MQTT_HOST, MQTT_PORT, keepalive=60)

@@ -50,6 +50,11 @@ class PostureRecord(models.Model):
     # ESP32 依重心規則自己判斷的坐姿（payload 的 pose.label，已轉成跟 posture 相同的代碼）。
     # 正式紀錄以雲端 AI 模型的 posture 為準，這欄留作對照：兩者不一致的比例可用來評估邊緣端判斷的可靠度
     device_posture     = models.CharField(max_length=20, null=True, blank=True, verbose_name='椅子端判斷坐姿')
+    # 來自哪張椅子：用來計算每張椅子自己的預設中立點（api/calibration.py update_default_neutrals）
+    chair              = models.ForeignKey(
+        'Chair', on_delete=models.SET_NULL, null=True, blank=True, related_name='posture_records',
+        verbose_name='椅子',
+    )
 
     class Meta:
         ordering = ['-timestamp']
@@ -69,6 +74,18 @@ class Notification(models.Model):
     # TextField 而非 CharField：週報通知（weekly_advice）會塞入完整 Physio Agent 建議文字，長度不固定
     message = models.TextField(verbose_name='通知內容')
     is_sent = models.BooleanField(default=False, verbose_name='是否已發送')
+
+    # 通知類型：前端依此決定顯示方式（例如自動離座要跳出「重新入座」），
+    # GET /notification/pending（硬體輪詢震動用）只回傳 posture，避免自動離座、週報也觸發震動
+    KIND_POSTURE       = 'posture'
+    KIND_AUTO_CHECKOUT = 'auto_checkout'
+    KIND_WEEKLY        = 'weekly'
+    KIND_CHOICES = [
+        (KIND_POSTURE,       '坐姿提醒'),
+        (KIND_AUTO_CHECKOUT, '自動離座'),
+        (KIND_WEEKLY,        '每週報告'),
+    ]
+    kind = models.CharField(max_length=20, choices=KIND_CHOICES, default=KIND_POSTURE, verbose_name='類型')
 
     class Meta:
         ordering = ['-timestamp']
@@ -93,12 +110,90 @@ class Chair(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='首次登記時間')
     last_seen  = models.DateTimeField(null=True, blank=True, verbose_name='最後收到資料時間')
 
+    # 這張椅子自己的預設中立點（沒校正的人坐時用）：由這張椅子累積的正常坐姿資料算出，
+    # 每週重新計算（python manage.py update_default_neutral），資料不足時為 null、改用全部椅子的平均
+    default_neutral_x  = models.FloatField(null=True, blank=True, verbose_name='預設中立點 X')
+    default_neutral_y  = models.FloatField(null=True, blank=True, verbose_name='預設中立點 Y')
+    default_samples    = models.PositiveIntegerField(default=0, verbose_name='預設中立點取樣筆數')
+    default_updated_at = models.DateTimeField(null=True, blank=True, verbose_name='預設中立點計算時間')
+
     class Meta:
         ordering = ['device_id']
         verbose_name = '智慧椅'
 
     def __str__(self):
         return self.name or self.device_id
+
+
+class UserCalibration(models.Model):
+    """
+    使用者的個人坐姿校正（坐正時的平均壓力與重心），記在使用者身上，換椅子也通用，只要校正一次。
+
+    - neutral_x / neutral_y：個人化中立點，入座時透過 MQTT 送給那張椅子（chair/{device_id}/config），
+      ESP32 用它判斷坐姿與震動提醒，取代固定的感測器座標平均
+    - baseline_seat / baseline_back：給雲端 AI 坐姿模型的校準模式（posture_model_calibrated）
+    """
+    user          = models.OneToOneField(User, on_delete=models.CASCADE, related_name='calibration')
+    neutral_x     = models.FloatField(verbose_name='中立點 X（0 左～1 右）')
+    neutral_y     = models.FloatField(verbose_name='中立點 Y（0 後～1 前）')
+    baseline_seat = models.JSONField(verbose_name='坐正時座墊平均壓力')
+    baseline_back = models.JSONField(null=True, blank=True, verbose_name='坐正時椅背平均壓力')
+    samples       = models.PositiveIntegerField(default=0, verbose_name='取樣筆數')
+    device_id     = models.CharField(max_length=40, blank=True, verbose_name='在哪張椅子校正')
+    METHOD_DEVICE  = 'device'
+    METHOD_BACKEND = 'backend'
+    method        = models.CharField(
+        max_length=10, default=METHOD_BACKEND, verbose_name='計算方式',
+        choices=[(METHOD_DEVICE, '椅子計算'), (METHOD_BACKEND, '後端計算（備案）')],
+    )
+    calibrated_at = models.DateTimeField(auto_now=True, verbose_name='校正時間')
+
+    class Meta:
+        verbose_name = '使用者坐姿校正'
+
+    def __str__(self):
+        return f'{self.user.username}（{self.neutral_x:.3f}, {self.neutral_y:.3f}）'
+
+
+class CalibrationRequest(models.Model):
+    """
+    一次校正的進度（App 用 GET /chair/calibration 查詢）。
+
+    正式流程由椅子計算：後端送 calibrate 指令，椅子取樣 5 秒後回報 calibrated／calibration_failed；
+    超過 DEVICE_TIMEOUT_SECONDS 沒回應時，改用後端收到的資料計算（備案）。
+    """
+    STATUS_RUNNING = 'running'
+    STATUS_DONE    = 'done'
+    STATUS_FAILED  = 'failed'
+
+    id          = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user        = models.ForeignKey(User, on_delete=models.CASCADE, related_name='calibration_requests')
+    chair       = models.ForeignKey('Chair', on_delete=models.CASCADE, related_name='calibration_requests')
+    status      = models.CharField(
+        max_length=10, default=STATUS_RUNNING, verbose_name='狀態',
+        choices=[(STATUS_RUNNING, '校正中'), (STATUS_DONE, '完成'), (STATUS_FAILED, '失敗')],
+    )
+    method      = models.CharField(max_length=10, blank=True, verbose_name='計算方式（device／backend）')
+    reason      = models.CharField(max_length=40, blank=True, verbose_name='失敗原因代碼')
+    created_at  = models.DateTimeField(auto_now_add=True, verbose_name='開始時間')
+    finished_at = models.DateTimeField(null=True, blank=True, verbose_name='結束時間')
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = '校正請求'
+
+
+class SystemSetting(models.Model):
+    """系統層級的設定值（key／JSON value），例如全部椅子平均的預設中立點 default_neutral。"""
+    key        = models.CharField(max_length=50, unique=True)
+    value      = models.JSONField()
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = '系統設定'
+
+    def __str__(self):
+        return self.key
 
 
 class ChairSession(models.Model):
