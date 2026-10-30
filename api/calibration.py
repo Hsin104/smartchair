@@ -224,7 +224,7 @@ def refresh_request(request: CalibrationRequest) -> CalibrationRequest:
 
 def update_default_neutrals():
     """
-    重新計算每張椅子與全部椅子的預設中立點，並送給「沒人坐」或「坐的人沒校正」的椅子。
+    重新計算每張椅子與全部椅子的預設中立點，並把每張椅子目前該用的中立點重送一次。
 
     資料：AI 判定為正常坐姿（posture=normal）、且使用者沒有個人校正的紀錄（校正過的人會讓預設值偏向個人）。
     限制：「正常坐姿」是 AI 模型判斷的，不是人工標註。回傳每張椅子的結果摘要。
@@ -265,8 +265,8 @@ def update_default_neutrals():
         summary[chair.device_id] = {'neutral': (chair.default_neutral_x, chair.default_neutral_y),
                                     'samples': len(centers), 'source': resolve_neutral(chair)[2]}
 
-        # 送給沒人坐、或坐的人沒校正的椅子（有校正的人維持個人值）
+        # 每張椅子都重送一次目前該用的值：坐的人有校正送個人值，其他送新的預設值。
+        # 不能只送「沒人坐／沒校正」的椅子：部署前就入座的人從沒收到過個人值，椅子上會完全沒有設定
         session = ChairSession.objects.filter(chair=chair, is_active=True).select_related('user').first()
-        if not session or not user_calibration(session.user):
-            push_neutral(chair, session.user if session else None)
+        push_neutral(chair, session.user if session else None)
     return summary
