@@ -200,8 +200,9 @@ def _handle_pressure(device_id: str, payload: dict):
 
     # 防手震：連續 STABLE_READINGS 筆讀值一致才算「真的變成這個坐姿」，
     # 過濾單筆雜訊（例如持續 normal 中間突然閃一筆 right 又跳回 normal）。
+    # 以「這次入座」為單位，重新入座就重新計算，不沿用上一次入座確認過的坐姿。
     state = _posture_state.setdefault(
-        f'{device_id}:{user.username}', {'candidate': None, 'count': 0, 'confirmed': None}
+        f'{device_id}:{session.pk if session else user.username}', {'candidate': None, 'count': 0, 'confirmed': None}
     )
     if posture == state['candidate']:
         state['count'] += 1

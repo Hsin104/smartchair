@@ -4,6 +4,7 @@
 只在本機執行（本機 Docker 的 API＋本機 mosquitto），不會碰到雲端 broker 與真實椅子；
 這支腳本同時扮演「新韌體的椅子」：送感測資料、收到校正指令時回報結果。
     python demo_multi_chair.py            # 執行展示，資料保留（可接著開 App 或 admin 看）
+    python demo_multi_chair.py --record   # 錄影用：每一步停下來按 Enter 才繼續，校正時顯示每秒查詢結果
     python demo_multi_chair.py --cleanup  # 刪除展示用的使用者、椅子與保留的椅子設定
 
 情境：
@@ -40,6 +41,7 @@ ROUNDS = 12   # 後端連續 10 筆相同才確認坐姿改變，送 12 輪確�
 # 模擬椅子收到校正指令時怎麼回應：(device_id) → 依序使用的回應方式
 CHAIR_BEHAVIOUR = {CHAIR_A: ['ok'], CHAIR_B: ['unstable', 'silent']}
 
+RECORD = False
 results = []
 seen = {'cmd': [], 'config': {}, 'calibrate_cmds': []}
 
@@ -47,6 +49,15 @@ seen = {'cmd': [], 'config': {}, 'calibrate_cmds': []}
 def check(name, ok, detail=''):
     results.append(ok)
     print(f'  [{"PASS" if ok else "FAIL"}] {name}' + (f'  — {detail}' if detail else ''))
+
+
+def step(title):
+    """每段展示的標題；錄影模式下先停住，講解完按 Enter 才繼續。"""
+    if RECORD:
+        input('\n（按 Enter 繼續）')
+        print(f'\n{"═" * 60}\n{title}\n{"═" * 60}')
+    else:
+        print(f'\n{title}')
 
 
 def login(username):
@@ -115,9 +126,11 @@ def send(client, chairs_postures, rounds, interval=0.5):
 
 
 def wait_calibration(headers, timeout=20):
-    deadline = time.time() + timeout
-    while time.time() < deadline:
+    start = time.time()
+    while time.time() < start + timeout:
         d = requests.get(f'{BASE}/chair/calibration', headers=headers, timeout=10).json()
+        if RECORD:
+            print(f'  GET /chair/calibration（第 {time.time() - start:.0f} 秒）→ {d["status"]}')
         if d['status'] in ('done', 'failed'):
             return d
         time.sleep(1)
@@ -149,7 +162,7 @@ def main():
     chair = make_chair_client()
     headers = {ALICE: login(ALICE), BOB: login(BOB)}
 
-    print('[1] 兩位使用者各自入座不同的椅子（還沒校正）')
+    step('[1] 兩位使用者各自入座不同的椅子（還沒校正）')
     for user, device_id in ((ALICE, CHAIR_A), (BOB, CHAIR_B)):
         r = requests.post(f'{BASE}/chair/checkin', headers=headers[user], json={'device_id': device_id}, timeout=10).json()
         print(f'  {user} → {r}')
@@ -160,7 +173,7 @@ def main():
     check('沒校正的人：椅子收到預設中立點，且設定不含帳號名稱',
           cfg.get('cmd') == 'reset_neutral' and 'user' not in cfg, f'來源 {cfg.get("source")}')
 
-    print(f'\n[2] {ALICE} 校正：椅子取樣 5 秒後回報成功（正式流程）')
+    step(f'[2] {ALICE} 校正：椅子取樣 5 秒後回報成功（正式流程）')
     send(chair, [(CHAIR_A, 'normal')], 2)
     r = requests.post(f'{BASE}/chair/calibration', headers=headers[ALICE], timeout=10)
     print(f'  POST /chair/calibration → HTTP {r.status_code} {r.json()}')
@@ -174,13 +187,13 @@ def main():
           cfg.get('cmd') == 'set_neutral' and 'user' not in cfg
           and cfg.get('neutral_x') == d.get('calibration', {}).get('neutral_x'), str(cfg))
 
-    print(f'\n[3] {BOB} 第一次校正：椅子回報坐不穩')
+    step(f'[3] {BOB} 第一次校正：椅子回報坐不穩')
     requests.post(f'{BASE}/chair/calibration', headers=headers[BOB], timeout=10)
     d = wait_calibration(headers[BOB])
     print(f'  結果：status={d["status"]} reason={d.get("reason")} 訊息：{d.get("message")}')
     check('校正失敗並顯示中文原因', d['status'] == 'failed' and d.get('reason') == 'unstable')
 
-    print(f'\n[4] {BOB} 第二次校正：椅子沒回應（例如舊韌體），10 秒後改由後端計算')
+    step(f'[4] {BOB} 第二次校正：椅子沒回應（例如舊韌體），10 秒後改由後端計算')
     requests.post(f'{BASE}/chair/calibration', headers=headers[BOB], timeout=10)
     send(chair, [(CHAIR_B, 'normal')], 10, interval=1)   # 期間椅子照常送資料
     d = wait_calibration(headers[BOB])
@@ -190,7 +203,7 @@ def main():
     before = {u: len(requests.get(f'{BASE}/notification/history', headers=headers[u], timeout=10)
                      .json()['notifications']) for u in (ALICE, BOB)}
 
-    print(f'\n[5] 兩張椅子同時送感測資料（共 {ROUNDS} 輪）：{ALICE} 左傾、{BOB} 前傾')
+    step(f'[5] 兩張椅子同時送感測資料（共 {ROUNDS} 輪）：{ALICE} 左傾、{BOB} 前傾')
     send(chair, [(CHAIR_A, 'left'), (CHAIR_B, 'forward')], ROUNDS)
     time.sleep(3)
     for user, posture in ((ALICE, 'left'), (BOB, 'forward')):
@@ -203,20 +216,20 @@ def main():
         check(f'{user} 新增 1 則坐姿提醒（kind=posture）', len(new) == 1 and new[0]['kind'] == 'posture',
               str([(n['kind'], n['message']) for n in new]))
 
-    print('\n[6] GET /api/chairs')
+    step('[6] GET /api/chairs')
     chairs = {c['device_id']: c for c in requests.get(f'{BASE}/chairs', timeout=10).json()['chairs']}
     for user, device_id in ((ALICE, CHAIR_A), (BOB, CHAIR_B)):
         c = chairs.get(device_id, {})
         print(f'  {device_id}：使用者 {c.get("username")}，在線 {c.get("online")}')
         check(f'{device_id} 坐的是 {user}', c.get('username') == user)
 
-    print('\n[7] 手動觸發馬達：指令只送到觸發者坐的那張椅子')
+    step('[7] 手動觸發馬達：指令只送到觸發者坐的那張椅子')
     seen['cmd'].clear()
     requests.post(f'{BASE}/motor/trigger', headers=headers[ALICE], json={'posture': 'left'}, timeout=10)
     time.sleep(1)
     check(f'指令只送到 chair/{CHAIR_A}/vibration/cmd', seen['cmd'] == [f'chair/{CHAIR_A}/vibration/cmd'], str(seen['cmd']))
 
-    print(f'\n[8] 校正跟著人走：{ALICE} 換到 {CHAIR_C}，不重新校正')
+    step(f'[8] 校正跟著人走：{ALICE} 換到 {CHAIR_C}，不重新校正')
     alice_cfg = seen['config'][CHAIR_A]
     r = requests.post(f'{BASE}/chair/checkin', headers=headers[ALICE], json={'device_id': CHAIR_C}, timeout=10).json()
     time.sleep(1)
@@ -239,7 +252,10 @@ if __name__ == '__main__':
     sys.stdout.reconfigure(encoding='utf-8')
     p = argparse.ArgumentParser()
     p.add_argument('--cleanup', action='store_true')
-    if p.parse_args().cleanup:
+    p.add_argument('--record', action='store_true', help='錄影用：每一步暫停')
+    args = p.parse_args()
+    RECORD = args.record
+    if args.cleanup:
         cleanup()
     else:
         main()

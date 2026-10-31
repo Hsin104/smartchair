@@ -40,6 +40,7 @@ services:
       - "8000:8000"
     volumes:
       - faiss_data:/root/smartchair_faiss
+      - media_data:/app/media   # 使用者上傳的頭像
     # 正式 WSGI server（取代 runserver），worker／thread 數可在 .env 用 GUNICORN_WORKERS／GUNICORN_THREADS 調整
     command: gunicorn smartchair_backend.wsgi:application -c gunicorn.conf.py
     healthcheck:
@@ -132,6 +133,7 @@ services:
       - django:8000
 
 volumes:
+  media_data:
   db_data:
   mqtt_data:
   mqtt_log:

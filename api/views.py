@@ -6,6 +6,7 @@ from datetime import timedelta
 from pathlib import Path
 import numpy as np
 import joblib
+from PIL import Image, ImageOps, UnidentifiedImageError
 from django.contrib.auth import authenticate
 from django.core.mail import send_mail
 from django.conf import settings as django_settings
@@ -545,6 +546,58 @@ def update_avatar(request):
     request.user.avatar_url = request.data['avatar_url']
     request.user.save(update_fields=['avatar_url'])
     return Response(UserSerializer(request.user).data)
+
+
+AVATAR_FORMATS = {'PNG': 'png', 'JPEG': 'jpg'}
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def upload_avatar(request):
+    """
+    POST /api/me/avatar/upload — 上傳頭像圖片（multipart/form-data，欄位 file）。
+
+    以實際圖片內容判斷格式（不看副檔名），只收 PNG／JPEG；縮到最長邊 AVATAR_MAX_SIZE 後重新存檔，
+    去掉 EXIF（手機照片可能含 GPS）與夾帶的非圖片內容。檔名隨機產生，換頭像時刪除舊檔。
+    """
+    def fail(message):
+        return Response({'success': False, 'message': message}, status=status.HTTP_400_BAD_REQUEST)
+
+    upload = request.FILES.get('file')
+    if upload is None:
+        return fail('請以 multipart/form-data 上傳，欄位名稱為 file')
+    if upload.size > django_settings.AVATAR_MAX_BYTES:
+        return fail('圖片大小不能超過 5MB')
+
+    try:
+        img = Image.open(upload)
+        fmt = img.format
+        if fmt not in AVATAR_FORMATS:
+            return fail('只支援 PNG、JPG、JPEG 圖片')
+        if img.width * img.height > 40_000_000:   # 擋解壓縮炸彈（檔案小但像素數極大）
+            return fail('圖片尺寸過大')
+        img = ImageOps.exif_transpose(img)       # 先依 EXIF 轉正，重新存檔後 EXIF 就不在了
+        img.thumbnail((django_settings.AVATAR_MAX_SIZE, django_settings.AVATAR_MAX_SIZE))
+    except (UnidentifiedImageError, OSError, Image.DecompressionBombError):
+        return fail('只支援 PNG、JPG、JPEG 圖片')
+
+    ext = AVATAR_FORMATS[fmt]
+    avatar_dir = Path(django_settings.MEDIA_ROOT) / 'avatars'
+    avatar_dir.mkdir(parents=True, exist_ok=True)
+    filename = f'{secrets.token_hex(16)}.{ext}'
+    if fmt == 'JPEG':
+        img.convert('RGB').save(avatar_dir / filename, 'JPEG', quality=90)
+    else:
+        img.save(avatar_dir / filename, 'PNG', optimize=True)
+
+    old = request.user.avatar_url or ''
+    if '/media/avatars/' in old:
+        (avatar_dir / Path(old.split('/media/avatars/')[-1]).name).unlink(missing_ok=True)
+
+    url = request.build_absolute_uri(f'/{django_settings.MEDIA_URL.strip("/")}/avatars/{filename}')
+    request.user.avatar_url = url
+    request.user.save(update_fields=['avatar_url'])
+    return Response({'success': True, 'avatar_url': url, 'user': UserSerializer(request.user).data})
 
 
 @api_view(['POST'])

@@ -13,6 +13,7 @@
 | 帳號 | GET | /me | 取得目前使用者資料 | 是 | App |
 | 帳號 | PATCH | /me/update | 更新身高、體重、Email 等個人資料 | 是 | App |
 | 帳號 | POST | /me/avatar | 更新頭像網址 | 是 | App |
+| 帳號 | POST | /me/avatar/upload | 上傳頭像圖片（PNG／JPG，multipart） | 是 | App |
 | 帳號 | POST | /auth/change-password | 已登入狀態下修改密碼 | 是 | App |
 | 帳號 | POST | /auth/forgot-password/request | 忘記密碼：寄送 6 碼驗證碼到 Email | 否 | App |
 | 帳號 | POST | /auth/forgot-password/verify | 忘記密碼：驗證碼正確後重設密碼 | 否 | App |
@@ -36,4 +37,4 @@
 | 提醒 | POST | /motor/trigger | 依坐姿手動觸發對應馬達震動 | 是 | 測試工具 |
 | 系統 | GET | /health | 健康檢查：確認服務與資料庫正常 | 否 | 系統 |
 
-共 27 支（`/chair/calibration` 的 GET、POST 合計為 1 支）。另有 MQTT 通道（不是 HTTP API）：每張椅子發布感測資料到 `chair/{device_id}/pressure`，手動馬達指令送到 `chair/{device_id}/vibration/cmd`、個人校正（中立點）以 retained 訊息送到 `chair/{device_id}/config`、開始校正指令送到 `chair/{device_id}/calibration/cmd`，椅子在 `chair/{device_id}/vibration/status` 回報結果；舊韌體的 `chair/pressure/01`、`chair/vibration/01/cmd` 仍支援（視為 chair_01）。
+共 28 支（`/chair/calibration` 的 GET、POST 合計為 1 支）。另有 MQTT 通道（不是 HTTP API）：每張椅子發布感測資料到 `chair/{device_id}/pressure`，手動馬達指令送到 `chair/{device_id}/vibration/cmd`、個人校正（中立點）以 retained 訊息送到 `chair/{device_id}/config`、開始校正指令送到 `chair/{device_id}/calibration/cmd`，椅子在 `chair/{device_id}/vibration/status` 回報結果；舊韌體的 `chair/pressure/01`、`chair/vibration/01/cmd` 仍支援（視為 chair_01）。

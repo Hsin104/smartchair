@@ -154,6 +154,15 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'  # Dockerfile build 時 collectstatic 收集到這裡
 
+# 使用者上傳的檔案（頭像）；Docker 掛 media_data volume，重建容器不會遺失
+MEDIA_URL = 'media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+AVATAR_MAX_BYTES = 5 * 1024 * 1024
+AVATAR_MAX_SIZE = 512   # 上傳後縮到最長邊 512 px 再重新存檔（順便去掉 EXIF 與夾帶內容）
+
+# ngrok 以 HTTPS 對外轉發，靠 X-Forwarded-Proto 讓 build_absolute_uri 產生 https 網址
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Django REST Framework 設定

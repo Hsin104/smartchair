@@ -118,7 +118,7 @@ def main():
     chair, _ = Chair.objects.get_or_create(device_id=TEST_DEVICE_ID)
     ChairSession.objects.filter(is_active=True, chair=chair).update(is_active=False)
     ChairSession.objects.filter(is_active=True, user=user).update(is_active=False)
-    ChairSession.objects.create(user=user, chair=chair)
+    session = ChairSession.objects.create(user=user, chair=chair)
     print(f'\n[前置] 測試使用者：{user.username}（已 check-in 測試椅 {TEST_DEVICE_ID}）')
 
     # ── 第一段：MQTT payload → 20 特徵預測 → PostureRecord ─────────────────
@@ -135,7 +135,7 @@ def main():
         # 「1 分鐘冷卻」防洗版機制（同一使用者 1 分鐘內只發一次通知）；
         # 同時重置防手震狀態，避免上一個坐姿的 confirmed 狀態跨情境污染判斷
         Notification.objects.filter(user=user).delete()
-        _posture_state.pop(f'{TEST_DEVICE_ID}:{user.username}', None)
+        _posture_state.pop(f'{TEST_DEVICE_ID}:{session.pk}', None)
         before_count = 0
         # 防手震機制需連續 STABLE_READINGS 筆讀值一致才算「確認變成」該坐姿並觸發通知
         # （見 mqtt_subscriber.py，2026-09-02 加入），單次呼叫不會觸發，須重複送同一份 payload

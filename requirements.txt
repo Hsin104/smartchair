@@ -8,6 +8,9 @@ python-dotenv==1.1.0
 gunicorn==23.0.0
 whitenoise==6.11.0
 
+# 頭像上傳：檢查實際圖片格式、縮圖、重新存檔（原本由 matplotlib 間接安裝，改為明確釘選）
+Pillow==12.1.1
+
 # 資料庫
 psycopg2-binary==2.9.10
 

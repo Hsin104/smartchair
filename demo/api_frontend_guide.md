@@ -1,6 +1,6 @@
 # SmartChair 後端 API 串接說明（給 Android／Flutter 前端）
 
-> 2026-10-30 版，**取代先前的 `api_reply_frontend_1018.md` 與 `api_update_frontend_1023.md`，只看這份即可**。
+> 2026-10-31 版（新增頭像上傳），**取代先前的 `api_reply_frontend_1018.md` 與 `api_update_frontend_1023.md`，只看這份即可**。
 > 內容都是實際打 API 驗證過的。全部端點一覽見 [api_endpoints.md](api_endpoints.md)。
 > **網頁版（`zhen` 分支）與 iOS（iOS-smart-chair）是兩份程式，以下修改兩邊都要做。**
 
@@ -29,11 +29,30 @@
 | `GET /me` | — | 200 使用者物件 | |
 | `PATCH /me/update` | 皆選填 | 200 使用者物件 | height、weight、email、display_name、avatar_url |
 | `POST /me/avatar` | avatar_url | 200 使用者物件 | 存網址，不是上傳圖片 |
+| `POST /me/avatar/upload` | file（multipart） | 200 | **上傳頭像圖片**，見下方 |
 | `POST /auth/change-password` | current_password、new_password（≥6） | 200 | 目前密碼錯 401 |
 | `POST /auth/forgot-password/request` | username、email | 200 | 寄 6 碼驗證碼，10 分鐘有效 |
 | `POST /auth/forgot-password/verify` | username、code（6 碼字串）、new_password | 200 | 驗證碼錯誤或過期 400 |
 
 登入／註冊成功的回應：`{"success": true, "token": "...", "user": {"id", "username", "email", "display_name", "avatar_url", "height", "weight"}}`
+
+### 上傳頭像 `POST /me/avatar/upload`（10/31 新增）
+
+- `Content-Type: multipart/form-data`（不要自己設定，讓套件自動帶 boundary），欄位名稱 **`file`**
+- 不要轉成 base64；`/me/avatar` 也不接受 `data:image/...`
+- 只收 PNG、JPG、JPEG，**以圖片實際內容判斷**（改副檔名沒用），最大 5 MB
+- 後端會縮成最長邊 512 px 並重新存檔（去掉照片的 EXIF／GPS），回傳的網址每次都不同，舊圖會刪除
+
+成功 200：
+```json
+{ "success": true,
+  "avatar_url": "https://sandbar-badass-subfloor.ngrok-free.dev/media/avatars/3f9c...e1.png",
+  "user": { "id": 1, "username": "dpz", "email": "...", "display_name": "...",
+            "avatar_url": "https://.../media/avatars/3f9c...e1.png", "height": 170, "weight": 60 } }
+```
+失敗 400：`{"success": false, "message": "只支援 PNG、JPG、JPEG 圖片"}`、`"圖片大小不能超過 5MB"`、`"請以 multipart/form-data 上傳，欄位名稱為 file"`；沒登入 401。之後 `GET /me` 會回傳新的 `avatar_url`。
+
+> ⚠️ **網頁版請幫忙實測圖片能不能顯示**：網址是 ngrok 免費網域，呼叫 API 時靠 `ngrok-skip-browser-warning` 標頭跳過警告頁，但 `<img>`／`Image.network` 抓圖片時帶不了這個標頭，圖片**可能被 ngrok 警告頁擋住**（顯示破圖）。如果擋住，請改成用 HTTP 請求（帶這個標頭）抓圖片 bytes 再用 `Image.memory` 顯示，並告訴我結果。iOS 不受影響的話也請說一聲。
 
 ---
 
