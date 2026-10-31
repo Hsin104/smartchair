@@ -6,6 +6,8 @@ class WellnessTask {
     required this.postureCode,
     required this.durationSeconds,
     required this.points,
+    this.exerciseId,
+    this.group,
   });
 
   final String id;
@@ -14,6 +16,8 @@ class WellnessTask {
   final String postureCode;
   final int durationSeconds;
   final int points;
+  final int? exerciseId;
+  final String? group;
 }
 
 class WellnessRecord {

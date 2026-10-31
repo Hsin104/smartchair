@@ -74,6 +74,9 @@ flutter run -d chrome --dart-define=API_BASE_URL=https://example.com
 - `/api/notification/history`
 - `/api/agent/jobs`
 - `/api/agent/jobs/<job_id>`
+- `/api/agent/stretch-plan`
+- `/api/wellness/complete`
+- `/api/wellness/history`
 
 AI 建議流程：
 
@@ -81,9 +84,17 @@ AI 建議流程：
 2. 每 2 秒查詢 `/api/agent/jobs/<job_id>`。
 3. `done` 時顯示 `advice`、`posture_display` 和最多 3 筆 `recommended_exercises`。
 
+健康花園每天從 `/api/agent/stretch-plan` 取得一次 AI 伸展計畫，只顯示 3 個任務，並在當天以本地快取保持任務一致；下一天才重新取得計畫。
+
+每日任務使用後端回傳的數字 `id` 與 `group` 判斷動作，AI 建議完成後會重新取得今日計畫，讓後端替換與 AI 建議重複的動作。完成任務會呼叫 `/api/wellness/complete`，登入時也會從 `/api/wellness/history` 同步跨裝置的完成紀錄。
+
 登入 API 使用 `Authorization: Token <token>`，不是 `Bearer`。Web 啟動時會自動加入 ngrok 所需的 `ngrok-skip-browser-warning` header。
 
+通知頁的「周報」只顯示後端 `/api/notification/history` 回傳的 `kind: weekly` 資料，不在前端自行產生周報。坐姿同步遇到暫時的空回應時會保留上一次有效坐姿，避免畫面因網路波動清空。
+
 頭像上傳不使用 base64，前端會以 `multipart/form-data` 上傳原始圖片。後端會驗證圖片實際內容、限制 5 MB，並回傳新的 `avatar_url`。
+
+登入後的顯示名稱會透過 `PATCH /api/me/update` 的 `display_name` 欄位儲存到後端；重新登入、換瀏覽器或換裝置後，前端會從 `GET /api/me` 讀取名稱。
 
 ## 專案結構
 

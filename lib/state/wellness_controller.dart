@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/wellness_models.dart';
+import '../services/api_service.dart';
 
 class WellnessController extends ChangeNotifier {
   static const _baseTasks = <WellnessTask>[
@@ -63,8 +64,26 @@ class WellnessController extends ChangeNotifier {
   String? activeTaskId;
   String? latestFeedback;
   final List<WellnessRecord> records = [];
+  List<WellnessTask> _dailyTasks = const [];
+  final Set<String> _aiAdviceTaskKeys = {};
 
-  List<WellnessTask> get tasks => List.unmodifiable(_baseTasks);
+  List<WellnessTask> get tasks {
+    final source = _dailyTasks.isEmpty ? _baseTasks : _dailyTasks;
+    final selected = <WellnessTask>[];
+    for (final task in source) {
+      if (!_conflictsWithAiAdvice(task)) selected.add(task);
+      if (selected.length == 3) return List.unmodifiable(selected);
+    }
+
+    for (final task in _baseTasks) {
+      if (!_conflictsWithAiAdvice(task) &&
+          !selected.any((item) => item.id == task.id)) {
+        selected.add(task);
+      }
+      if (selected.length == 3) break;
+    }
+    return List.unmodifiable(selected);
+  }
 
   int get level => (points ~/ 100) + 1;
 
@@ -73,11 +92,45 @@ class WellnessController extends ChangeNotifier {
   double get growthProgress => pointsInLevel / 100;
 
   WellnessTask taskForPosture(String postureCode) {
+    if (_dailyTasks.isNotEmpty && postureCode == 'ai') {
+      return _dailyTasks.first;
+    }
     return _baseTasks.firstWhere(
       (task) => task.postureCode == postureCode,
       orElse: () => _baseTasks.last,
     );
   }
+
+  void setAiAdviceTasks(List<Map<String, dynamic>> exercises) {
+    _aiAdviceTaskKeys
+      ..clear()
+      ..addAll(
+        exercises
+            .expand(
+              (exercise) => [
+                exercise['id']?.toString(),
+                exercise['group']?.toString(),
+                exercise['name']?.toString(),
+                exercise['title']?.toString(),
+              ],
+            )
+            .whereType<String>()
+            .map(_taskKey)
+            .where((key) => key.isNotEmpty),
+      );
+    notifyListeners();
+  }
+
+  bool _conflictsWithAiAdvice(WellnessTask task) {
+    if (_aiAdviceTaskKeys.isEmpty) return false;
+    final titleKey = _taskKey(task.title);
+    final idKey = _taskKey(task.id);
+    return _aiAdviceTaskKeys.contains(titleKey) ||
+        _aiAdviceTaskKeys.contains(idKey);
+  }
+
+  String _taskKey(String value) =>
+      value.toLowerCase().replaceAll(RegExp(r'[^a-z0-9\u4e00-\u9fff]'), '');
 
   bool isCompletedToday(String taskId) {
     final today = _dateKey(DateTime.now());
@@ -103,7 +156,101 @@ class WellnessController extends ChangeNotifier {
       ..clear()
       ..addAll(_decodeRecords(prefs.getString(_key('records'))));
     _recalculateStreak();
+    await _loadDailyTasks();
+    await _loadWellnessHistory();
     notifyListeners();
+  }
+
+  Future<void> refreshDailyTasks() async {
+    await _loadDailyTasks(force: true);
+    notifyListeners();
+  }
+
+  Future<void> _loadDailyTasks({bool force = false}) async {
+    final prefs = await SharedPreferences.getInstance();
+    final today = _dateKey(DateTime.now());
+    if (!force && prefs.getString(_key('dailyTasksDate')) == today) {
+      final cached = prefs.getString(_key('dailyTasks'));
+      if (cached != null && cached.isNotEmpty) {
+        try {
+          final decoded = jsonDecode(cached);
+          if (decoded is List) {
+            _dailyTasks = decoded
+                .whereType<Map>()
+                .map((item) => _taskFromExercise(item.cast<String, dynamic>()))
+                .take(3)
+                .toList();
+            if (_dailyTasks.isNotEmpty) return;
+          }
+        } on FormatException {
+          // Fetch a fresh plan when the cached value is invalid.
+        }
+      }
+    }
+
+    final exercises = await ApiService.getStretchPlan();
+    if (exercises.isEmpty) {
+      _dailyTasks = _baseTasks.take(3).toList();
+      return;
+    }
+
+    _dailyTasks = exercises.take(3).map(_taskFromExercise).toList();
+    await prefs.setString(_key('dailyTasksDate'), today);
+    await prefs.setString(_key('dailyTasks'), jsonEncode(exercises.take(3)));
+  }
+
+  WellnessTask _taskFromExercise(Map<String, dynamic> exercise) {
+    final name =
+        exercise['name']?.toString().trim() ??
+        exercise['title']?.toString().trim();
+    final title = name == null || name.isEmpty ? 'AI 伸展任務' : name;
+    final description =
+        exercise['description']?.toString().trim() ??
+        exercise['reps']?.toString().trim() ??
+        '依照 AI 建議完成伸展動作。';
+    final rawDuration =
+        exercise['duration_sec'] ?? exercise['duration_seconds'];
+    final duration = rawDuration is num
+        ? rawDuration.toInt()
+        : int.tryParse(rawDuration?.toString() ?? '') ?? 45;
+    final id = exercise['id']?.toString().trim();
+    return WellnessTask(
+      id: id == null || id.isEmpty ? 'ai-${title.hashCode}' : id,
+      title: title,
+      description: description,
+      postureCode: 'ai',
+      durationSeconds: duration.clamp(15, 300).toInt(),
+      points: 10,
+      exerciseId: int.tryParse(id ?? ''),
+      group: exercise['group']?.toString(),
+    );
+  }
+
+  Future<void> _loadWellnessHistory() async {
+    if (!await ApiService.isLoggedIn()) return;
+    final history = await ApiService.getWellnessHistory();
+    for (final item in history) {
+      final exerciseId = item['exercise_id']?.toString();
+      final date = item['date']?.toString();
+      if (exerciseId == null || date == null) continue;
+      if (records.any(
+        (record) => record.taskId == exerciseId && record.dateKey == date,
+      )) {
+        continue;
+      }
+      records.add(
+        WellnessRecord(
+          taskId: exerciseId,
+          dateKey: date,
+          completedAt:
+              DateTime.tryParse(item['completed_at']?.toString() ?? '') ??
+              DateTime.now(),
+          feedback: item['feedback']?.toString() ?? '',
+          points: 0,
+        ),
+      );
+    }
+    _recalculateStreak();
   }
 
   Future<void> acceptTask(WellnessTask task) async {
@@ -114,6 +261,14 @@ class WellnessController extends ChangeNotifier {
 
   Future<bool> completeTask(WellnessTask task, {String feedback = '完成'}) async {
     if (isCompletedToday(task.id)) return false;
+    if (task.exerciseId != null) {
+      final synced = await ApiService.completeWellnessTask(
+        exerciseId: task.exerciseId!,
+        source: 'daily',
+        feedback: feedback,
+      );
+      if (!synced) return false;
+    }
 
     final today = _dateKey(DateTime.now());
     final isFirstTaskToday = !records.any((record) => record.dateKey == today);

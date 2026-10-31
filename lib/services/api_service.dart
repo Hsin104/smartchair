@@ -597,9 +597,94 @@ class ApiService {
     return value
         .whereType<Map>()
         .map((item) => item.cast<String, dynamic>())
-        .where((item) => item['name']?.toString().trim().isNotEmpty ?? false)
+        .where(
+          (item) =>
+              (item['title'] ?? item['name'])?.toString().trim().isNotEmpty ??
+              false,
+        )
         .take(3)
         .toList();
+  }
+
+  static Future<List<Map<String, dynamic>>> getStretchPlan() async {
+    try {
+      if (!await isLoggedIn()) return [];
+      final response = await http
+          .get(
+            _buildApiUri('agent/stretch-plan'),
+            headers: await _headers(auth: true),
+          )
+          .timeout(const Duration(seconds: 15));
+      if (response.statusCode != 200) return [];
+
+      final decoded = jsonDecode(response.body);
+      final value = decoded is List
+          ? decoded
+          : decoded is Map
+          ? (decoded['recommended_exercises'] ??
+                decoded['exercises'] ??
+                decoded['tasks'] ??
+                decoded['data'])
+          : null;
+      if (value is! List) return [];
+      return value
+          .whereType<Map>()
+          .map((item) => item.cast<String, dynamic>())
+          .take(3)
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<bool> completeWellnessTask({
+    required int exerciseId,
+    required String source,
+    String feedback = '',
+  }) async {
+    try {
+      final response = await http
+          .post(
+            _buildApiUri('wellness/complete'),
+            headers: await _headers(auth: true),
+            body: jsonEncode({
+              'exercise_id': exerciseId,
+              'source': source,
+              if (feedback.trim().isNotEmpty) 'feedback': feedback.trim(),
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
+      return response.statusCode == 200 || response.statusCode == 201;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getWellnessHistory({
+    int days = 30,
+  }) async {
+    try {
+      final response = await http
+          .get(
+            _buildApiUri(
+              'wellness/history',
+              queryParameters: {'days': '$days'},
+            ),
+            headers: await _headers(auth: true),
+          )
+          .timeout(const Duration(seconds: 10));
+      if (response.statusCode != 200) return [];
+      final decoded = jsonDecode(response.body);
+      final value = decoded is Map ? decoded['completions'] : decoded;
+      return value is List
+          ? value
+                .whereType<Map>()
+                .map((item) => item.cast<String, dynamic>())
+                .toList()
+          : [];
+    } catch (_) {
+      return [];
+    }
   }
 
   // ── 通知 ────────────────────────────────────────────────────
@@ -632,7 +717,7 @@ class ApiService {
   }
 
   // ── 使用者設定 ──────────────────────────────────────────────────────
-  /// 更新使用者資料（身高、體重、Email）到後端。
+  /// 更新使用者資料（顯示名稱、身高、體重、Email）到後端。
   static Future<bool> updateMe(Map<String, dynamic> updates) async {
     try {
       final res = await http

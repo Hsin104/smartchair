@@ -42,8 +42,7 @@ class _HealthGardenPageState extends State<HealthGardenPage>
     if (mounted) setState(() {});
   }
 
-  WellnessTask get _recommendedTask =>
-      widget.controller.taskForPosture(widget.postureCode);
+  WellnessTask get _recommendedTask => widget.controller.tasks.first;
 
   Future<void> _complete(WellnessTask task) async {
     final feedback = await showModalBottomSheet<String>(

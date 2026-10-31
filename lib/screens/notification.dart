@@ -21,12 +21,19 @@ class _NotificationPageState extends State<NotificationPage> {
   static const _filterOptions = ['提醒', '周報'];
 
   bool _matchesFilter(Map<String, dynamic> item) {
+    final kind = item['kind']?.toString();
+    if (_selectedFilter == '周報') {
+      return kind == 'weekly';
+    }
+    if (kind == 'weekly') return false;
+    if (kind == 'posture' || kind == 'auto_checkout') return true;
+
     final color = item['color'] as Color;
     final category = _categoryFromColor(color);
     if (_selectedFilter == '提醒') {
       return category == '警示' || category == '提醒';
     }
-    return category == '其它';
+    return false;
   }
 
   String _categoryFromColor(Color color) {
@@ -229,7 +236,7 @@ class _NotificationPageState extends State<NotificationPage> {
                             const SizedBox(height: 6),
                             _buildMessage(
                               item['message'] as String,
-                              isWeeklyReport: _categoryFromColor(color) == '其它',
+                              isWeeklyReport: item['kind'] == 'weekly',
                             ),
                           ],
                         ),

@@ -129,20 +129,13 @@ class ChairSyncController extends ChangeNotifier {
       );
 
       // Map server posture entries into controller format
-      postureHistory.clear();
       if (history.isNotEmpty) {
+        postureHistory.clear();
         _applyPosturePayload(history.first);
       } else {
         final chairStatus = await ApiService.getChairStatus();
         if (chairStatus != null) {
           _applyPosturePayload(chairStatus);
-        } else {
-          postureCode = '';
-          postureLabel = '無人就坐';
-          postureScore = 0;
-          isGoodPosture = false;
-          latestAdvice = '等待後端資料同步';
-          sessionOpenedAt = null;
         }
       }
       for (final item in history) {
@@ -176,14 +169,19 @@ class ChairSyncController extends ChangeNotifier {
             notificationId != null &&
             !_knownNotificationIds.contains(notificationId);
         final displayPosture = _notificationPostureLabel(n);
-        final title = displayPosture;
+        final kind = n['kind']?.toString() ?? 'posture';
+        final isWeekly = kind == 'weekly';
+        final title = isWeekly ? '週報' : displayPosture;
         final message = _notificationMessage(n, displayPosture);
         final time = _notificationTime(n);
-        final color = ApiService.postureColor(displayPosture);
+        final color = isWeekly
+            ? const Color(0xFF2563EB)
+            : ApiService.postureColor(displayPosture);
         notifications.add({
           'title': title,
           'time': time.isNotEmpty ? time : _formatNow(),
           'message': message,
+          'kind': kind,
           'icon': Icons.notifications_active_rounded,
           'color': color,
         });

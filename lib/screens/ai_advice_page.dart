@@ -104,6 +104,8 @@ class _AiAdvicePageState extends State<AiAdvicePage> {
           _adviceVisible = true;
           _recommendedExercises = result.recommendedExercises;
         });
+        widget.wellnessController.setAiAdviceTasks(result.recommendedExercises);
+        await widget.wellnessController.refreshDailyTasks();
       } else {
         messenger.showSnackBar(SnackBar(content: Text(result.message)));
         setState(() {
@@ -111,6 +113,7 @@ class _AiAdvicePageState extends State<AiAdvicePage> {
           _advice = '按下「取得 AI 建議」以查看 AI 建議。';
           _recommendedExercises = const [];
         });
+        widget.wellnessController.setAiAdviceTasks(const []);
       }
     } catch (_) {
       if (!mounted) return;
@@ -120,6 +123,7 @@ class _AiAdvicePageState extends State<AiAdvicePage> {
         _advice = '按下「取得 AI 建議」以查看 AI 建議。';
         _recommendedExercises = const [];
       });
+      widget.wellnessController.setAiAdviceTasks(const []);
     } finally {
       if (mounted) {
         setState(() => _isFetchingAdvice = false);

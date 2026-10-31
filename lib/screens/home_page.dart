@@ -27,6 +27,7 @@ class _HomePageState extends State<HomePage> {
   int currentIndex = 0;
   bool _isLoggedIn = false;
   String? _userEmail;
+  int _authRefreshVersion = 0;
 
   final List<Map<String, dynamic>> navItems = const [
     {'icon': Icons.event_seat, 'label': '健康總覽', 'hint': '坐姿與報表'},
@@ -43,11 +44,11 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _refreshAuthState() async {
+    final refreshVersion = ++_authRefreshVersion;
     final wasLoggedIn = _isLoggedIn;
     final loggedIn = await ApiService.isLoggedIn();
     final email = await ApiService.getUserEmail();
-    await widget.wellnessController.initialize(email);
-    if (mounted) {
+    if (mounted && refreshVersion == _authRefreshVersion) {
       setState(() {
         _isLoggedIn = loggedIn;
         _userEmail = email;
@@ -63,6 +64,9 @@ class _HomePageState extends State<HomePage> {
         widget.chairSyncController.stopSession();
         widget.chairSyncController.stopAutoSync();
       }
+    }
+    if (refreshVersion == _authRefreshVersion) {
+      await widget.wellnessController.initialize(email);
     }
   }
 

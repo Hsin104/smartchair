@@ -196,15 +196,13 @@ class _SettingPageState extends State<SettingPage> {
       try {
         final height = double.tryParse(heightStr);
         final weight = double.tryParse(weightStr);
-        final updates = <String, dynamic>{};
+        final updates = <String, dynamic>{'display_name': displayNameStr};
         if (height != null) updates['height'] = height;
         if (weight != null) updates['weight'] = weight;
 
-        if (updates.isNotEmpty) {
-          final ok = await ApiService.updateMe(updates);
-          debugPrint('[Setting] updateMe ok=$ok, updates=$updates');
-          return ok;
-        }
+        final ok = await ApiService.updateMe(updates);
+        debugPrint('[Setting] updateMe ok=$ok, updates=$updates');
+        return ok;
       } catch (e) {
         debugPrint('[Setting] updateMe error: $e');
         return false;
@@ -752,7 +750,9 @@ class _SettingPageState extends State<SettingPage> {
                     controller: displayNameController,
                     icon: Icons.badge_outlined,
                     keyboardType: TextInputType.name,
-                    helper: '這個名稱只會儲存在目前帳號的本地設定',
+                    helper: widget.isLoggedIn
+                        ? '會同步儲存到目前帳號，換裝置或瀏覽器也能保留'
+                        : '登入後儲存到帳號，換裝置或瀏覽器也能保留',
                   ),
                   buildTextField(
                     label: '身高',
