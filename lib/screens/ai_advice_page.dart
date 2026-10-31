@@ -127,17 +127,6 @@ class _AiAdvicePageState extends State<AiAdvicePage> {
     }
   }
 
-  Future<void> _acceptRecommendation() async {
-    final task = widget.wellnessController.taskForPosture(
-      widget.controller.postureCode,
-    );
-    await widget.wellnessController.acceptTask(task);
-    if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('已接受建議，請到健康花園完成伸展並留下回饋。')));
-  }
-
   Widget _buildAdviceText(String text) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -347,25 +336,6 @@ class _AiAdvicePageState extends State<AiAdvicePage> {
     );
   }
 
-  Color _postureColor(String code) {
-    switch (code) {
-      case 'normal':
-        return const Color(0xFF16A34A);
-      case 'forward':
-        return const Color(0xFFDC2626);
-      case 'left':
-        return const Color(0xFFEA580C);
-      case 'right':
-        return const Color(0xFFC2410C);
-      case 'recline':
-        return const Color(0xFF2563EB);
-      case 'sedentary':
-        return const Color(0xFF7C3AED);
-      default:
-        return Colors.grey;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final postureCode = widget.controller.postureCode;
@@ -376,7 +346,7 @@ class _AiAdvicePageState extends State<AiAdvicePage> {
         ? ApiService.toRisk(postureCode)
         : '尚無資料';
     final color = postureCode.isNotEmpty
-        ? _postureColor(postureCode)
+        ? ApiService.postureColor(postureCode)
         : const Color(0xFF64748B);
 
     return Scaffold(

@@ -1,16 +1,17 @@
 # Smart Chair App
 
-智慧座椅 Flutter 前端，將坐姿監測延伸為 AI 主動健康介入。使用者可以查看即時姿勢、取得 AI 物理治療師建議、觀看推薦伸展影片，並將完成的健康任務累積到健康養成花園。
+智慧座椅 Flutter 前端，提供 Web 與多平台的坐姿監測、AI 建議、通知、個人設定及健康介入任務。
 
 ## 目前功能
 
 - **儀表板**：即時姿勢、分數、風險、就座時間、提醒次數與健康花園進度。
-- **AI 物理治療師**：呼叫 `/api/agent` 取得文字建議與 `recommended_exercises`，分開呈現兩種資料。
+- **AI 物理治療師**：透過 `/api/agent/jobs` 非同步取得文字建議與伸展影片。
 - **推薦伸展影片**：最多顯示 3 張影片卡片，可直接開啟 YouTube。
 - **健康養成花園**：接受建議、完成每日任務、回報身體感受、累積能量與連續天數。
 - **歷史報表**：已整合在「健康總覽」，顯示姿勢分布、平均分數、提醒次數、有效健康介入與最近紀錄。
 - **通知**：姿勢提醒紀錄與當日健康介入數。
 - **設定**：帳號、個人資料、頭像與健康介入進度。
+- **頭像**：Web 端使用 multipart 上傳 PNG/JPG/JPEG，最大 5 MB；圖片顯示會帶 ngrok header 下載 bytes，避免免費網域警告頁造成破圖。
 
 ## 技術堆疊
 
@@ -19,6 +20,7 @@
 - `shared_preferences`：登入狀態、個人設定與健康花園本地持久化
 - `fl_chart`：姿勢報表圖表
 - `url_launcher`：開啟 YouTube 推薦影片
+- `file_picker`：Web 與桌面端選擇頭像檔案
 
 ## 開發環境
 
@@ -59,37 +61,29 @@ flutter run -d chrome --dart-define=API_BASE_URL=https://example.com
 目前前端使用的主要端點：
 
 - `/api/login`
+- `/api/register`
 - `/api/users/exists`
 - `/api/me`
+- `/api/me/update`
+- `/api/me/avatar/upload`（multipart 欄位 `file`）
 - `/api/posture/history`
+- `/api/chair/checkin`
+- `/api/chair/calibration`
+- `/api/chair/checkout`
 - `/api/chair/status`
 - `/api/notification/history`
-- `/api/agent`
+- `/api/agent/jobs`
+- `/api/agent/jobs/<job_id>`
 
-`POST /api/agent` 的成功回應可包含：
+AI 建議流程：
 
-```json
-{
-	"posture": "left",
-	"posture_display": "身體左傾",
-	"advice": "文字建議",
-	"steps": [],
-	"recommended_exercises": [
-		{
-			"id": 5,
-			"name": "坐姿側身伸展",
-			"target_muscles": "腰側肌群、闊背肌",
-			"reps": "左右各維持 20 秒",
-			"duration_sec": 40,
-			"youtube_url": "https://www.youtube.com/watch?v=example",
-			"youtube_title": "伸展影片",
-			"description": "動作說明"
-		}
-	]
-}
-```
+1. `POST /api/agent/jobs` 取得 `job_id`。
+2. 每 2 秒查詢 `/api/agent/jobs/<job_id>`。
+3. `done` 時顯示 `advice`、`posture_display` 和最多 3 筆 `recommended_exercises`。
 
-`advice` 與 `recommended_exercises` 是獨立資料。即使文字建議為空，只要陣列有內容，前端仍會顯示影片卡片；前端最多渲染 3 筆。
+登入 API 使用 `Authorization: Token <token>`，不是 `Bearer`。Web 啟動時會自動加入 ngrok 所需的 `ngrok-skip-browser-warning` header。
+
+頭像上傳不使用 base64，前端會以 `multipart/form-data` 上傳原始圖片。後端會驗證圖片實際內容、限制 5 MB，並回傳新的 `avatar_url`。
 
 ## 專案結構
 
@@ -100,6 +94,8 @@ lib/
 		wellness_models.dart
 	services/
 		api_service.dart
+		browser_notification_stub.dart
+		browser_notification_web.dart
 	state/
 		chair_sync_controller.dart
 		wellness_controller.dart
@@ -140,4 +136,3 @@ flutter test
 ## 授權
 
 目前尚未指定授權條款。
-

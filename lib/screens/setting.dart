@@ -1,3 +1,6 @@
+import 'dart:typed_data';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
@@ -64,6 +67,8 @@ class _SettingPageState extends State<SettingPage> {
   bool _obscureNewPassword = true;
   bool _obscureConfirmPassword = true;
   int _avatarIndex = 0;
+  Uint8List? _avatarBytes;
+  bool _isUploadingAvatar = false;
 
   String get _userScope {
     final email = widget.userEmail?.trim().toLowerCase();
@@ -112,6 +117,7 @@ class _SettingPageState extends State<SettingPage> {
     String? heightText;
     String? weightText;
     String? displayNameText;
+    String? avatarUrl;
 
     if (widget.isLoggedIn) {
       final profile = await ApiService.getMe();
@@ -120,6 +126,7 @@ class _SettingPageState extends State<SettingPage> {
         final weight = profile['weight']?.toString();
         final email = profile['email']?.toString();
         final username = profile['username']?.toString();
+        final profileAvatarUrl = profile['avatar_url']?.toString().trim();
         final name =
             profile['display_name']?.toString() ??
             profile['displayName']?.toString() ??
@@ -140,6 +147,11 @@ class _SettingPageState extends State<SettingPage> {
         } else if (email != null && email.isNotEmpty && email != 'null') {
           displayNameText = email.split('@').first;
         }
+        if (profileAvatarUrl != null &&
+            profileAvatarUrl.isNotEmpty &&
+            profileAvatarUrl != 'null') {
+          avatarUrl = profileAvatarUrl;
+        }
         debugPrint(
           '[Setting] Loaded backend profile: height=$heightText, weight=$weightText, displayName=$displayNameText',
         );
@@ -158,6 +170,12 @@ class _SettingPageState extends State<SettingPage> {
       displayNameController.text = displayNameText ?? '';
       _avatarIndex = avatarIndex;
     });
+    if (avatarUrl != null && avatarUrl.isNotEmpty) {
+      final bytes = await ApiService.loadAvatarBytes(avatarUrl);
+      if (mounted && bytes != null) {
+        setState(() => _avatarBytes = bytes);
+      }
+    }
   }
 
   Future<bool> _saveSettings() async {
@@ -200,79 +218,99 @@ class _SettingPageState extends State<SettingPage> {
     final selected = await showModalBottomSheet<int>(
       context: context,
       showDragHandle: true,
+      isScrollControlled: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (sheetContext) {
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                '選擇頭像',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                '這個頭像會保存在目前帳號的本地設定中。',
-                style: TextStyle(color: Color(0xFF64748B)),
-              ),
-              const SizedBox(height: 16),
-              GridView.builder(
-                shrinkWrap: true,
-                itemCount: _avatarIcons.length,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                  childAspectRatio: 0.92,
+        return SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '選擇頭像',
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
                 ),
-                itemBuilder: (context, index) {
-                  final selectedAvatar = index == _avatarIndex;
-                  return InkWell(
-                    borderRadius: BorderRadius.circular(20),
-                    onTap: () => Navigator.of(sheetContext).pop(index),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: selectedAvatar
-                            ? _avatarColors[index].withValues(alpha: 0.16)
-                            : const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
+                const SizedBox(height: 6),
+                const Text(
+                  '可直接從裝置選擇圖片，或使用內建頭像。',
+                  style: TextStyle(color: Color(0xFF64748B)),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: _isUploadingAvatar
+                        ? null
+                        : () async {
+                            Navigator.of(sheetContext).pop();
+                            await _uploadAvatarFile();
+                          },
+                    icon: const Icon(Icons.upload_file_rounded),
+                    label: Text(_isUploadingAvatar ? '上傳中...' : '從裝置選擇圖片'),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Divider(),
+                const SizedBox(height: 12),
+                GridView.builder(
+                  shrinkWrap: true,
+                  itemCount: _avatarIcons.length,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                    childAspectRatio: 0.98,
+                  ),
+                  itemBuilder: (context, index) {
+                    final selectedAvatar = index == _avatarIndex;
+                    return InkWell(
+                      borderRadius: BorderRadius.circular(20),
+                      onTap: () => Navigator.of(sheetContext).pop(index),
+                      child: Container(
+                        decoration: BoxDecoration(
                           color: selectedAvatar
-                              ? _avatarColors[index]
-                              : const Color(0xFFE2E8F0),
-                          width: selectedAvatar ? 2 : 1,
+                              ? _avatarColors[index].withValues(alpha: 0.16)
+                              : const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: selectedAvatar
+                                ? _avatarColors[index]
+                                : const Color(0xFFE2E8F0),
+                            width: selectedAvatar ? 2 : 1,
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            CircleAvatar(
+                              radius: 28,
+                              backgroundColor: _avatarColors[index],
+                              child: Icon(
+                                _avatarIcons[index],
+                                color: Colors.white,
+                                size: 30,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              _avatarLabels[index],
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          CircleAvatar(
-                            radius: 28,
-                            backgroundColor: _avatarColors[index],
-                            child: Icon(
-                              _avatarIcons[index],
-                              color: Colors.white,
-                              size: 30,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            _avatarLabels[index],
-                            style: const TextStyle(fontWeight: FontWeight.w800),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ],
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -281,6 +319,54 @@ class _SettingPageState extends State<SettingPage> {
     if (selected != null && mounted) {
       setState(() => _avatarIndex = selected);
     }
+  }
+
+  Future<void> _uploadAvatarFile() async {
+    if (!widget.isLoggedIn || _isUploadingAvatar) return;
+
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      withData: true,
+    );
+    if (result == null || result.files.single.bytes == null) return;
+
+    final file = result.files.single;
+    final extension = (file.extension ?? 'png').toLowerCase();
+    const supportedTypes = {'jpg', 'jpeg', 'png'};
+    if (!supportedTypes.contains(extension)) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('请选择 PNG 或 JPG 图片。')));
+      }
+      return;
+    }
+
+    if (file.bytes!.length > 5 * 1024 * 1024) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('图片大小不能超过 5 MB。')));
+      }
+      return;
+    }
+
+    setState(() => _isUploadingAvatar = true);
+    final response = await ApiService.uploadAvatar(
+      bytes: file.bytes!,
+      filename: file.name,
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _isUploadingAvatar = false;
+      if (response.success) {
+        _avatarBytes = file.bytes;
+      }
+    });
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(response.message)));
   }
 
   Future<void> _changePassword() async {
@@ -328,6 +414,24 @@ class _SettingPageState extends State<SettingPage> {
   }
 
   Widget _buildAvatarPreview() {
+    if (_avatarBytes != null) {
+      return Container(
+        width: 86,
+        height: 86,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.12),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Image.memory(_avatarBytes!, fit: BoxFit.cover),
+      );
+    }
     return Container(
       width: 86,
       height: 86,
@@ -525,7 +629,16 @@ class _SettingPageState extends State<SettingPage> {
                       ? _avatarColor.withValues(alpha: 0.15)
                       : const Color(0xFF94A3B8).withValues(alpha: 0.18),
                   child: widget.isLoggedIn
-                      ? Icon(_avatarIcon, color: _avatarColor)
+                      ? (_avatarBytes != null
+                            ? ClipOval(
+                                child: Image.memory(
+                                  _avatarBytes!,
+                                  width: 40,
+                                  height: 40,
+                                  fit: BoxFit.cover,
+                                ),
+                              )
+                            : Icon(_avatarIcon, color: _avatarColor))
                       : const Icon(
                           Icons.person_rounded,
                           color: Color(0xFF64748B),

@@ -34,7 +34,6 @@ class _DashboardPageState extends State<DashboardPage> {
   late final VoidCallback _controllerListener;
   Timer? _pageTimer;
   final ScrollController _scrollController = ScrollController();
-  final GlobalKey _historyKey = GlobalKey();
 
   String _postureDisplay = '無人就坐';
   String _postureCode = '';
@@ -101,10 +100,29 @@ class _DashboardPageState extends State<DashboardPage> {
     if (!widget.isLoggedIn) return;
 
     try {
-      await ApiService.chairCheckin();
+      final checkin = await ApiService.chairCheckin();
       widget.controller.startSession();
       widget.controller.startAutoSync();
       await _fetch();
+      if (!mounted || !checkin.success || checkin.calibrated) return;
+      final shouldCalibrate = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('需要校準坐姿'),
+          content: const Text('請坐正並保持不動約 5 秒，現在要開始校準嗎？'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('稍後'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('開始校準'),
+            ),
+          ],
+        ),
+      );
+      if (shouldCalibrate == true && mounted) await _calibrateAuto();
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -125,7 +143,7 @@ class _DashboardPageState extends State<DashboardPage> {
           : '尚無資料';
       // 不在同步時自動顯示 AI 建議；改為按鈕按下時才載入/顯示
       _color = widget.controller.postureCode.isNotEmpty
-          ? _postureColor(widget.controller.postureCode)
+          ? ApiService.postureColor(widget.controller.postureCode)
           : const Color(0xFF64748B);
     });
   }
@@ -177,25 +195,6 @@ class _DashboardPageState extends State<DashboardPage> {
       if (mounted) {
         setState(() => _isCalibrating = false);
       }
-    }
-  }
-
-  Color _postureColor(String code) {
-    switch (code) {
-      case 'normal':
-        return const Color(0xFF16A34A);
-      case 'forward':
-        return const Color(0xFFDC2626);
-      case 'left':
-        return const Color(0xFFEA580C);
-      case 'right':
-        return const Color(0xFFC2410C);
-      case 'recline':
-        return const Color(0xFF2563EB);
-      case 'sedentary':
-        return const Color(0xFF7C3AED);
-      default:
-        return Colors.grey;
     }
   }
 
@@ -458,9 +457,12 @@ class _DashboardPageState extends State<DashboardPage> {
     final history = widget.controller.postureHistory;
     final total = history.length;
     final postureCounts = <String, int>{};
+    final postureLabels = <String, String>{};
     for (final item in history) {
-      final label = item['label'] as String;
-      postureCounts[label] = (postureCounts[label] ?? 0) + 1;
+      final code = item['code']?.toString() ?? item['label']?.toString() ?? '';
+      final label = item['label']?.toString() ?? ApiService.toDisplayName(code);
+      postureCounts[code] = (postureCounts[code] ?? 0) + 1;
+      postureLabels[code] = label;
     }
 
     return Container(
@@ -482,22 +484,17 @@ class _DashboardPageState extends State<DashboardPage> {
             ),
           ),
           const SizedBox(height: 8),
-          _buildPosturePieChart(postureCounts, total),
+          _buildPosturePieChart(postureCounts, postureLabels, total),
         ],
       ),
     );
   }
 
-  Widget _buildPosturePieChart(Map<String, int> postureCounts, int total) {
-    const colors = <String, Color>{
-      '姿勢正常': Color(0xFF16A34A),
-      '頭部前傾': Color(0xFFDC2626),
-      '身體左傾': Color(0xFFEA580C),
-      '身體右傾': Color(0xFFC2410C),
-      '過度後仰': Color(0xFF2563EB),
-      '久坐未動': Color(0xFF7C3AED),
-    };
-
+  Widget _buildPosturePieChart(
+    Map<String, int> postureCounts,
+    Map<String, String> postureLabels,
+    int total,
+  ) {
     if (total == 0) {
       return Container(
         height: 180,
@@ -523,13 +520,14 @@ class _DashboardPageState extends State<DashboardPage> {
               PieChartData(
                 centerSpaceRadius: 38,
                 sectionsSpace: 2,
+                centerSpaceColor: Colors.white,
                 sections: postureCounts.entries
                     .where((entry) => entry.value > 0)
                     .map(
                       (entry) => PieChartSectionData(
                         value: entry.value.toDouble(),
                         title: '${((entry.value / total) * 100).round()}%',
-                        color: colors[entry.key] ?? const Color(0xFF64748B),
+                        color: ApiService.postureColor(entry.key),
                         radius: 54,
                         titleStyle: const TextStyle(
                           color: Colors.white,
@@ -551,39 +549,66 @@ class _DashboardPageState extends State<DashboardPage> {
                   .where((entry) => entry.value > 0)
                   .map(
                     (entry) => Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 10,
-                            height: 10,
-                            decoration: BoxDecoration(
-                              color:
-                                  colors[entry.key] ?? const Color(0xFF64748B),
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
+                      padding: const EdgeInsets.only(bottom: 7),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 9,
+                          vertical: 7,
+                        ),
+                        decoration: BoxDecoration(
+                          color: ApiService.postureColor(
+                            entry.key,
+                          ).withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: ApiService.postureColor(
                               entry.key,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF334155),
+                            ).withValues(alpha: 0.22),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              _postureIcon(entry.key),
+                              color: ApiService.postureColor(entry.key),
+                              size: 19,
+                            ),
+                            const SizedBox(width: 7),
+                            Expanded(
+                              child: Text(
+                                postureLabels[entry.key] ??
+                                    ApiService.toDisplayName(entry.key),
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w900,
+                                  color: Color(0xFF1E293B),
+                                ),
                               ),
                             ),
-                          ),
-                          Text(
-                            '${entry.value} 次',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w900,
-                              color: Color(0xFF0F172A),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  '${entry.value} 次',
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w900,
+                                    color: Color(0xFF0F172A),
+                                  ),
+                                ),
+                                Text(
+                                  _postureStatus(entry.key),
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
+                                    color: ApiService.postureColor(entry.key),
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   )
@@ -593,6 +618,28 @@ class _DashboardPageState extends State<DashboardPage> {
         ],
       ),
     );
+  }
+
+  IconData _postureIcon(String code) {
+    switch (code) {
+      case 'normal':
+        return Icons.check_circle_rounded;
+      case 'forward':
+        return Icons.accessibility_new_rounded;
+      case 'left':
+      case 'right':
+        return Icons.swap_horiz_rounded;
+      case 'recline':
+        return Icons.airline_seat_recline_extra_rounded;
+      case 'sedentary':
+        return Icons.hourglass_bottom_rounded;
+      default:
+        return Icons.info_outline_rounded;
+    }
+  }
+
+  String _postureStatus(String code) {
+    return code == 'normal' ? '正常' : '需要调整';
   }
 
   // ignore: unused_element
@@ -650,7 +697,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   title: '歷史報表',
                   value: '${widget.controller.postureHistory.length} 筆姿勢紀錄',
                   color: const Color(0xFF7C3AED),
-                  onTap: _scrollToHistory,
+                  onTap: () {},
                 ),
               ),
               const SizedBox(width: 10),
@@ -668,17 +715,6 @@ class _DashboardPageState extends State<DashboardPage> {
         ],
       ),
     );
-  }
-
-  void _scrollToHistory() {
-    final context = _historyKey.currentContext;
-    if (context != null) {
-      Scrollable.ensureVisible(
-        context,
-        duration: const Duration(milliseconds: 450),
-        curve: Curves.easeOutCubic,
-      );
-    }
   }
 
   // ignore: unused_element

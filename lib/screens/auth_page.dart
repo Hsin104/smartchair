@@ -445,18 +445,18 @@ class _AuthPageState extends State<AuthPage> {
                       ],
                       const SizedBox(height: 12),
 
-                      // Email（只有註冊需要）
+                      // Email（註冊時選填）
                       if (_mode == AuthMode.register) ...[
                         TextFormField(
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
                           decoration: const InputDecoration(
-                            labelText: '電子郵件',
+                            labelText: '電子郵件（選填）',
                             border: OutlineInputBorder(),
                           ),
                           validator: (v) {
                             final text = (v ?? '').trim();
-                            if (text.isEmpty) return '請輸入電子郵件';
+                            if (text.isEmpty) return null;
                             if (!text.contains('@')) return '請輸入有效電子郵件';
                             return null;
                           },

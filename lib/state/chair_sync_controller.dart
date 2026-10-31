@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../services/browser_notification_stub.dart'
+    if (dart.library.html) '../services/browser_notification_web.dart';
 
 class ChairSyncController extends ChangeNotifier {
   ChairSyncController() : sessionOpenedAt = null;
@@ -14,6 +16,8 @@ class ChairSyncController extends ChangeNotifier {
   DateTime updatedAt = DateTime.now();
   DateTime lastBackendSyncAt = DateTime.now();
   bool _lastPostureWasSedentary = false;
+  final Set<String> _knownNotificationIds = {};
+  bool _notificationHistoryLoaded = false;
 
   Timer? _syncTimer;
 
@@ -64,63 +68,10 @@ class ChairSyncController extends ChangeNotifier {
       'time': timeText,
       'message': '坐姿提醒：請調整坐姿。',
       'icon': Icons.warning_amber_rounded,
-      'color': _postureColor(posture),
+      'color': ApiService.postureColor(posture),
     });
 
     if (notifications.length > 20) notifications.removeLast();
-  }
-
-  Color _postureColor(String label) {
-    if (label.contains('前傾')) {
-      return const Color(0xFFDC2626);
-    }
-    if (label.contains('左傾') || label.contains('左側傾斜')) {
-      return const Color(0xFFEA580C);
-    }
-    if (label.contains('右傾') || label.contains('右側傾斜')) {
-      return const Color(0xFFC2410C);
-    }
-    if (label.contains('後仰')) {
-      return const Color(0xFF2563EB);
-    }
-    if (label.contains('久坐')) {
-      return const Color(0xFF7C3AED);
-    }
-
-    switch (label) {
-      case 'normal':
-      case '姿勢正常':
-        return const Color(0xFF16A34A);
-      case 'forward':
-      // 中文顯示名稱（dashboard 傳入的是中文）
-      case '頭部前傾':
-        return const Color(0xFFDC2626);
-      case 'left':
-      case '身體左傾':
-        return const Color(0xFFEA580C);
-      case 'right':
-      case '身體右傾':
-        return const Color(0xFFC2410C);
-      case 'recline':
-      case '過度後仰':
-        return const Color(0xFF2563EB);
-      case 'sedentary':
-      case '久坐未動':
-        return const Color(0xFF7C3AED);
-      // 相容舊版中文
-      case '身體前傾':
-        return const Color(0xFFDC2626);
-      case '左側傾斜':
-        return const Color(0xFFEA580C);
-      case '右側傾斜':
-        return const Color(0xFFC2410C);
-      case '後仰過多':
-        return const Color(0xFF2563EB);
-      case '久坐過久':
-        return const Color(0xFF7C3AED);
-      default:
-        return const Color(0xFF64748B);
-    }
   }
 
   void clearNotifications() {
@@ -197,13 +148,16 @@ class ChairSyncController extends ChangeNotifier {
       for (final item in history) {
         final label =
             item['posture'] as String? ?? item['label'] as String? ?? '未知';
-        final score = (item['score'] as int?) ?? ApiService.toScore(label);
+        final score = ApiService.toScore(label);
         final isGood = label == 'normal' || label == '姿勢正常';
         final parsedTime = DateTime.tryParse(
           item['timestamp']?.toString() ?? '',
         )?.toLocal();
         postureHistory.add({
-          'label': ApiService.toDisplayName(label),
+          'code': label,
+          'label':
+              item['posture_display']?.toString() ??
+              ApiService.toDisplayName(label),
           'score': score,
           'isGood': isGood,
           'time': parsedTime ?? DateTime.now(),
@@ -215,11 +169,17 @@ class ChairSyncController extends ChangeNotifier {
       // Update notifications from history list
       notifications.clear();
       for (final n in notificationHistory) {
+        final notificationId = n['id']?.toString();
+        final isNewAutoCheckout =
+            _notificationHistoryLoaded &&
+            n['kind']?.toString() == 'auto_checkout' &&
+            notificationId != null &&
+            !_knownNotificationIds.contains(notificationId);
         final displayPosture = _notificationPostureLabel(n);
         final title = displayPosture;
         final message = _notificationMessage(n, displayPosture);
         final time = _notificationTime(n);
-        final color = _postureColor(displayPosture);
+        final color = ApiService.postureColor(displayPosture);
         notifications.add({
           'title': title,
           'time': time.isNotEmpty ? time : _formatNow(),
@@ -227,7 +187,19 @@ class ChairSyncController extends ChangeNotifier {
           'icon': Icons.notifications_active_rounded,
           'color': color,
         });
+        if (notificationId != null) {
+          _knownNotificationIds.add(notificationId);
+        }
+        if (isNewAutoCheckout) {
+          unawaited(
+            showBrowserNotification(
+              '智慧座椅自动离座',
+              n['message']?.toString() ?? '请回到 App 重新入座。',
+            ),
+          );
+        }
       }
+      _notificationHistoryLoaded = true;
 
       notifyListeners();
     } catch (_) {
@@ -243,8 +215,13 @@ class ChairSyncController extends ChangeNotifier {
   void _applyPosturePayload(Map<String, dynamic> payload) {
     final source = _postureSource(payload);
     final code = _postureCodeFrom(source);
-    final displayName = code.isEmpty ? '等待同步' : ApiService.toDisplayName(code);
-    final score = _intValue(source['score']) ?? ApiService.toScore(code);
+    final backendDisplay = source['posture_display']?.toString().trim();
+    final displayName = backendDisplay?.isNotEmpty == true
+        ? backendDisplay!
+        : code.isEmpty
+        ? '等待同步'
+        : ApiService.toDisplayName(code);
+    final score = ApiService.toScore(code);
     final isSedentary =
         code == 'sedentary' ||
         displayName.contains('久坐') ||
@@ -328,12 +305,6 @@ class ChairSyncController extends ChangeNotifier {
     }
   }
 
-  int? _intValue(Object? value) {
-    if (value is int) return value;
-    if (value is num) return value.toInt();
-    return int.tryParse(value?.toString() ?? '');
-  }
-
   String _notificationPostureLabel(Map<String, dynamic> item) {
     for (final key in ['posture', 'posture_code', 'posture_display', 'label']) {
       final raw = item[key]?.toString().trim();
@@ -384,12 +355,7 @@ class ChairSyncController extends ChangeNotifier {
   }
 
   String _notificationTime(Map<String, dynamic> item) {
-    final raw =
-        item['timestamp']?.toString() ??
-        item['created_at']?.toString() ??
-        item['createdAt']?.toString() ??
-        item['time']?.toString() ??
-        '';
+    final raw = item['timestamp']?.toString() ?? item['time']?.toString() ?? '';
     if (raw.isEmpty) return '';
 
     final parsed = DateTime.tryParse(raw)?.toLocal();
