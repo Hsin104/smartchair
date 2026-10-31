@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.utils.html import format_html_join
-from .models import User, PostureRecord, Notification, AgentLog, PasswordResetCode
+from .models import (User, PostureRecord, Notification, AgentLog, PasswordResetCode, DailyStretchPlan,
+                     WellnessCompletion)
 
 
 @admin.register(PostureRecord)
@@ -55,3 +56,17 @@ class PasswordResetCodeAdmin(admin.ModelAdmin):
     list_filter  = ['is_used']
     search_fields = ['user__username']
     ordering     = ['-created_at']
+
+
+@admin.register(DailyStretchPlan)
+class DailyStretchPlanAdmin(admin.ModelAdmin):
+    list_display = ['id', 'user', 'date', 'source', 'generated_at', 'updated_at']
+    list_filter  = ['source', 'date']
+    ordering     = ['-date']
+
+
+@admin.register(WellnessCompletion)
+class WellnessCompletionAdmin(admin.ModelAdmin):
+    list_display = ['id', 'user', 'exercise_id', 'source', 'date', 'feedback']
+    list_filter  = ['source', 'date']
+    ordering     = ['-completed_at']

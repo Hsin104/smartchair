@@ -21,8 +21,10 @@
 | 坐姿 | GET | /posture/history | 查詢自己的坐姿歷史紀錄 | 是 | App |
 | AI 建議 | POST | /agent/jobs | 送出 AI 建議任務，立即回傳任務編號（非同步） | 是 | App |
 | AI 建議 | GET | /agent/jobs/{job_id} | 查詢 AI 任務狀態與結果（只能查自己的） | 是 | App |
-| AI 建議 | GET | /agent/stretch-plan | 依近 7 天壞坐姿統計推薦伸展動作與影片 | 是 | App |
+| AI 建議 | GET | /agent/stretch-plan | 健康花園每日 3 個任務（AI 依 7 天坐姿挑選，不與 AI 建議重複） | 是 | App |
 | AI 建議 | POST | /agent | 舊版同步 AI 建議（等 App 改用 /agent/jobs 後移除） | 是 | App |
+| 健康介入 | POST | /wellness/complete | 回報完成一個伸展動作 | 是 | App |
+| 健康介入 | GET | /wellness/history | 查詢自己的伸展完成紀錄 | 是 | App |
 | 座椅 | POST | /chair/checkin | 登記坐上某張椅子（body 帶 `device_id`，不帶為 chair_01），之後這張椅子的資料算在他名下 | 是 | App |
 | 座椅 | POST | /chair/checkout | 登記離座 | 是 | App |
 | 座椅 | GET | /chair/status | 查詢某張椅子目前是誰在使用（`?device_id=`，不帶為 chair_01） | 否 | App |
@@ -37,4 +39,4 @@
 | 提醒 | POST | /motor/trigger | 依坐姿手動觸發對應馬達震動 | 是 | 測試工具 |
 | 系統 | GET | /health | 健康檢查：確認服務與資料庫正常 | 否 | 系統 |
 
-共 28 支（`/chair/calibration` 的 GET、POST 合計為 1 支）。另有 MQTT 通道（不是 HTTP API）：每張椅子發布感測資料到 `chair/{device_id}/pressure`，手動馬達指令送到 `chair/{device_id}/vibration/cmd`、個人校正（中立點）以 retained 訊息送到 `chair/{device_id}/config`、開始校正指令送到 `chair/{device_id}/calibration/cmd`，椅子在 `chair/{device_id}/vibration/status` 回報結果；舊韌體的 `chair/pressure/01`、`chair/vibration/01/cmd` 仍支援（視為 chair_01）。
+共 30 支（`/chair/calibration` 的 GET、POST 合計為 1 支）。另有 MQTT 通道（不是 HTTP API）：每張椅子發布感測資料到 `chair/{device_id}/pressure`，手動馬達指令送到 `chair/{device_id}/vibration/cmd`、個人校正（中立點）以 retained 訊息送到 `chair/{device_id}/config`、開始校正指令送到 `chair/{device_id}/calibration/cmd`，椅子在 `chair/{device_id}/vibration/status` 回報結果；舊韌體的 `chair/pressure/01`、`chair/vibration/01/cmd` 仍支援（視為 chair_01）。

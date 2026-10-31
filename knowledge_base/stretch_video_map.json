@@ -1,10 +1,11 @@
 {
   "version": "1.0",
-  "description": "核查完畢的伸展動作 × YouTube 影片對照表，供 Physio Agent 回傳影片連結使用",
+  "description": "核查完畢的伸展動作 × YouTube 影片對照表，供 Physio Agent 回傳影片連結使用；group 為動作類別，名稱不同但實際動作相同者同一類（每日任務去重用）",
   "last_verified": "2026-07-13",
   "exercises": [
     {
       "id": 1,
+      "group": "neck-rotation",
       "name": "頸部左右旋轉",
       "target_muscles": "頸椎、斜方肌",
       "posture_trigger": ["forward", "sedentary"],
@@ -16,6 +17,7 @@
     },
     {
       "id": 2,
+      "group": "neck-flexion",
       "name": "頸部前後伸展",
       "target_muscles": "頸前肌群、頸後肌群",
       "posture_trigger": ["forward"],
@@ -27,6 +29,7 @@
     },
     {
       "id": 3,
+      "group": "shoulder-roll",
       "name": "坐姿肩膀旋轉",
       "target_muscles": "肩關節、旋轉肌群",
       "posture_trigger": ["sedentary", "forward"],
@@ -38,6 +41,7 @@
     },
     {
       "id": 4,
+      "group": "chest-open",
       "name": "胸部擴展伸展",
       "target_muscles": "胸大肌、前鋸肌",
       "posture_trigger": ["forward", "sedentary"],
@@ -49,6 +53,7 @@
     },
     {
       "id": 5,
+      "group": "side-bend",
       "name": "坐姿側身伸展",
       "target_muscles": "腰側肌群、闊背肌",
       "posture_trigger": ["left", "right", "sedentary"],
@@ -60,6 +65,7 @@
     },
     {
       "id": 6,
+      "group": "seated-twist",
       "name": "脊椎扭轉伸展",
       "target_muscles": "脊椎旋轉肌、腹斜肌",
       "posture_trigger": ["left", "right", "sedentary"],
@@ -71,6 +77,7 @@
     },
     {
       "id": 7,
+      "group": "forward-fold",
       "name": "腰部前彎伸展",
       "target_muscles": "腰椎、臀部肌群",
       "posture_trigger": ["recline", "sedentary"],
@@ -82,6 +89,7 @@
     },
     {
       "id": 8,
+      "group": "piriformis",
       "name": "梨狀肌伸展（翹腳式）",
       "target_muscles": "梨狀肌、臀中肌",
       "posture_trigger": ["sedentary", "left", "right"],
@@ -93,6 +101,7 @@
     },
     {
       "id": 9,
+      "group": "wrist",
       "name": "腕部旋轉與伸展",
       "target_muscles": "腕關節、前臂肌群",
       "posture_trigger": ["sedentary", "forward"],
@@ -104,6 +113,7 @@
     },
     {
       "id": 10,
+      "group": "trapezius",
       "name": "肩頸放鬆（斜方肌伸展）",
       "target_muscles": "斜方肌上束、提肩胛肌",
       "posture_trigger": ["forward", "sedentary"],
@@ -115,6 +125,7 @@
     },
     {
       "id": 11,
+      "group": "glute",
       "name": "坐姿臀肌伸展",
       "target_muscles": "臀大肌、臀中肌",
       "posture_trigger": ["sedentary", "recline"],
@@ -126,6 +137,7 @@
     },
     {
       "id": 12,
+      "group": "upper-back",
       "name": "上背部伸展（貓背式）",
       "target_muscles": "胸椎、菱形肌",
       "posture_trigger": ["forward", "recline", "sedentary"],
@@ -137,6 +149,7 @@
     },
     {
       "id": 13,
+      "group": "eyes",
       "name": "眼睛放鬆（20-20-20 法則）",
       "target_muscles": "眼部肌肉、視神經",
       "posture_trigger": ["sedentary"],
@@ -148,6 +161,7 @@
     },
     {
       "id": 14,
+      "group": "chest-open",
       "name": "胸椎伸展（椅背輔助）",
       "target_muscles": "胸椎關節、胸大肌",
       "posture_trigger": ["forward", "sedentary"],
@@ -159,6 +173,7 @@
     },
     {
       "id": 15,
+      "group": "seated-twist",
       "name": "腰椎旋轉（坐姿）",
       "target_muscles": "腰椎多裂肌、腹橫肌",
       "posture_trigger": ["left", "right", "sedentary"],
@@ -170,6 +185,7 @@
     },
     {
       "id": 16,
+      "group": "calf",
       "name": "站立小腿伸展",
       "target_muscles": "腓腸肌、比目魚肌",
       "posture_trigger": ["sedentary"],
@@ -181,6 +197,7 @@
     },
     {
       "id": 17,
+      "group": "shoulder-retract",
       "name": "肩膀後縮訓練",
       "target_muscles": "菱形肌、中下斜方肌",
       "posture_trigger": ["forward", "sedentary"],
@@ -192,6 +209,7 @@
     },
     {
       "id": 18,
+      "group": "breathing",
       "name": "核心呼吸啟動",
       "target_muscles": "橫膈膜、腹橫肌",
       "posture_trigger": ["recline", "sedentary"],

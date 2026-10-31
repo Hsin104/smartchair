@@ -26,6 +26,8 @@ urlpatterns = [
     path('agent/jobs',           views.agent_job_create, name='agent-job-create'),
     path('agent/jobs/<uuid:job_id>', views.agent_job_detail, name='agent-job-detail'),
     path('agent/stretch-plan',   views.stretch_plan, name='stretch-plan'),
+    path('wellness/complete',    views.wellness_complete, name='wellness-complete'),
+    path('wellness/history',     views.wellness_history,  name='wellness-history'),
 
     # 馬達觸發
     path('motor/trigger',        views.motor_trigger, name='motor-trigger'),

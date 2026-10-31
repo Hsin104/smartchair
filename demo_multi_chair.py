@@ -188,14 +188,20 @@ def main():
           and cfg.get('neutral_x') == d.get('calibration', {}).get('neutral_x'), str(cfg))
 
     step(f'[3] {BOB} 第一次校正：椅子回報坐不穩')
-    requests.post(f'{BASE}/chair/calibration', headers=headers[BOB], timeout=10)
+    r = requests.post(f'{BASE}/chair/calibration', headers=headers[BOB], timeout=10)
+    print(f'  POST /chair/calibration → HTTP {r.status_code} {r.json()}')
     d = wait_calibration(headers[BOB])
     print(f'  結果：status={d["status"]} reason={d.get("reason")} 訊息：{d.get("message")}')
     check('校正失敗並顯示中文原因', d['status'] == 'failed' and d.get('reason') == 'unstable')
 
     step(f'[4] {BOB} 第二次校正：椅子沒回應（例如舊韌體），10 秒後改由後端計算')
-    requests.post(f'{BASE}/chair/calibration', headers=headers[BOB], timeout=10)
-    send(chair, [(CHAIR_B, 'normal')], 10, interval=1)   # 期間椅子照常送資料
+    r = requests.post(f'{BASE}/chair/calibration', headers=headers[BOB], timeout=10)
+    print(f'  POST /chair/calibration → HTTP {r.status_code} {r.json()}')
+    for sec in range(1, 11):   # 期間椅子照常送資料，但不回應校正指令
+        send(chair, [(CHAIR_B, 'normal')], 1, interval=1)
+        if RECORD:
+            d = requests.get(f'{BASE}/chair/calibration', headers=headers[BOB], timeout=10).json()
+            print(f'  第 {sec} 秒：椅子沒回應校正，照常送感測資料 → {d["status"]}')
     d = wait_calibration(headers[BOB])
     print(f'  結果：status={d["status"]} method={d.get("method")}')
     check('改由後端計算完成（method=backend）', d['status'] == 'done' and d.get('method') == 'backend')

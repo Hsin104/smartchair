@@ -1,6 +1,6 @@
 # SmartChair 後端 API 串接說明（給 Android／Flutter 前端）
 
-> 2026-10-31 版（新增頭像上傳），**取代先前的 `api_reply_frontend_1018.md` 與 `api_update_frontend_1023.md`，只看這份即可**。
+> 2026-10-31 版（新增頭像上傳、健康花園每日任務、完成紀錄），**取代先前的 `api_reply_frontend_1018.md` 與 `api_update_frontend_1023.md`，只看這份即可**。
 > 內容都是實際打 API 驗證過的。全部端點一覽見 [api_endpoints.md](api_endpoints.md)。
 > **網頁版（`zhen` 分支）與 iOS（iOS-smart-chair）是兩份程式，以下修改兩邊都要做。**
 
@@ -52,7 +52,7 @@
 ```
 失敗 400：`{"success": false, "message": "只支援 PNG、JPG、JPEG 圖片"}`、`"圖片大小不能超過 5MB"`、`"請以 multipart/form-data 上傳，欄位名稱為 file"`；沒登入 401。之後 `GET /me` 會回傳新的 `avatar_url`。
 
-> ⚠️ **網頁版請幫忙實測圖片能不能顯示**：網址是 ngrok 免費網域，呼叫 API 時靠 `ngrok-skip-browser-warning` 標頭跳過警告頁，但 `<img>`／`Image.network` 抓圖片時帶不了這個標頭，圖片**可能被 ngrok 警告頁擋住**（顯示破圖）。如果擋住，請改成用 HTTP 請求（帶這個標頭）抓圖片 bytes 再用 `Image.memory` 顯示，並告訴我結果。iOS 不受影響的話也請說一聲。
+> ✅ 網頁版已實測（10/31）：上傳後用 `avatar_url` 直接顯示正常，沒有被 ngrok 警告頁擋住，不需要特別處理。
 
 ---
 
@@ -142,7 +142,54 @@
 - 只能查自己的任務，查別人的 404
 - `steps` 是 AI 的決策過程，App 不需要顯示
 
-`GET /agent/stretch-plan`：依近 7 天壞坐姿統計推薦伸展動作清單（含 YouTube 連結）。
+### 伸展動作的統一格式（10/31 起）
+
+`recommended_exercises`（AI 建議）和下面的 `tasks`（花園每日任務）每個動作格式相同：
+
+```json
+{ "id": 4, "group": "chest-open", "title": "胸部擴展伸展",
+  "description": "說明文字", "posture": "forward",
+  "duration_sec": 30, "duration": "30 秒",
+  "video_url": "https://www.youtube.com/watch?v=FO0adb9RZCI" }
+```
+
+- **`id` 是數字**，兩支 API 共用同一份動作清單（知識庫 18 個動作），同一個 id 永遠是同一個動作
+- `group` 是動作類別：名稱不同但實際動作相同的（例如 4 胸部擴展伸展、14 胸椎伸展）group 相同
+- 舊欄位 `name`、`youtube_url`、`youtube_title`、`target_muscles`、`reps` 仍保留
+
+---
+
+## 三之二、健康花園每日任務
+
+### `GET /agent/stretch-plan`
+
+```json
+{ "success": true, "source": "ai", "generated_at": "2026-10-31T18:54:23+08:00",
+  "tasks": [ {動作，格式同上}, {…}, {…} ] }
+```
+
+- **每天固定 3 個任務**，同一天再查 `id` 不變，可以照常用 `id` 判斷今天做過沒（台灣時間每天換新）
+- 依使用者近 7 天坐姿產生，每個人不同；`description` 是 AI 依他的坐姿寫的個人化說明，影片連結一律來自知識庫
+- **不會跟 AI 建議重複**：以 `group` 判斷。使用者當天之後才問 AI 時，再呼叫這支 API **只會換掉重複的那幾個任務**，其他任務的 `id` 不變。所以 AI 建議完成後，請重新呼叫一次 stretch-plan
+- `source`：`ai`（AI 產生）、`rule`（AI 暫時失敗，依坐姿頻率查表，一樣是 3 個任務）、`general`（坐姿資料不足，通用安全動作，例如眼睛放鬆、小腿伸展）。三種都照常顯示即可
+- 只有後端出錯時才會回 `{"success": false, "message": "目前無法產生今日伸展計畫，請稍後再試", "tasks": []}`（HTTP 500），`tasks` 永遠是陣列
+- 第一次產生約 2～5 秒（呼叫 AI），之後當天都是立即回應
+- 舊欄位 `posture_stats`、`recommended_exercises` 等仍保留
+
+### `POST /wellness/complete`：完成任務時回報
+
+```json
+{ "exercise_id": 4, "source": "daily", "feedback": "肩膀比較鬆了" }
+```
+
+- `exercise_id`：動作的 `id`（數字）；`source`：`daily`（花園每日任務）或 `ai`（AI 建議的動作）；`feedback` 選填，200 字以內
+- 第一次回報 **201**；同一個動作同一天重複回報 **200** 並附 `"already_completed": true`（不重複記錄）
+- 錯誤 400：`{"error": "..."}`
+- 後端會參考完成紀錄，昨天做過的動作今天盡量不再出
+
+### `GET /wellness/history?days=30`
+
+回傳自己的完成紀錄（新到舊），換裝置也看得到：`{"days": 30, "count": 1, "completions": [{"exercise_id", "title", "source", "feedback", "date", "completed_at"}]}`。點數、連續天數、花園等級仍由 App 計算。
 
 ---
 

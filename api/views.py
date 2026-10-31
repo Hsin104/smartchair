@@ -1,5 +1,6 @@
 import os
 import json
+import logging
 import secrets
 from collections import Counter
 from datetime import timedelta
@@ -42,7 +43,11 @@ from .calibration import (
 )
 
 # 伸展動作查表（不經過 LLM），實作在 api/stretch.py
-from .stretch import get_stretch_map as _get_stretch_map, recommend_exercises as _recommend_exercises
+from .stretch import exercises_by_id as _exercises_by_id, recommend_exercises as _recommend_exercises
+from .daily_plan import get_daily_plan
+from .models import WellnessCompletion
+
+logger = logging.getLogger(__name__)
 
 # ── 模型路徑 ──────────────────────────────────────────────────────────────────
 
@@ -1030,38 +1035,36 @@ def chair_list(request):
     return Response({'count': len(chairs), 'chairs': chairs})
 
 
-# ── 伸展計劃 ───────────────────────────────────────────────────────────────────
+# ── 伸展計劃（健康花園每日任務）────────────────────────────────────────────────
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def stretch_plan(request):
     """
-    GET /api/agent/stretch-plan — 依近 7 天壞坐姿頻率推薦伸展動作清單。
+    GET /api/agent/stretch-plan — 健康花園每日任務＋近 7 天壞坐姿統計。
 
-    回傳:
-        period_days:               查詢天數（固定 7）
-        total_bad_posture_records: 不良坐姿總筆數
-        posture_stats:             各坐姿頻率統計（count、ratio、display）
-        recommended_exercises:     建議伸展動作清單（最多 10 個，含 YouTube URL）
+    新欄位（10/31，前端健康花園用）:
+        success:      true；只有後端出錯時為 false（tasks 仍是空陣列）
+        tasks:        今天的 3 個任務（規則見 api/daily_plan.py），同一天內 id 固定
+        source:       ai（AI 挑選＋個人化說明）／rule（AI 失敗，查表）／general（資料不足，通用動作）
+        generated_at: 今天任務產生的時間
+    舊欄位保留（period_days、total_bad_posture_records、posture_stats、recommended_exercises）。
     """
+    try:
+        plan = get_daily_plan(request.user)
+    except Exception:
+        logger.exception('每日任務產生失敗')
+        return Response({'success': False, 'message': '目前無法產生今日伸展計畫，請稍後再試', 'tasks': []},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     cutoff  = timezone.now() - timedelta(days=7)
     records = PostureRecord.objects.filter(
         user=request.user,
         timestamp__gte=cutoff,
     ).exclude(posture__in=['normal', 'empty'])
-
-    total = records.count()
-    if total == 0:
-        return Response({
-            'period_days':               7,
-            'total_bad_posture_records': 0,
-            'posture_stats':             {},
-            'recommended_exercises':     [],
-            'message':                   '近 7 天無不良坐姿紀錄，繼續保持良好坐姿！',
-        })
-
     posture_counts = Counter(records.values_list('posture', flat=True))
-    posture_stats  = {
+    total = sum(posture_counts.values())
+    posture_stats = {
         p: {
             'count':   c,
             'ratio':   round(c / total, 3),
@@ -1070,36 +1073,82 @@ def stretch_plan(request):
         for p, c in posture_counts.most_common()
     }
 
-    stretch_map     = _get_stretch_map()
-    exercises_by_id = {ex['id']: ex for ex in stretch_map['exercises']}
-    posture_ex_map  = stretch_map['posture_exercise_map']
-
-    seen_ids    = set()
-    recommended = []
+    # 舊欄位：依壞坐姿頻率查表的動作清單（最多 10 個）
+    recommended, seen_ids = [], set()
     for posture, _ in posture_counts.most_common():
-        for ex_id in posture_ex_map.get(posture, []):
-            if ex_id not in seen_ids:
-                seen_ids.add(ex_id)
-                ex = exercises_by_id.get(ex_id)
-                if ex:
-                    recommended.append({
-                        'id':             ex['id'],
-                        'name':           ex['name'],
-                        'target_muscles': ex['target_muscles'],
-                        'reps':           ex['reps'],
-                        'duration_sec':   ex['duration_sec'],
-                        'youtube_url':    ex['youtube_url'],
-                        'youtube_title':  ex['youtube_title'],
-                        'description':    ex['description'],
-                        'triggered_by':   POSTURE_DISPLAY.get(posture, posture),
-                    })
+        for ex in _recommend_exercises(posture, limit=99):
+            if ex['id'] not in seen_ids:
+                seen_ids.add(ex['id'])
+                recommended.append({**ex, 'triggered_by': POSTURE_DISPLAY.get(posture, posture)})
 
-    return Response({
+    body = {
+        'success':                   True,
+        'tasks':                     plan.tasks,
+        'source':                    plan.source,
+        'generated_at':              timezone.localtime(plan.generated_at).isoformat(),
         'period_days':               7,
         'total_bad_posture_records': total,
         'posture_stats':             posture_stats,
         'recommended_exercises':     recommended[:10],
-    })
+    }
+    if total == 0:
+        body['message'] = '近 7 天無不良坐姿紀錄，繼續保持良好坐姿！'
+    return Response(body)
+
+
+# ── 伸展完成紀錄 ───────────────────────────────────────────────────────────────
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def wellness_complete(request):
+    """
+    POST /api/wellness/complete — 回報完成一個伸展動作（每日任務或 AI 建議）。
+
+    payload: { "exercise_id": 4, "source": "daily" | "ai", "feedback": "選填，最多 200 字" }
+    同一動作同一天重複回報：200 並附 already_completed=true，不重複記錄；第一次回報 201。
+    """
+    exercise_id = request.data.get('exercise_id')
+    source      = request.data.get('source')
+    feedback    = request.data.get('feedback') or ''
+    if not isinstance(exercise_id, int) or isinstance(exercise_id, bool) or exercise_id not in _exercises_by_id():
+        return Response({'error': 'exercise_id 必須是伸展動作的編號（tasks 或 recommended_exercises 的 id）'},
+                        status=status.HTTP_400_BAD_REQUEST)
+    if source not in ('daily', 'ai'):
+        return Response({'error': 'source 必須是 daily 或 ai'}, status=status.HTTP_400_BAD_REQUEST)
+    if not isinstance(feedback, str) or len(feedback) > 200:
+        return Response({'error': 'feedback 必須是 200 字以內的文字'}, status=status.HTTP_400_BAD_REQUEST)
+
+    record, created = WellnessCompletion.objects.get_or_create(
+        user=request.user, exercise_id=exercise_id, date=timezone.localdate(),
+        defaults={'source': source, 'feedback': feedback.strip()},
+    )
+    return Response({'success': True, 'already_completed': not created, 'completion': _completion_json(record)},
+                    status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def wellness_history(request):
+    """GET /api/wellness/history?days=30 — 自己的伸展完成紀錄（新到舊），days 1～365。"""
+    try:
+        days = min(max(int(request.query_params.get('days', 30)), 1), 365)
+    except ValueError:
+        return Response({'error': 'days 必須是整數'}, status=status.HTTP_400_BAD_REQUEST)
+    since   = timezone.localdate() - timedelta(days=days - 1)
+    records = WellnessCompletion.objects.filter(user=request.user, date__gte=since)
+    return Response({'days': days, 'count': records.count(), 'completions': [_completion_json(r) for r in records]})
+
+
+def _completion_json(record):
+    ex = _exercises_by_id().get(record.exercise_id, {})
+    return {
+        'exercise_id':  record.exercise_id,
+        'title':        ex.get('name'),
+        'source':       record.source,
+        'feedback':     record.feedback,
+        'date':         record.date.isoformat(),
+        'completed_at': timezone.localtime(record.completed_at).isoformat(),
+    }
 
 
 # ── 馬達觸發 ───────────────────────────────────────────────────────────────────

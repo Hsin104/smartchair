@@ -316,3 +316,56 @@ class AgentJob(models.Model):
 
     def __str__(self):
         return f'{self.user.username} — {self.posture} — {self.get_status_display()}'
+
+
+class DailyStretchPlan(models.Model):
+    """
+    健康花園的每日任務：每人每天一份，同一天內固定不變（前端用任務 id 判斷今天做過沒）。
+    使用者當天之後才問 AI，只換掉跟 AI 建議重複的任務，其他任務 id 不變。
+    """
+
+    SOURCE_AI      = 'ai'        # AI 依 7 天坐姿挑選並寫個人化說明
+    SOURCE_RULE    = 'rule'      # AI 失敗時，依坐姿頻率查表
+    SOURCE_GENERAL = 'general'   # 坐姿資料不足，通用安全動作
+    SOURCE_CHOICES = [(SOURCE_AI, 'AI'), (SOURCE_RULE, '查表備援'), (SOURCE_GENERAL, '通用動作')]
+
+    user         = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='stretch_plans', verbose_name='使用者'
+    )
+    date         = models.DateField(verbose_name='日期（台灣時間）')
+    tasks        = models.JSONField(default=list, verbose_name='任務')
+    source       = models.CharField(max_length=10, choices=SOURCE_CHOICES, verbose_name='產生方式')
+    # 去重時參考的最近一次 AI 建議；有更新的 AI 建議時才需要重新檢查重複
+    agent_job_id = models.UUIDField(null=True, blank=True, verbose_name='參考的 AI 建議任務')
+    generated_at = models.DateTimeField(auto_now_add=True, verbose_name='產生時間')
+    updated_at   = models.DateTimeField(auto_now=True, verbose_name='更新時間')
+
+    class Meta:
+        unique_together = [('user', 'date')]
+        verbose_name = '每日伸展任務'
+
+    def __str__(self):
+        return f'{self.user.username} — {self.date} — {self.source}'
+
+
+class WellnessCompletion(models.Model):
+    """使用者完成的伸展動作（每日任務或 AI 建議），同一動作同一天只記一次。"""
+
+    SOURCE_CHOICES = [('daily', '每日任務'), ('ai', 'AI 建議')]
+
+    user         = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='wellness_completions', verbose_name='使用者'
+    )
+    exercise_id  = models.PositiveIntegerField(verbose_name='動作編號（知識庫）')
+    source       = models.CharField(max_length=10, choices=SOURCE_CHOICES, verbose_name='來源')
+    feedback     = models.CharField(max_length=200, blank=True, verbose_name='使用者回饋')
+    date         = models.DateField(verbose_name='日期（台灣時間）')
+    completed_at = models.DateTimeField(auto_now_add=True, verbose_name='完成時間')
+
+    class Meta:
+        ordering = ['-completed_at']
+        unique_together = [('user', 'exercise_id', 'date')]
+        verbose_name = '伸展完成紀錄'
+
+    def __str__(self):
+        return f'{self.user.username} — {self.exercise_id} — {self.date}'
