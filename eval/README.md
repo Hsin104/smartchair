@@ -64,6 +64,14 @@ python eval/run_eval.py --testset eval/holdout3_testset.json --label holdout3
 
 驗證題一旦影響了設計決定就不算沒看過，下一輪要再建新的一批；各批的使用情形記錄在 [RESULTS.md](RESULTS.md)。
 
+## 打正式環境時要降低同時請求數
+
+```
+python eval/run_eval.py --base-url https://<ngrok網域> --testset eval/holdout3_testset.json --label prod_holdout3 --workers 2
+```
+
+`--workers` 預設 12 只適合打本機。11/14 用預設值打正式環境（經 ngrok 免費通道，約每秒 6 個請求）時，連線中途被切斷，之後約 5 分鐘內這台電腦到該網域的 TLS 握手全部失敗，主機與 ngrok 本身都正常；原因未確認，推測是觸發了 ngrok 的暫時限制。改用 `--workers 2` 後 42 次請求（約 2 分鐘）沒有再發生。
+
 ## 已知限制
 
 - 關鍵字比對只能判斷「有沒有提到」，無法判斷敘述是否完全正確；正確性細節仍需人工複核

@@ -4,7 +4,7 @@ Physio Agent 防幻覺自動評測（指標定義見 eval/README.md）
 用法：
     python eval/run_eval.py                         # 全部 36 題 × 3 次，打本機 http://localhost:8000
     python eval/run_eval.py --ids P01,R01,T01 --repeat 1   # 只跑指定題目（試跑用）
-    python eval/run_eval.py --base-url https://<ngrok網域>  # 打正式環境
+    python eval/run_eval.py --base-url https://<ngrok網域> --workers 2  # 打正式環境（要降低同時請求數，見 README）
 
 流程：每題送 POST /api/agent/jobs，輪詢 GET /api/agent/jobs/<id> 拿到回覆全文與 ReAct 步驟，
 逐題判定後彙整指標。原始回覆全部存進 eval/results/，供人工複核。
