@@ -109,6 +109,12 @@ class Chair(models.Model):
     name       = models.CharField(max_length=100, blank=True, verbose_name='名稱（例如擺放位置）')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='首次登記時間')
     last_seen  = models.DateTimeField(null=True, blank=True, verbose_name='最後收到資料時間')
+    # 韌體 2.0 起用 MQTT 遺囑（chair/{id}/online，retained）回報在線；null＝舊韌體，改用 last_seen 判斷
+    online            = models.BooleanField(null=True, blank=True, verbose_name='在線（LWT）')
+    online_changed_at = models.DateTimeField(null=True, blank=True, verbose_name='在線狀態改變時間')
+    firmware          = models.CharField(max_length=20, blank=True, verbose_name='韌體版本')
+    # 目前有沒有人坐（依椅子的 pose.label）；用來決定 retained 中立點要送個人值還是預設值
+    occupied          = models.BooleanField(null=True, blank=True, verbose_name='目前有人坐')
 
     # 這張椅子自己的預設中立點（沒校正的人坐時用）：由這張椅子累積的正常坐姿資料算出，
     # 每週重新計算（python manage.py update_default_neutral），資料不足時為 null、改用全部椅子的平均
@@ -175,6 +181,7 @@ class CalibrationRequest(models.Model):
     )
     method      = models.CharField(max_length=10, blank=True, verbose_name='計算方式（device／backend）')
     reason      = models.CharField(max_length=40, blank=True, verbose_name='失敗原因代碼')
+    stable_pct  = models.FloatField(null=True, blank=True, verbose_name='取樣穩定比例（椅子回報，%）')
     created_at  = models.DateTimeField(auto_now_add=True, verbose_name='開始時間')
     finished_at = models.DateTimeField(null=True, blank=True, verbose_name='結束時間')
 

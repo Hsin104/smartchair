@@ -161,34 +161,37 @@ def main():
         if posture != 'normal':
             after_count = Notification.objects.filter(user=user).count()
             check(f'{posture:8s} 觸發通知（Notification）', after_count > before_count)
-        # 即時震動交給 ESP32 內建提醒，後端處理感測資料時不應送出任何 MQTT 訊息
-        check(f'{posture:8s} 後端未發震動指令（交給 ESP32）', not _published_mqtt, f'{_published_mqtt}')
+        # 即時震動交給 ESP32 內建提醒，後端處理感測資料時不應送出震動指令
+        # （有人坐下時重送中立點設定 chair/{id}/config 是正常的，不算）
+        motor_cmds = [(t, p) for t, p in _published_mqtt if '/vibration/' in t]
+        check(f'{posture:8s} 後端未發震動指令（交給 ESP32）', not motor_cmds, f'{motor_cmds}')
         _published_mqtt.clear()
 
     # ── 第二段：久坐邏輯（不良坐姿之外的時間判斷，模擬時間流逝）────────────
-    print('\n[第二段] 久坐未動（sedentary）時間邏輯測試（模擬 6 分鐘前離座）')
+    limit = settings.SEDENTARY_MINUTES
+    print(f'\n[第二段] 久坐未動（sedentary）時間邏輯測試（上限 {limit} 分鐘，模擬 {limit + 1} 分鐘前離座）')
     PostureRecord.objects.filter(user=user).delete()
     Notification.objects.filter(user=user).delete()
     now = timezone.now()
     PostureRecord.objects.create(
         user=user, posture='empty', seat_pressure_data={}, back_pressure_data={}, source='auto',
     )
-    PostureRecord.objects.filter(user=user, posture='empty').update(timestamp=now - timedelta(minutes=6))
-    # 這筆坐姿紀錄必須落在「離座時間」與「5 分鐘前 cutoff」之間，
-    # 才能證明「離座後已連續坐了 5 分鐘以上」（見 _check_sedentary 邏輯）
+    PostureRecord.objects.filter(user=user, posture='empty').update(timestamp=now - timedelta(minutes=limit + 1))
+    # 這筆坐姿紀錄必須落在「離座時間」與「上限分鐘前 cutoff」之間，
+    # 才能證明「離座後已連續坐了上限分鐘以上」（見 _check_sedentary 邏輯）
     PostureRecord.objects.create(
         user=user, posture='normal',
         seat_pressure_data=POSTURE_PAYLOADS['normal']['seat'],
         back_pressure_data=POSTURE_PAYLOADS['normal']['back'],
         source='auto',
     )
-    PostureRecord.objects.filter(user=user, posture='normal').update(timestamp=now - timedelta(minutes=5, seconds=30))
+    PostureRecord.objects.filter(user=user, posture='normal').update(timestamp=now - timedelta(minutes=limit, seconds=30))
     result = _check_sedentary(user, 'normal')
-    check('久坐 6 分鐘後判定為 sedentary', result == 'sedentary', f'結果={result}')
+    check(f'連續坐超過 {limit} 分鐘判定為 sedentary', result == 'sedentary', f'結果={result}')
 
     # ── 第三段：馬達觸發決策（MOTOR_MAP，對應 POST /api/motor/trigger 邏輯）──
     print('\n[第三段] 馬達觸發決策邏輯（坐姿 → 對應馬達）')
-    # 依硬體實際位置（M1 右前、M2 右後、M3 左後、M4 左前，demo/MQTT資料說明.md），震動偏移的那一側
+    # 依硬體實際位置（M1 右扶手、M2 右腰、M3 左腰、M4 左扶手，11/14 硬體回覆定案），震動偏移的那一側
     EXPECTED_MOTORS = {
         'forward': ['M1', 'M4'], 'recline': ['M2', 'M3'],
         'left': ['M3', 'M4'], 'right': ['M1', 'M2'],

@@ -77,6 +77,18 @@ def device_posture(payload: dict):
     return DEVICE_LABEL_MAP.get(label, label) if label else None
 
 
+def device_occupied(payload: dict):
+    """韌體 2.0 依 pose.label 判斷有沒有人坐（no_occupancy＝沒人）；沒有 label 的舊格式回傳 None。"""
+    label = (payload.get('pose') or {}).get('label')
+    return label != 'no_occupancy' if label else None
+
+
+def device_sedentary(payload: dict):
+    """韌體 2.0 的久坐判斷（sitting.alert，上限由椅子的 sitting.limit_min 決定）；舊格式回傳 None。"""
+    sitting = payload.get('sitting')
+    return bool(sitting.get('alert')) if isinstance(sitting, dict) else None
+
+
 def total_pressure(payload: dict) -> float:
     """判斷是否有人就坐用的總壓力（norm/raw 陣列絕對值總和）。"""
     arr = payload.get('norm') or payload.get('raw') or []

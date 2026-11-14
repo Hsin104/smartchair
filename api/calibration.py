@@ -125,12 +125,13 @@ def start_calibration(user, chair: Chair) -> CalibrationRequest:
     return request
 
 
-def _finish(request, method='', reason=''):
+def _finish(request, method='', reason='', stable_pct=None):
     request.status = CalibrationRequest.STATUS_FAILED if reason else CalibrationRequest.STATUS_DONE
     request.method = method
     request.reason = reason
+    request.stable_pct = stable_pct
     request.finished_at = timezone.now()
-    request.save(update_fields=['status', 'method', 'reason', 'finished_at'])
+    request.save(update_fields=['status', 'method', 'reason', 'stable_pct', 'finished_at'])
 
 
 def _save_calibration(user, chair, neutral, seat, back, samples, method):
@@ -151,6 +152,12 @@ def handle_device_event(device_id: str, payload: dict):
     if event == 'config_applied':
         logger.info(f'[校正] {device_id} 已套用設定：{payload}')
         return
+    if event == 'config_rejected':      # 數值超出範圍或格式錯誤，椅子沿用原本的中立點
+        logger.warning(f'[校正] {device_id} 拒絕中立點設定（{payload.get("reason")}）：{payload}')
+        return
+    if event == 'calibration_started':
+        logger.info(f'[校正] {device_id} 開始取樣 {payload.get("duration_s")} 秒：{payload.get("request_id")}')
+        return
     if event not in ('calibrated', 'calibration_failed'):
         return
 
@@ -161,8 +168,10 @@ def handle_device_event(device_id: str, payload: dict):
         logger.warning(f'[校正] {device_id} 回報了不存在或已結束的校正請求：{payload.get("request_id")}')
         return
 
+    stable_pct = payload.get('stable_pct')
     if event == 'calibration_failed':
-        _finish(request, method=UserCalibration.METHOD_DEVICE, reason=payload.get('reason') or 'unknown')
+        _finish(request, method=UserCalibration.METHOD_DEVICE, reason=payload.get('reason') or 'unknown',
+                stable_pct=stable_pct)
         return
 
     norm_avg = payload.get('norm_avg') or []
@@ -172,12 +181,12 @@ def handle_device_event(device_id: str, payload: dict):
     if neutral[0] is None or neutral[1] is None:
         neutral = center_of_pressure(seat) or (None, None)
     if neutral[0] is None or not seat:
-        _finish(request, method=UserCalibration.METHOD_DEVICE, reason='invalid_payload')
+        _finish(request, method=UserCalibration.METHOD_DEVICE, reason='invalid_payload', stable_pct=stable_pct)
         return
 
     _save_calibration(request.user, request.chair, (round(neutral[0], 4), round(neutral[1], 4)),
                       seat, back, payload.get('samples') or 0, UserCalibration.METHOD_DEVICE)
-    _finish(request, method=UserCalibration.METHOD_DEVICE)
+    _finish(request, method=UserCalibration.METHOD_DEVICE, stable_pct=stable_pct)
 
 
 def calibrate_from_recent(user, chair: Chair):
@@ -266,7 +275,9 @@ def update_default_neutrals():
                                     'samples': len(centers), 'source': resolve_neutral(chair)[2]}
 
         # 每張椅子都重送一次目前該用的值：坐的人有校正送個人值，其他送新的預設值。
-        # 不能只送「沒人坐／沒校正」的椅子：部署前就入座的人從沒收到過個人值，椅子上會完全沒有設定
+        # 不能只送「沒人坐／沒校正」的椅子：部署前就入座的人從沒收到過個人值，椅子上會完全沒有設定。
+        # 已入座但人不在椅子上（occupied=False）時送預設值：韌體 2.0 沒人坐 30 秒就退回預設，
+        # retained 留著個人值的話，椅子重開機會拿到上一個人的值；人坐回來時 mqtt_subscriber 會重送個人值
         session = ChairSession.objects.filter(chair=chair, is_active=True).select_related('user').first()
-        push_neutral(chair, session.user if session else None)
+        push_neutral(chair, session.user if session and chair.occupied is not False else None)
     return summary

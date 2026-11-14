@@ -63,10 +63,20 @@
 ```json
 { "device_id": "chair_A1B2C3" }
 ```
-- `device_id` 選填，印在椅子標籤上（`chair_` ＋ 6 碼）；**不帶就是原本那張 `chair_01`，現在的 App 不改也能用**
+- `device_id`：椅子的編號（`chair_` ＋ 6 碼），**請讓使用者選擇或掃描後帶上**（見「入座選椅子」）。暫時不帶也可以，後端會當成目前唯一那張實體椅子
 - 同一張椅子原本坐的人、以及自己原本坐的其他椅子，都會自動結束（一張椅子一人、一人一張椅子）
 - 回應：`{"status": "checked_in", "username": "...", "device_id": "...", "calibrated": true}`
 - **`calibrated` 為 `false` 時，每次入座都要跳出校正提示**（例如「花 5 秒校正坐姿？」，可以選「稍後」），直到使用者完成校正為止；為 `true` 就不用再提示
+
+#### 入座選椅子（11/14 新增需求，網頁版與 iOS 都要做）
+
+椅子換成新韌體後，每張椅子用自己的編號送資料（例如 `chair_A1B2C3`），**入座時沒帶對編號，坐姿資料就不會記到使用者名下**。目前只有一張實體椅子，後端暫時會把「沒帶編號」當成那張椅子；有第二張椅子之後就一定要帶。
+
+1. 入座前讓使用者選椅子：呼叫 `GET /chairs`，列出 `online` 為 `true` 的椅子，已經有人坐的（`username` 不是 null）標示「使用中」
+2. 入座：`POST /chair/checkin`，body 帶 `{"device_id": "使用者選的編號"}`
+3. 記住上次坐的椅子，下次預設選它（存在本機即可）
+4. 入座失敗（4xx）時顯示回應的 `error` 訊息，讓使用者重選
+5. （選做）掃描椅子上的 QR code，內容就是椅子編號，掃到後直接入座
 
 ### 2. 校正（只要做一次，換椅子也通用）
 
@@ -110,10 +120,10 @@
 
 | API | 說明 |
 |---|---|
-| `GET /chair/status?device_id=` | 某張椅子目前誰在用：`device_id`、`online`、`active`、`username`、`since`、`calibrated`（不帶參數＝chair_01） |
-| `GET /chairs` | 所有椅子清單：`device_id`、`online`、`username`、`since`、`last_seen` |
+| `GET /chair/status?device_id=` | 某張椅子目前誰在用：`device_id`、`online`、`active`、`username`、`since`、`calibrated`（不帶參數＝目前唯一那張實體椅子） |
+| `GET /chairs` | 所有椅子清單：`device_id`、`online`、`username`、`since`、`last_seen`、`firmware` |
 
-`online`＝最近 15 秒內有收到椅子的資料。
+`online`：新韌體（2.0）的椅子以椅子自己回報的連線狀態為準，斷電或斷網約 20～25 秒後變成 `false`；舊韌體＝最近 15 秒內有收到資料。椅子沒人坐時 30 秒才送一筆資料，`last_seen` 舊一點是正常的，請以 `online` 判斷。
 
 ---
 
@@ -204,7 +214,7 @@
 
 | `kind` | 意思 | App 要做什麼 |
 |---|---|---|
-| `posture` | 坐姿提醒 | 照常顯示（椅子自己會震動，App 不用另外處理） |
+| `posture` | 坐姿提醒、久坐提醒 | 照常顯示（椅子自己會震動，App 不用另外處理）。新韌體的椅子**實際震動時**才產生，同一段壞坐姿只通知一次；久坐（正式 30 分鐘）訊息為「久坐提醒：已連續坐 30 分鐘，起來活動一下吧」。椅子斷網期間的提醒會在連線後補上，`timestamp` 是實際發生時間 |
 | `auto_checkout` | 自動離座：椅子連續 10 分鐘沒人（或椅子離線） | ① 跳出系統通知（見下）② 使用者回到 App 時詢問「要重新入座嗎？」，按下去呼叫 `POST /chair/checkin` |
 | `weekly` | 每週坐姿報告 | 照常顯示 |
 

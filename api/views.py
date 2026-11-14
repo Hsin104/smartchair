@@ -11,6 +11,7 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 from django.contrib.auth import authenticate
 from django.core.mail import send_mail
 from django.conf import settings as django_settings
+from django.db.models import Q
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
@@ -213,7 +214,7 @@ def _build_features(seat_pressure_data, back_pressure_data=None,
     ]], dtype=np.float32)
 
 
-_SEDENTARY_MINUTES = 5
+_SEDENTARY_MINUTES = django_settings.SEDENTARY_MINUTES
 
 def _check_sedentary(user, prediction):
     """以最後一次離座為起點，持續坐超過設定時間則判定為久坐未動。"""
@@ -853,13 +854,19 @@ def chair_checkin(request):
     """
     POST /api/chair/checkin — 使用者坐上某張椅子，之後這張椅子的感測資料都算在他名下。
 
-    payload: { "device_id": "chair_A1B2C3" }   ← 選填；不帶時為舊韌體的 chair_01（舊版 App 不用改）
+    payload: { "device_id": "chair_A1B2C3" }   ← 選填；不帶時為預設椅子 settings.DEFAULT_CHAIR_DEVICE_ID（舊版 App 不用改）
     同一張椅子原本坐的人、以及這位使用者原本坐的其他椅子，都會自動結束（一張椅子一人、一人一張椅子）。
     中立點送給這張椅子：校正過送個人值，沒校正送預設值（demo/calibration_design.md）。
     回應的 calibrated=false 時，App 應提示使用者校正（每次入座都提示，直到完成）。
+    只接受真的連線過的椅子（收到過它的資料或在線訊息），編號打錯回 404，
+    避免建立一張永遠收不到資料的椅子、使用者以為入座成功卻沒有任何紀錄。
     """
-    device_id = (request.data.get('device_id') or Chair.LEGACY_DEVICE_ID).strip()
-    chair = chair_for_device(device_id)
+    device_id = (request.data.get('device_id') or django_settings.DEFAULT_CHAIR_DEVICE_ID).strip()
+    chair = (Chair.objects.filter(device_id=device_id)
+             .filter(Q(last_seen__isnull=False) | Q(online__isnull=False)).first())
+    if chair is None:
+        return Response({'error': f'找不到這張椅子（{device_id}），請確認編號，或確認椅子已開機連線'},
+                        status=status.HTTP_404_NOT_FOUND)
     _end_sessions(ChairSession.objects.filter(is_active=True, user=request.user).exclude(chair=chair))
     ChairSession.objects.filter(is_active=True, chair=chair).update(is_active=False)
     ChairSession.objects.create(user=request.user, chair=chair)
@@ -996,10 +1003,11 @@ def chair_status(request):
     """
     GET /api/chair/status?device_id=chair_A1B2C3 — 查詢某張椅子目前是誰在使用（不需要登入）。
 
-    不帶 device_id 時查舊韌體的 chair_01（舊版 App 不用改）。回傳欄位與舊版相同，另外多 device_id、online。
+    不帶 device_id 時查預設椅子 DEFAULT_CHAIR_DEVICE_ID（舊版 App 不用改）。回傳欄位與舊版相同，另外多 device_id、online。
     calibrated：目前坐的人是否已有個人校正（記在使用者身上，換椅子也算）。
     """
-    chair = Chair.objects.filter(device_id=request.query_params.get('device_id') or Chair.LEGACY_DEVICE_ID).first()
+    chair = Chair.objects.filter(
+        device_id=request.query_params.get('device_id') or django_settings.DEFAULT_CHAIR_DEVICE_ID).first()
     session = active_session(chair) if chair else None
     base = {'device_id': chair.device_id if chair else None, 'online': bool(chair and is_online(chair))}
     if session:
@@ -1018,7 +1026,8 @@ def chair_list(request):
     """
     GET /api/chairs — 列出所有已登記的椅子與目前狀態（不需要登入）。
 
-    椅子在後端第一次收到它的 MQTT 資料時自動登記。online＝最近 15 秒內有收到資料。
+    椅子在後端第一次收到它的 MQTT 資料時自動登記。online：韌體 2.0 以椅子的 LWT 為準（斷電斷網約 20～25 秒後變 false），
+    舊韌體＝最近 15 秒內有收到資料。
     """
     chairs = []
     for chair in Chair.objects.all():
@@ -1028,6 +1037,7 @@ def chair_list(request):
             'name':       chair.name,
             'online':     is_online(chair),
             'last_seen':  chair.last_seen,
+            'firmware':   chair.firmware,
             'active':     bool(session),
             'username':   session.user.username if session else None,
             'since':      session.started_at if session else None,
@@ -1164,7 +1174,7 @@ def motor_trigger(request):
 
     手動觸發／測試用（即時提醒由椅子自己震動）。對應依硬體實際位置（api/motor_constants.py）：
         左傾 → M3 M4 | 右傾 → M1 M2 | 前傾 → M1 M4 | 後仰 → M2 M3 | 久坐 → M1 M2 M3 M4
-    指令只送到呼叫者目前坐的那張椅子；沒有入座時送到舊韌體的 chair_01。
+    指令只送到呼叫者目前坐的那張椅子；沒有入座時送到預設椅子 DEFAULT_CHAIR_DEVICE_ID。
     """
     error = validate_request(request.data, MOTOR_TRIGGER_SCHEMA)
     if error:
@@ -1196,7 +1206,7 @@ def motor_trigger(request):
 
     # 發布真實馬達指令到使用者坐的那張椅子；硬體未連線時安靜失敗，不影響本次回應
     session = user_session(request.user)
-    device_id = session.chair.device_id if session and session.chair else Chair.LEGACY_DEVICE_ID
+    device_id = session.chair.device_id if session and session.chair else django_settings.DEFAULT_CHAIR_DEVICE_ID
     published = publish_motor_command(motors, topic=motor_topic(device_id))
 
     return Response({

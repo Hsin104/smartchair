@@ -192,6 +192,14 @@ OPENAI_MODEL   = os.getenv('OPENAI_MODEL', 'gpt-4o-mini')
 # 自動離座：椅子連續這麼多秒沒偵測到人（或椅子離線），就結束入座並通知使用者（設計 4-2、4-3）
 AUTO_CHECKOUT_SECONDS = int(os.getenv('AUTO_CHECKOUT_SECONDS', 600))
 
+# 久坐判定（分鐘）：正式 30 分鐘（WHO 建議，與椅子韌體一致）；展示時可用環境變數暫時調短。
+# 韌體 2.0 的椅子直接用它回報的 sitting.alert，這個值只給舊韌體與 POST /api/posture 使用
+SEDENTARY_MINUTES = int(os.getenv('SEDENTARY_MINUTES', 30))
+
+# App 入座、查狀態沒帶 device_id 時預設的椅子。舊韌體固定是 chair_01；椅子換成韌體 2.0 後只用自己的編號
+# （chair_＋WiFi MAC 後 6 碼），App 還不能選椅子之前，把這裡設成那張椅子的編號，舊版 App 不用改也能用
+DEFAULT_CHAIR_DEVICE_ID = os.getenv('DEFAULT_CHAIR_DEVICE_ID', 'chair_01')
+
 # 僅供壓力測試：> 0 時 Physio Agent 不呼叫 OpenAI，改成等待這麼多秒後回傳固定文字，
 # 用來量「上千人同時問 AI」時伺服器的承載能力而不產生 OpenAI 費用。正式環境務必不設定（預設 0）。
 AGENT_FAKE_LATENCY_SECONDS = float(os.getenv('AGENT_FAKE_LATENCY_SECONDS', 0))

@@ -30,17 +30,21 @@ from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 
 from django.db import close_old_connections
+from django.db.models import Q
 from django.utils import timezone
 
-from api.models import ChairSession, PostureRecord, Notification
-from api.calibration import handle_device_event, user_calibration
+from api.models import Chair, ChairSession, PostureRecord, Notification
+from api.calibration import handle_device_event, push_neutral, user_calibration
 from api.chairs import (
-    ACK_TOPIC_PATTERN, LEGACY_PRESSURE_TOPIC, LEGACY_STATUS_TOPIC, PRESSURE_TOPIC_PATTERN, STATUS_TOPIC_PATTERN,
-    active_session, auto_checkout, chair_for_device, device_id_from_status_topic, device_id_from_topic,
+    ACK_TOPIC_PATTERN, LEGACY_PRESSURE_TOPIC, LEGACY_STATUS_TOPIC, ONLINE_TOPIC_PATTERN, PRESSURE_TOPIC_PATTERN,
+    STATUS_TOPIC_PATTERN, active_session, auto_checkout, chair_for_device, device_id_from_online_topic,
+    device_id_from_status_topic, device_id_from_topic, event_time, handle_online, session_at,
 )
 from api.views import predict_posture, _check_sedentary
 from api.physio_agent import POSTURE_DISPLAY
-from api.sensor_adapter import parse_esp32_payload, total_pressure, device_posture
+from api.sensor_adapter import (
+    DEVICE_LABEL_MAP, device_occupied, device_posture, device_sedentary, parse_esp32_payload, total_pressure,
+)
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -69,7 +73,8 @@ STABLE_READINGS = 10
 TOPICS = [
     PRESSURE_TOPIC_PATTERN,      # chair/+/pressure：每張椅子各自的感測資料（新韌體）
     ACK_TOPIC_PATTERN,           # chair/+/vibration/ack
-    STATUS_TOPIC_PATTERN,        # chair/+/vibration/status：校正結果、設定套用回報
+    STATUS_TOPIC_PATTERN,        # chair/+/vibration/status：提醒、離座、校正結果、設定套用回報
+    ONLINE_TOPIC_PATTERN,        # chair/+/online：韌體 2.0 的在線狀態（LWT，retained）
     LEGACY_STATUS_TOPIC,
     'chair/pressure/01',         # 舊韌體（device_id 固定 chair_01）
     'chair/vibration/01/ack',
@@ -103,6 +108,12 @@ _empty_since = {}
 # 以「椅子＋使用者」為單位，多張椅子各自計數，不會互相干擾
 _posture_state = {}
 
+# 韌體 2.0 以椅子實際震動產生通知（App 看到的通知與椅子震動一致）。同一段壞坐姿椅子最快每 30 秒震一次，
+# 只在開始時通知一次：{ device_id: 正在提醒的坐姿 }，坐姿回到 normal／沒人坐時清除
+_active_reminder = {}
+# 這段坐著期間已通知過久坐的椅子（椅子之後每 5 分鐘會再震），離座（left_seat）時清除
+_sedentary_notified = set()
+
 
 def _get_buffer(username):
     if username not in _sensor_buffer:
@@ -125,9 +136,22 @@ def _handle_pressure(device_id: str, payload: dict):
     chair = chair_for_device(device_id)
     session = active_session(chair)
 
-    # 椅子空置檢查：norm/raw 總壓力過低則寫入 empty（每張椅子各自判斷，僅在狀態轉換時寫一次）
+    # 有沒有人坐：韌體 2.0 以椅子的 pose.label 為準，舊格式用 norm/raw 總壓力門檻
     pressure = total_pressure(payload)
-    if pressure < MIN_SEAT_PRESSURE:
+    occupied = device_occupied(payload)
+    if occupied is None:
+        occupied = pressure >= MIN_SEAT_PRESSURE
+    if chair.occupied != occupied:
+        Chair.objects.filter(pk=chair.pk).update(occupied=occupied)
+        # 人坐回來：韌體 2.0 沒人坐 30 秒就退回預設中立點，入座者坐回來時要重送個人值
+        if occupied and session:
+            push_neutral(chair, session.user)
+        chair.occupied = occupied
+    if not occupied or device_posture(payload) == 'normal':
+        _active_reminder.pop(device_id, None)
+
+    # 椅子空置：寫入 empty（每張椅子各自判斷，僅在狀態轉換時寫一次）
+    if not occupied:
         # 連續沒人坐超過 AUTO_CHECKOUT_SECONDS → 自動離座（新韌體沒人坐時每 30 秒同步一次，仍會收到訊息）
         empty_since = _empty_since.setdefault(device_id, timezone.now())
         if session and (timezone.now() - empty_since).total_seconds() >= settings.AUTO_CHECKOUT_SECONDS:
@@ -181,7 +205,10 @@ def _handle_pressure(device_id: str, payload: dict):
         baseline_back=baseline_back,
     )
     predicted = predicted or payload.get('posture', 'normal')
-    posture = _check_sedentary(user, predicted)
+    # 久坐：韌體 2.0 用椅子自己的計時（sitting.alert，上限 sitting.limit_min，正式 30 分鐘），與椅子震動一致；
+    # 舊韌體沒有 sitting 欄位，沿用後端以坐姿紀錄推算（settings.SEDENTARY_MINUTES）
+    sedentary = device_sedentary(payload)
+    posture = _check_sedentary(user, predicted) if sedentary is None else ('sedentary' if sedentary else predicted)
     # sedentary 是依坐著時長覆蓋的規則判斷，不是這次 softmax 機率對應的類別，信心分數不適用
     if posture != predicted:
         confidence = None
@@ -216,9 +243,9 @@ def _handle_pressure(device_id: str, payload: dict):
 
     # 邊緣觸發：只在坐姿「確認變成」這個壞坐姿的那一刻產生一則通知（給 App），
     # 同一個壞坐姿持續多久都不重複，直到坐姿變回 normal/empty 再變差才會重新觸發。
-    # 震動不在這裡發：ESP32 內建自動姿勢提醒（壞坐姿 10 秒後自己震動對應馬達，斷網也能用），
-    # 後端若再發一次指令會重複震動。手動測試請用 POST /api/motor/trigger。
-    if posture not in ('normal', 'empty') and just_confirmed:
+    # 震動不在這裡發：ESP32 內建自動姿勢提醒（斷網也能用），後端若再發一次指令會重複震動。
+    # 韌體 2.0 的椅子改由實際震動事件產生通知（_handle_chair_event），這裡只處理舊韌體。
+    if not chair.firmware and posture not in ('normal', 'empty') and just_confirmed:
         posture_name = POSTURE_DISPLAY.get(posture, posture)
         Notification.objects.create(user=user, message=f'坐姿提醒：{posture_name}')
         print(f'[MQTT] 產生通知 — {user.username}: {posture_name}')
@@ -259,6 +286,50 @@ def on_message(client, userdata, msg):
         logger.error(f'[MQTT] 處理訊息失敗（{topic}）：{e}', exc_info=True)
 
 
+def _notify(user, when, message):
+    """寫一則坐姿類通知；時間用事件發生時間（斷網期間的事件連線後才補送）。"""
+    note = Notification.objects.create(user=user, message=message)
+    Notification.objects.filter(pk=note.pk).update(timestamp=when)
+
+
+def _handle_chair_event(device_id: str, payload: dict):
+    """
+    椅子在 chair/{device_id}/vibration/status 回報的事件（韌體 2.0）。
+    通知以椅子實際震動為準：posture_reminder／sedentary_reminder 才產生通知，App 看到的與椅子震動一致。
+    """
+    chair, _ = Chair.objects.get_or_create(device_id=device_id)
+    event = payload.get('event')
+    when = event_time(payload)
+
+    if event == 'hardware_report' and payload.get('fw') and payload['fw'] != chair.firmware:
+        Chair.objects.filter(pk=chair.pk).update(firmware=payload['fw'])
+
+    elif event == 'posture_reminder':
+        posture = DEVICE_LABEL_MAP.get(payload.get('message'), payload.get('message'))
+        session = session_at(chair, when)
+        if session and _active_reminder.get(device_id) != posture:
+            _active_reminder[device_id] = posture
+            _notify(session.user, when, f'坐姿提醒：{POSTURE_DISPLAY.get(posture, posture)}')
+            print(f'[MQTT] {device_id} 椅子震動提醒 → 通知 {session.user.username}：{posture}')
+
+    elif event == 'sedentary_reminder':
+        session = session_at(chair, when)
+        if session and device_id not in _sedentary_notified:
+            _sedentary_notified.add(device_id)
+            _notify(session.user, when, f'久坐提醒：已連續坐 {payload.get("sitting_min")} 分鐘，起來活動一下吧')
+            print(f'[MQTT] {device_id} 椅子久坐提醒 → 通知 {session.user.username}')
+
+    elif event in ('left_seat', 'neutral_reset'):
+        # 離座滿 30 秒／椅子已退回預設中立點：retained 設定也換成預設值，不然椅子重開機會拿到上一個人的值
+        if event == 'left_seat':
+            _sedentary_notified.discard(device_id)
+            _active_reminder.pop(device_id, None)
+            Chair.objects.filter(pk=chair.pk).update(occupied=False)
+        push_neutral(chair)
+
+    handle_device_event(device_id, payload)   # 校正結果、中立點套用／拒絕
+
+
 def _dispatch_message(topic, payload):
     # ── 感測資料：新 chair/{device_id}/pressure 與舊 chair/pressure/01 ─────────
     device_id = device_id_from_topic(topic, payload)
@@ -266,10 +337,17 @@ def _dispatch_message(topic, payload):
         _handle_pressure(device_id, payload)
         return
 
-    # ── 椅子系統事件：校正結果、設定套用回報（其餘事件如 posture_reminder 不需處理）──
+    # ── 在線狀態（LWT）：chair/{device_id}/online ──────────────────────────────
+    online_device = device_id_from_online_topic(topic)
+    if online_device:
+        chair = handle_online(online_device, payload)
+        print(f'[MQTT] {online_device} {"上線" if chair.online else "離線"}（韌體 {chair.firmware or "?"}）')
+        return
+
+    # ── 椅子事件：提醒、離座、校正結果、設定套用回報 ───────────────────────────
     status_device = device_id_from_status_topic(topic)
     if status_device:
-        handle_device_event(status_device, payload)
+        _handle_chair_event(status_device, payload)
         return
 
     # ── 馬達指令執行回覆：新 chair/{device_id}/vibration/ack 與舊 chair/vibration/01/ack ──
@@ -330,11 +408,15 @@ def on_disconnect(client, userdata, disconnect_flags, reason_code, properties=No
 def offline_sweep(chair_ids=None):
     """
     椅子直接斷電或斷網時不會再送任何訊息，上面「連續沒人坐」的判斷永遠不會執行；
-    這裡把最後收到資料已超過 AUTO_CHECKOUT_SECONDS 的椅子視同沒人坐，對上面的使用者自動離座。
+    這裡把離線超過 AUTO_CHECKOUT_SECONDS 的椅子視同沒人坐，對上面的使用者自動離座。
+    韌體 2.0 以 LWT 的離線時間為準；舊韌體（online 為 null）以最後收到資料的時間為準。
     """
     close_old_connections()
     cutoff = timezone.now() - timedelta(seconds=settings.AUTO_CHECKOUT_SECONDS)
-    stale = ChairSession.objects.filter(is_active=True, chair__last_seen__lt=cutoff).select_related('chair', 'user')
+    stale = ChairSession.objects.filter(is_active=True).filter(
+        Q(chair__online=False, chair__online_changed_at__lt=cutoff)
+        | Q(chair__online__isnull=True, chair__last_seen__lt=cutoff)
+    ).select_related('chair', 'user')
     if chair_ids is not None:      # 測試時只檢查指定的椅子
         stale = stale.filter(chair_id__in=chair_ids)
     for session in stale:

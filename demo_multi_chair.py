@@ -98,6 +98,11 @@ def make_chair_client():
     for topic in ('chair/+/vibration/cmd', 'chair/+/config', 'chair/+/calibration/cmd'):
         client.subscribe(topic)
     client.loop_start()
+    # 跟韌體 2.0 一樣，連上時先送在線訊息（後端只接受真的連線過的椅子入座）
+    for device_id in (CHAIR_A, CHAIR_B, CHAIR_C):
+        client.publish(f'chair/{device_id}/online', json.dumps({'device_id': device_id, 'online': True, 'fw': '2.0.0'}),
+                       qos=1)
+    time.sleep(1)
     return client
 
 
@@ -211,7 +216,13 @@ def main():
 
     step(f'[5] 兩張椅子同時送感測資料（共 {ROUNDS} 輪）：{ALICE} 左傾、{BOB} 前傾')
     send(chair, [(CHAIR_A, 'left'), (CHAIR_B, 'forward')], ROUNDS)
-    time.sleep(3)
+    # 椅子偵測到壞坐姿會自己震動並回報（韌體 2.0 每 30 秒一次）；後端以實際震動產生通知，同一段壞坐姿只通知一次
+    for device_id, label, motors in ((CHAIR_A, 'left_lean', [4, 3]), (CHAIR_B, 'forward_lean', [1, 4])):
+        for level in (1, 2):
+            chair.publish(f'chair/{device_id}/vibration/status', json.dumps({
+                'device_id': device_id, 'event': 'posture_reminder', 'message': label, 'motors': motors,
+                'level': level}), qos=1)
+    time.sleep(5)
     for user, posture in ((ALICE, 'left'), (BOB, 'forward')):
         hist = requests.get(f'{BASE}/posture/history', params={'limit': ROUNDS}, headers=headers[user], timeout=10).json()
         counts = Counter(h['posture'] for h in hist)
