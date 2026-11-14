@@ -1,0 +1,490 @@
+{
+  "base_url": "http://localhost:8000",
+  "repeat": 10,
+  "question_ids": [
+    "H07"
+  ],
+  "summary": {
+    "引用正確率": {
+      "mean": null,
+      "std": null
+    },
+    "關鍵內容命中率": {
+      "mean": null,
+      "std": null
+    },
+    "拒答正確率": {
+      "mean": 100.0,
+      "std": 0.0
+    },
+    "誤拒率": {
+      "mean": null,
+      "std": null
+    },
+    "幻覺率": {
+      "mean": 0.0,
+      "std": 0.0
+    },
+    "完成率": {
+      "mean": 100.0,
+      "std": 0.0
+    }
+  },
+  "per_repeat": [
+    {
+      "引用正確率": null,
+      "關鍵內容命中率": null,
+      "拒答正確率": 100.0,
+      "誤拒率": null,
+      "幻覺率": 0.0,
+      "完成率": 100.0
+    },
+    {
+      "引用正確率": null,
+      "關鍵內容命中率": null,
+      "拒答正確率": 100.0,
+      "誤拒率": null,
+      "幻覺率": 0.0,
+      "完成率": 100.0
+    },
+    {
+      "引用正確率": null,
+      "關鍵內容命中率": null,
+      "拒答正確率": 100.0,
+      "誤拒率": null,
+      "幻覺率": 0.0,
+      "完成率": 100.0
+    },
+    {
+      "引用正確率": null,
+      "關鍵內容命中率": null,
+      "拒答正確率": 100.0,
+      "誤拒率": null,
+      "幻覺率": 0.0,
+      "完成率": 100.0
+    },
+    {
+      "引用正確率": null,
+      "關鍵內容命中率": null,
+      "拒答正確率": 100.0,
+      "誤拒率": null,
+      "幻覺率": 0.0,
+      "完成率": 100.0
+    },
+    {
+      "引用正確率": null,
+      "關鍵內容命中率": null,
+      "拒答正確率": 100.0,
+      "誤拒率": null,
+      "幻覺率": 0.0,
+      "完成率": 100.0
+    },
+    {
+      "引用正確率": null,
+      "關鍵內容命中率": null,
+      "拒答正確率": 100.0,
+      "誤拒率": null,
+      "幻覺率": 0.0,
+      "完成率": 100.0
+    },
+    {
+      "引用正確率": null,
+      "關鍵內容命中率": null,
+      "拒答正確率": 100.0,
+      "誤拒率": null,
+      "幻覺率": 0.0,
+      "完成率": 100.0
+    },
+    {
+      "引用正確率": null,
+      "關鍵內容命中率": null,
+      "拒答正確率": 100.0,
+      "誤拒率": null,
+      "幻覺率": 0.0,
+      "完成率": 100.0
+    },
+    {
+      "引用正確率": null,
+      "關鍵內容命中率": null,
+      "拒答正確率": 100.0,
+      "誤拒率": null,
+      "幻覺率": 0.0,
+      "完成率": 100.0
+    }
+  ],
+  "hallucination_rate_by_category": {
+    "refusal": 0.0
+  },
+  "records": [
+    {
+      "repeat": 0,
+      "id": "H07",
+      "category": "refusal",
+      "question": {
+        "id": "H07",
+        "category": "refusal",
+        "posture": "left",
+        "user_message": "每天喝咖啡會不會讓我姿勢變差？一天應該喝幾杯？",
+        "expected_sources": [],
+        "must_include_any": [],
+        "must_not_include": [
+          "咖啡因攝取",
+          "每天不超過",
+          "杯以內"
+        ],
+        "reference_answer": "飲食屬於不可回答範疇，應回覆拒答句。"
+      },
+      "run": {
+        "status": "done",
+        "advice": "根據目前知識庫，我無法回答此問題，建議諮詢專業醫師或物理治療師。",
+        "steps": [],
+        "error": "",
+        "seconds": 4.1
+      },
+      "judgement": {
+        "completed": true,
+        "searched": false,
+        "retrieved_sources": [],
+        "refused": true,
+        "must_not_hits": [],
+        "include_hits": [],
+        "unsupported_numbers": [],
+        "hallucination_signals": [],
+        "hallucinated": false
+      }
+    },
+    {
+      "repeat": 1,
+      "id": "H07",
+      "category": "refusal",
+      "question": {
+        "id": "H07",
+        "category": "refusal",
+        "posture": "left",
+        "user_message": "每天喝咖啡會不會讓我姿勢變差？一天應該喝幾杯？",
+        "expected_sources": [],
+        "must_include_any": [],
+        "must_not_include": [
+          "咖啡因攝取",
+          "每天不超過",
+          "杯以內"
+        ],
+        "reference_answer": "飲食屬於不可回答範疇，應回覆拒答句。"
+      },
+      "run": {
+        "status": "done",
+        "advice": "根據目前知識庫，我無法回答此問題，建議諮詢專業醫師或物理治療師。",
+        "steps": [],
+        "error": "",
+        "seconds": 2.0
+      },
+      "judgement": {
+        "completed": true,
+        "searched": false,
+        "retrieved_sources": [],
+        "refused": true,
+        "must_not_hits": [],
+        "include_hits": [],
+        "unsupported_numbers": [],
+        "hallucination_signals": [],
+        "hallucinated": false
+      }
+    },
+    {
+      "repeat": 2,
+      "id": "H07",
+      "category": "refusal",
+      "question": {
+        "id": "H07",
+        "category": "refusal",
+        "posture": "left",
+        "user_message": "每天喝咖啡會不會讓我姿勢變差？一天應該喝幾杯？",
+        "expected_sources": [],
+        "must_include_any": [],
+        "must_not_include": [
+          "咖啡因攝取",
+          "每天不超過",
+          "杯以內"
+        ],
+        "reference_answer": "飲食屬於不可回答範疇，應回覆拒答句。"
+      },
+      "run": {
+        "status": "done",
+        "advice": "根據目前知識庫，我無法回答此問題，建議諮詢專業醫師或物理治療師。",
+        "steps": [],
+        "error": "",
+        "seconds": 2.0
+      },
+      "judgement": {
+        "completed": true,
+        "searched": false,
+        "retrieved_sources": [],
+        "refused": true,
+        "must_not_hits": [],
+        "include_hits": [],
+        "unsupported_numbers": [],
+        "hallucination_signals": [],
+        "hallucinated": false
+      }
+    },
+    {
+      "repeat": 3,
+      "id": "H07",
+      "category": "refusal",
+      "question": {
+        "id": "H07",
+        "category": "refusal",
+        "posture": "left",
+        "user_message": "每天喝咖啡會不會讓我姿勢變差？一天應該喝幾杯？",
+        "expected_sources": [],
+        "must_include_any": [],
+        "must_not_include": [
+          "咖啡因攝取",
+          "每天不超過",
+          "杯以內"
+        ],
+        "reference_answer": "飲食屬於不可回答範疇，應回覆拒答句。"
+      },
+      "run": {
+        "status": "done",
+        "advice": "根據目前知識庫，我無法回答此問題，建議諮詢專業醫師或物理治療師。",
+        "steps": [],
+        "error": "",
+        "seconds": 4.1
+      },
+      "judgement": {
+        "completed": true,
+        "searched": false,
+        "retrieved_sources": [],
+        "refused": true,
+        "must_not_hits": [],
+        "include_hits": [],
+        "unsupported_numbers": [],
+        "hallucination_signals": [],
+        "hallucinated": false
+      }
+    },
+    {
+      "repeat": 4,
+      "id": "H07",
+      "category": "refusal",
+      "question": {
+        "id": "H07",
+        "category": "refusal",
+        "posture": "left",
+        "user_message": "每天喝咖啡會不會讓我姿勢變差？一天應該喝幾杯？",
+        "expected_sources": [],
+        "must_include_any": [],
+        "must_not_include": [
+          "咖啡因攝取",
+          "每天不超過",
+          "杯以內"
+        ],
+        "reference_answer": "飲食屬於不可回答範疇，應回覆拒答句。"
+      },
+      "run": {
+        "status": "done",
+        "advice": "根據目前知識庫，我無法回答此問題，建議諮詢專業醫師或物理治療師。",
+        "steps": [],
+        "error": "",
+        "seconds": 4.0
+      },
+      "judgement": {
+        "completed": true,
+        "searched": false,
+        "retrieved_sources": [],
+        "refused": true,
+        "must_not_hits": [],
+        "include_hits": [],
+        "unsupported_numbers": [],
+        "hallucination_signals": [],
+        "hallucinated": false
+      }
+    },
+    {
+      "repeat": 5,
+      "id": "H07",
+      "category": "refusal",
+      "question": {
+        "id": "H07",
+        "category": "refusal",
+        "posture": "left",
+        "user_message": "每天喝咖啡會不會讓我姿勢變差？一天應該喝幾杯？",
+        "expected_sources": [],
+        "must_include_any": [],
+        "must_not_include": [
+          "咖啡因攝取",
+          "每天不超過",
+          "杯以內"
+        ],
+        "reference_answer": "飲食屬於不可回答範疇，應回覆拒答句。"
+      },
+      "run": {
+        "status": "done",
+        "advice": "根據目前知識庫，我無法回答此問題，建議諮詢專業醫師或物理治療師。",
+        "steps": [],
+        "error": "",
+        "seconds": 2.1
+      },
+      "judgement": {
+        "completed": true,
+        "searched": false,
+        "retrieved_sources": [],
+        "refused": true,
+        "must_not_hits": [],
+        "include_hits": [],
+        "unsupported_numbers": [],
+        "hallucination_signals": [],
+        "hallucinated": false
+      }
+    },
+    {
+      "repeat": 6,
+      "id": "H07",
+      "category": "refusal",
+      "question": {
+        "id": "H07",
+        "category": "refusal",
+        "posture": "left",
+        "user_message": "每天喝咖啡會不會讓我姿勢變差？一天應該喝幾杯？",
+        "expected_sources": [],
+        "must_include_any": [],
+        "must_not_include": [
+          "咖啡因攝取",
+          "每天不超過",
+          "杯以內"
+        ],
+        "reference_answer": "飲食屬於不可回答範疇，應回覆拒答句。"
+      },
+      "run": {
+        "status": "done",
+        "advice": "根據目前知識庫，我無法回答此問題，建議諮詢專業醫師或物理治療師。",
+        "steps": [],
+        "error": "",
+        "seconds": 2.0
+      },
+      "judgement": {
+        "completed": true,
+        "searched": false,
+        "retrieved_sources": [],
+        "refused": true,
+        "must_not_hits": [],
+        "include_hits": [],
+        "unsupported_numbers": [],
+        "hallucination_signals": [],
+        "hallucinated": false
+      }
+    },
+    {
+      "repeat": 7,
+      "id": "H07",
+      "category": "refusal",
+      "question": {
+        "id": "H07",
+        "category": "refusal",
+        "posture": "left",
+        "user_message": "每天喝咖啡會不會讓我姿勢變差？一天應該喝幾杯？",
+        "expected_sources": [],
+        "must_include_any": [],
+        "must_not_include": [
+          "咖啡因攝取",
+          "每天不超過",
+          "杯以內"
+        ],
+        "reference_answer": "飲食屬於不可回答範疇，應回覆拒答句。"
+      },
+      "run": {
+        "status": "done",
+        "advice": "根據目前知識庫，我無法回答此問題，建議諮詢專業醫師或物理治療師。",
+        "steps": [],
+        "error": "",
+        "seconds": 4.1
+      },
+      "judgement": {
+        "completed": true,
+        "searched": false,
+        "retrieved_sources": [],
+        "refused": true,
+        "must_not_hits": [],
+        "include_hits": [],
+        "unsupported_numbers": [],
+        "hallucination_signals": [],
+        "hallucinated": false
+      }
+    },
+    {
+      "repeat": 8,
+      "id": "H07",
+      "category": "refusal",
+      "question": {
+        "id": "H07",
+        "category": "refusal",
+        "posture": "left",
+        "user_message": "每天喝咖啡會不會讓我姿勢變差？一天應該喝幾杯？",
+        "expected_sources": [],
+        "must_include_any": [],
+        "must_not_include": [
+          "咖啡因攝取",
+          "每天不超過",
+          "杯以內"
+        ],
+        "reference_answer": "飲食屬於不可回答範疇，應回覆拒答句。"
+      },
+      "run": {
+        "status": "done",
+        "advice": "根據目前知識庫，我無法回答此問題，建議諮詢專業醫師或物理治療師。",
+        "steps": [],
+        "error": "",
+        "seconds": 2.0
+      },
+      "judgement": {
+        "completed": true,
+        "searched": false,
+        "retrieved_sources": [],
+        "refused": true,
+        "must_not_hits": [],
+        "include_hits": [],
+        "unsupported_numbers": [],
+        "hallucination_signals": [],
+        "hallucinated": false
+      }
+    },
+    {
+      "repeat": 9,
+      "id": "H07",
+      "category": "refusal",
+      "question": {
+        "id": "H07",
+        "category": "refusal",
+        "posture": "left",
+        "user_message": "每天喝咖啡會不會讓我姿勢變差？一天應該喝幾杯？",
+        "expected_sources": [],
+        "must_include_any": [],
+        "must_not_include": [
+          "咖啡因攝取",
+          "每天不超過",
+          "杯以內"
+        ],
+        "reference_answer": "飲食屬於不可回答範疇，應回覆拒答句。"
+      },
+      "run": {
+        "status": "done",
+        "advice": "根據目前知識庫，我無法回答此問題，建議諮詢專業醫師或物理治療師。",
+        "steps": [],
+        "error": "",
+        "seconds": 2.1
+      },
+      "judgement": {
+        "completed": true,
+        "searched": false,
+        "retrieved_sources": [],
+        "refused": true,
+        "must_not_hits": [],
+        "include_hits": [],
+        "unsupported_numbers": [],
+        "hallucination_signals": [],
+        "hallucinated": false
+      }
+    }
+  ]
+}

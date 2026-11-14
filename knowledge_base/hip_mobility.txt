@@ -1,0 +1,38 @@
+來源機構：Musculoskeletal Science and Practice / Journal Riphah College of Rehabilitation Sciences、NHS
+主題：久坐對髖關節活動度的影響（髖關節伸展受限、髖屈肌與腿後側緊繃）
+
+健康風險與機制：
+- 坐著時髖關節長時間維持彎曲，髖部前側的髖屈肌處於縮短的位置
+- Boukabache 等人（2021）的橫斷面研究以改良式湯瑪斯測試（modified Thomas Test）測量 144 人的被動髖關節伸展角度，並依每日坐姿時間與活動量分組比較
+- 分組標準：久坐為每天坐超過 7 小時，少坐為每天坐不到 4 小時，活動量以每週 150 分鐘為分界
+- 結果：「活動量高且少坐」的組別，被動髖關節伸展角度比「活動量低且久坐」的組別多 6.1 度，組間差異達統計顯著
+- 作者認為這可能反映肌肉被動張力的生理適應，是第一篇把髖關節伸展受限與久坐、缺乏活動連結起來的研究
+- 限制：這是橫斷面研究，只能說明「有關聯」，不能證明久坐直接造成髖關節伸展受限；髖關節伸展受限是否會導致久坐相關的肌肉骨骼疼痛，作者表示仍需進一步研究
+
+腿後側（膕旁肌）柔軟度：
+- Waqas 等人（2016）調查 272 位每天坐 6 至 8 小時的銀行與辦公室工作者，以主動膝伸直測試（90-90 測試）測量
+- 結果：233 人（85.7%）腿後側柔軟度下降，只有 39 人（14.3%）在正常範圍；每天坐 8 小時且較少從事其他活動的人受影響更多
+- 限制：單一地區的調查研究，沒有與不久坐的人比較，數字不宜直接套用到所有人
+
+常見原因：
+- 每天坐超過 7 小時且缺乏規律活動
+- 長時間維持同一個髖關節彎曲角度，沒有起身讓髖關節伸直
+- 工作以外的活動量不足
+
+立即改善動作：
+1. 起身站立走動：站直時髖關節回到伸展位置，是中斷髖關節長時間彎曲最直接的方式
+2. 坐姿抬膝踏步（Hip marching，NHS）：坐直不靠椅背，雙手扶住椅子兩側，將左膝在彎曲狀態下抬到舒適的最高處，再有控制地放下，換右腳；每腳 5 次
+3. 髖屈肌伸展：單腳向後跨步呈弓箭步，感覺後腳髖部前側伸展，換邊
+
+長期預防：
+- 減少每日總坐姿時間，並搭配每週至少 150 分鐘的身體活動（研究中「活動量高且少坐」組的髖關節伸展角度最好）
+- Waqas 等人建議的預防方式：使用符合人體工學的椅子、維持正確坐姿、頻繁安排休息
+- 髖部或腿後側的伸展劑量可參考下肢伸展文獻（每次維持 30 秒）
+
+智慧椅應用：
+- 智慧椅的久坐提醒可以作為「起身讓髖關節伸直」的時機提示
+
+參考文獻：
+- Boukabache, A., Preece, S. J., & Brookes, N. (2021). Prolonged sitting and physical inactivity are associated with limited hip extension: A cross-sectional study. Musculoskeletal Science and Practice, 51, 102282. https://doi.org/10.1016/j.msksp.2020.102282
+- Waqas, M. S., Ali, M., Hussain, S., & Mahmood, S. (2016). Frequency of reduced hamstring flexibility in prolong sitting (6-8 hours) among office workers. Journal Riphah College of Rehabilitation Sciences, 4(2), 77–80. https://journals.riphah.edu.pk/index.php/jrcrs/article/view/449
+- NHS. Sitting exercises. https://www.nhs.uk/live-well/exercise/strength-and-flexibility-exercises/sitting-exercises/

@@ -12,6 +12,7 @@ Physio Agent — 完整 Agent 架構（四大核心模組）
 """
 
 import asyncio
+import json
 import logging
 
 from django.conf import settings
@@ -45,15 +46,20 @@ _SYSTEM_PROMPT = """你是專業的物理治療師 AI 助手「SmartChair」，�
 Step 0 — 範疇判斷（有「使用者自述」時必做，優先於偵測到的坐姿）
   → 只有使用者「明確要求」以下內容時才拒答：藥物或止痛藥、手術或開刀、注射治療、
     疾病診斷或嚴重程度判斷、減重／體重管理／BMI 評估、懷孕相關、血壓／中風等心血管問題、
-    焦慮／失眠／憂鬱等精神健康、保健食品或飲食建議
+    焦慮／失眠／憂鬱等精神健康、保健食品、飲食或飲料
+    （該吃什麼、該喝什麼、喝多少、營養、咖啡因、酒精、喝水量）
   → 使用者同時提到不適又問到上述內容時（例如「脖子痛可以吃什麼止痛藥」「壓力大失眠怎麼辦」），
     仍屬不可回答範疇，必須拒答，不可只挑坐姿相關的部分回答
+  → 依使用者「問的主題」判斷，不是看句子裡有沒有提到坐姿或痠痛：問某種食物或飲料對姿勢、痠痛、
+    精神的影響（例如「久坐容易累，該吃什麼補充體力」「喝酒會不會讓腰更痠」），主題仍是飲食，必須拒答
   → 拒答時：只回覆規則 3 的拒答句並停止，不可改給坐姿建議來迴避使用者的問題，也不可回答該問題的任何部分
   → 以下都屬於「可回答範疇」，必須照常進行 Step 1～3，不可拒答：
     人體工學設置（螢幕、椅子座深／腰靠／扶手／椅背角度、桌面、鍵盤滑鼠與手腕姿勢）、
     休息與起身頻率、坐站交替與站立辦公桌、伸展與核心運動、呼吸練習、震動回饋的效果、
+    看螢幕造成的眼睛疲勞與乾澀（螢幕距離、照明、休息方式）、肩頸與下肢的肌力或伸展運動、
     腰靠／護具等輔具能否預防下背痛或肩頸痛（屬於人體工學，不是疾病診斷）、
-    坐姿相關的痠痛與不適（頭痛、肩頸緊、腰痠）、詢問某個數據或研究說法是否正確
+    坐姿相關的痠痛與不適（頭痛、肩頸緊、腰痠）、
+    詢問某個與坐姿、人體工學、伸展或久坐有關的數據或研究說法是否正確
     （知識庫查不到的部分說明「知識庫沒有這項資料」即可，不可整題拒答）
   → 不確定是否屬於不可回答範疇時，一律視為可回答
 Step 1 — 呼叫 get_posture_history(user_id)
@@ -79,7 +85,7 @@ Step 3 — 根據 Step 1~2 的完整觀察結果，產生個人化建議回覆�
 2. 【嚴格知識邊界】只能根據 search_knowledge_base 或 web_search 返回的內容回答，嚴禁引用以外的任何資訊。
 3. 【不知道規則】若問題涉及以下範疇，必須直接回覆以下句子並停止：
    「根據目前知識庫，我無法回答此問題，建議諮詢專業醫師或物理治療師。」
-   不可回答的範疇：藥物、手術、注射治療、疾病診斷、飲食與營養補充品、
+   不可回答的範疇：藥物、手術、注射治療、疾病診斷、飲食、飲料與營養補充品、
    非辦公室坐姿相關的健康問題（如血壓、體重、懷孕、精神健康）。
    此類問題禁止改用 web_search 迴避，仍須直接拒答。
 4. 【強制引用】每則回覆最後必須有「📚 參考來源」章節，列出實際查詢到的 .txt 檔名或網路來源網址。
@@ -100,6 +106,8 @@ Step 3 — 根據 Step 1~2 的完整觀察結果，產生個人化建議回覆�
 ✓ 坐姿相關肌肉骨骼問題的自主改善動作（含下背痛、核心穩定、胸椎活動度與呼吸）
 ✓ 辦公室伸展運動與簡易預防訓練（含辦公室瑜伽、坐站交替、久坐中斷活動建議）
 ✓ 穿戴式／智慧椅震動回饋對坐姿矯正的實證效果
+✓ 肩頸痠痛的肌力與肩胛穩定運動、久坐對髖關節與腿後側柔軟度的影響、下肢伸展的做法與時間
+✓ 看螢幕造成的眼睛疲勞（螢幕距離與照明、定時看遠處休息）
 
 【回答格式】（繁體中文，語氣友善而專業）
 
@@ -202,6 +210,81 @@ async def _run_react(question: str, api_key: str) -> tuple[str, list]:
             return '（已達最大步數，回傳目前累積資訊，建議重新提問或簡化問題）', steps
 
 
+# ── 範疇判斷（獨立於 ReAct 迴圈） ───────────────────────────────────────────────
+
+REFUSAL_SENTENCE = '根據目前知識庫，我無法回答此問題，建議諮詢專業醫師或物理治療師。'
+
+# 為什麼不只靠 System Prompt 的 Step 0：防幻覺評測（eval/RESULTS.md 第六節）發現，同一次呼叫裡同時要
+# 「判斷範疇」和「給坐姿建議」時，模型常直接略過使用者的問題改給坐姿建議（偵測坐姿把任務框成了給建議），
+# 補再多規則與範例也只修得好拿來調整的那幾題。所以把範疇判斷拆成獨立的一次呼叫：只看使用者自述、
+# 不帶偵測坐姿、不帶工具，只回答「這個問題能不能答」。
+_SCOPE_PROMPT = """你是智慧坐姿椅 App 的問題分類器，只負責判斷使用者的問題能不能由「辦公室坐姿與人體工學知識庫」回答。
+不要回答問題本身，只輸出 JSON：{"scope": "in" 或 "out", "category": "類別", "reason": "一句話理由"}
+
+判斷方式：看使用者「想得到什麼答案」，不是看句子裡有沒有提到坐姿、痠痛或椅子。
+
+scope = "out"（使用者想得到的是以下任何一類答案）：
+- 藥物：口服藥、外用藥、止痛或消炎用品該不該用、有沒有效
+- 醫療處置：手術、注射、各種需由醫療人員執行的治療該不該做、有沒有效
+- 診斷：自己是不是得了某種病、某個症狀是不是某種病變造成的、嚴不嚴重
+- 體重：減重、體重管理、BMI 或體型評估
+- 懷孕相關
+- 心血管：血壓、中風、心臟等疾病風險
+- 精神健康：焦慮、失眠、憂鬱、情緒問題
+- 飲食：該吃什麼、該喝什麼、喝多少、營養、保健食品與補充品、咖啡因、酒精、各種飲料，
+  包含問某種食物或飲料對姿勢、痠痛、骨骼、精神的影響
+問題同時包含可回答與不可回答的部分時，一律判為 "out"。
+
+scope = "in"（其餘皆是），例如：
+- 坐姿、桌椅螢幕鍵盤滑鼠等人體工學設置、輔具（腰靠、護具、站立桌）有沒有用
+- 伸展、肌力、核心、呼吸等運動怎麼做、做多久
+- 休息與起身頻率、久坐的影響
+- 看螢幕造成的眼睛疲勞
+- 描述痠痛、僵硬、疲勞並想知道怎麼調整或改善（沒有要求判斷是什麼病）
+- 問如何「預防」某種職業傷害（例如怎麼放手腕才不會受傷）
+- 問某個與上述主題有關的數據、研究或說法是否正確
+- 只是描述自己的習慣或狀況，沒有提出上述 "out" 類別的問題
+
+不確定時判為 "in"。"""
+
+
+async def _classify_scope(user_message: str, api_key: str) -> dict:
+    """
+    判斷使用者自述是否屬於可回答範疇，回傳 {'scope': 'in'|'out', 'category': str, 'reason': str}。
+    分類本身失敗（逾時、格式不對）時視為 'in'，交給 ReAct 迴圈的 Step 0 把關，不讓使用者因為分類器故障拿不到建議。
+    """
+    llm = ChatOpenAI(model=settings.OPENAI_MODEL, api_key=api_key, temperature=0).bind(
+        response_format={'type': 'json_object'})
+    try:
+        response = await llm.ainvoke([SystemMessage(content=_SCOPE_PROMPT), HumanMessage(content=user_message)])
+        result = json.loads(_flatten_content(response.content))
+        if result.get('scope') not in ('in', 'out'):
+            raise ValueError(f'scope 值不合法：{result}')
+        return result
+    except Exception as e:
+        logger.warning(f'[PhysioAgent] 範疇判斷失敗，視為可回答：{_leaf_error_message(e)}')
+        return {'scope': 'in', 'category': '', 'reason': '範疇判斷失敗，改由 Step 0 判斷'}
+
+
+async def _answer(question: str, user_message: str, api_key: str) -> tuple[str, list]:
+    """有使用者自述時先做範疇判斷：不可回答就直接拒答，不進 ReAct 迴圈；判斷結果記成第 0 步供檢視。"""
+    if not user_message:
+        return await _run_react(question, api_key)
+
+    scope = await _classify_scope(user_message, api_key)
+    scope_step = {
+        'step':         0,
+        'thought':      '先判斷使用者的問題是否屬於知識庫可回答的範疇',
+        'action':       'scope_check',
+        'action_input': {'user_message': user_message},
+        'observation':  f'{scope["scope"]}｜{scope.get("category", "")}｜{scope.get("reason", "")}',
+    }
+    if scope['scope'] == 'out':
+        return REFUSAL_SENTENCE, [scope_step]
+    output, steps = await _run_react(question, api_key)
+    return output, [scope_step] + steps
+
+
 # ── 防幻覺驗證 ─────────────────────────────────────────────────────────────────
 
 def _validate_response(response: str) -> str:
@@ -290,7 +373,8 @@ async def get_advice_async(posture: str = '', user_id: int = 0, user_message: st
         raise ValueError('未設定 OPENAI_API_KEY，請確認 .env 檔案')
 
     try:
-        output, steps = await asyncio.wait_for(_run_react(question, api_key), timeout=_LLM_TIMEOUT_SECONDS)
+        output, steps = await asyncio.wait_for(
+            _answer(question, user_message, api_key), timeout=_LLM_TIMEOUT_SECONDS)
         return _validate_response(output.strip()), steps
     except asyncio.TimeoutError as e:
         logger.error(f'[PhysioAgent] OpenAI 請求逾時（{_LLM_TIMEOUT_SECONDS}秒）')

@@ -1,0 +1,37 @@
+來源機構：Applied Ergonomics / Physical Therapy / Asian Spine Journal 系統性文獻回顧、NHS
+主題：辦公室工作者肩頸痠痛的運動介入（頸部、肩膀、肩胛肌力訓練）
+
+健康風險與機制：
+- 針對辦公室工作者頸部疼痛的職場介入，研究比較過肌力訓練、一般體能訓練與人體工學調整三類做法
+- Chen 等人（2018）的系統性回顧納入 27 篇隨機對照試驗：對已有症狀的辦公室工作者，在職場進行頸肩肌力訓練或一般體能訓練，減輕頸部疼痛的效果有中等品質證據支持，其中肌力訓練的效果較大；運動參與度越高，效果越明顯
+- 同一篇回顧指出，單純的人體工學調整只有低品質證據支持，對一般辦公室工作者「預防」頸部疼痛的效果未達統計顯著
+- Jones 等人（2024）的系統性回顧納入 8 篇隨機對照試驗（對象為慢性頸痛的辦公室工作者）：其中 7 篇顯示肌力訓練後頸部疼痛明顯下降、5 篇顯示頸部失能指數明顯下降；但 8 篇研究的偏差風險都高，整體證據確定性為低，對生活品質的影響仍需更多研究
+
+肩胛穩定運動：
+- Seo 等人（2020）的系統性回顧納入 4 篇研究：肩胛穩定運動可視為非特異性慢性頸痛的有效介入方式，最常訓練的肌肉是上斜方肌與前鋸肌
+- 研究中使用的動作包括：肩胛後收（兩側肩胛骨向脊椎夾緊）、伏地挺身加強版（push-up plus，手臂伸直後再把上背推高）、俯臥 I／Y／T／W 字手臂上抬、四足跪姿抬手
+- 限制：研究數量少、樣本小、追蹤期只有 4 至 10 週，對疼痛與功能的長期效果仍不明確，各研究對「肩胛穩定運動」也沒有一致定義
+
+立即改善動作（坐在椅子上即可進行，NHS 建議）：
+1. 頸部旋轉：坐直、肩膀放鬆、眼睛平視，緩慢將頭轉向左肩到舒適的最大角度，維持 5 秒後回正，換邊；每邊 3 次
+2. 頸部側向伸展：坐直，一手將同側肩膀往下固定，頭緩慢倒向另一側，維持 5 秒；每邊 3 次
+3. 胸口伸展：坐直離開椅背，肩膀向後向下，雙臂向兩側打開，胸口輕輕向前向上推到有伸展感，維持 5 至 10 秒；重複 5 次
+4. 肩胛後收：坐直，兩側肩胛骨向脊椎夾緊後放鬆（肩胛穩定運動的基本動作）
+
+長期預防：
+- 規律進行頸部、肩膀、肩胛的肌力訓練，比只調整桌椅更有實證支持
+- 這些柔軟度運動每週至少做 2 次，並循序漸進增加（NHS）
+- 頸部痠痛時保持頸部活動通常比固定不動好，不建議自行配戴頸圈（NHS）
+
+何時應該就醫（NHS）：
+- 大多數頸部疼痛只會持續數週
+- 頸部疼痛或僵硬持續數週仍未改善
+- 伴隨其他症狀，例如手臂刺麻感（像針刺）或手臂冰冷，可能代表較嚴重的問題
+- 出現上述情況時應諮詢醫師或物理治療師，本系統無法判斷病因
+
+參考文獻：
+- Jones, L. B., Jadhakhan, F., & Falla, D. (2024). The influence of exercise on pain, disability and quality of life in office workers with chronic neck pain: A systematic review and meta-analysis. Applied Ergonomics, 117, 104216. https://doi.org/10.1016/j.apergo.2023.104216
+- Chen, X., Coombes, B. K., Sjøgaard, G., Jun, D., O'Leary, S., & Johnston, V. (2018). Workplace-Based Interventions for Neck Pain in Office Workers: Systematic Review and Meta-Analysis. Physical Therapy, 98(1), 40–62. https://doi.org/10.1093/ptj/pzx101
+- Seo, Y. G., et al. (2020). Is Scapular Stabilization Exercise Effective for Managing Nonspecific Chronic Neck Pain?: A Systematic Review. Asian Spine Journal, 14(1), 122–129. PMC7010515. https://pmc.ncbi.nlm.nih.gov/articles/PMC7010515/
+- NHS. Neck pain. https://www.nhs.uk/conditions/neck-pain-and-stiff-neck/
+- NHS. Sitting exercises / Flexibility exercises. https://www.nhs.uk/live-well/exercise/strength-and-flexibility-exercises/

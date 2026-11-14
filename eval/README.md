@@ -48,6 +48,22 @@
 - 每題重複 3 次（LLM 輸出有隨機性），指標取平均並列出標準差
 - 關鍵字比對可能誤判（例如用了同義詞），所有判定為失敗的題目都要人工複核一次，複核結果另外標註
 
+## 驗證題（hold-out）
+
+調整 Prompt、檢索或知識庫時只看主題庫；驗證題在調整定稿後才執行，用來確認改善不是只適合主題庫。欄位與指標同上，用 `--testset` 指定：
+
+| 檔案 | 題數 | 建立 | 說明 |
+|---|---|---|---|
+| [holdout_testset.json](holdout_testset.json) | 10 | 10/26 | 第一批（H01～H10） |
+| [holdout2_testset.json](holdout2_testset.json) | 16 | 11/14 | 第二批（N01～N16），含 4 題針對 11/14 新增文獻、3 題飲食類拒答 |
+| [holdout3_testset.json](holdout3_testset.json) | 14 | 11/14 | 第三批（M01～M14），9 題應拒答（每個不可回答類別至少 1 題）＋5 題容易被誤拒的題目 |
+
+```
+python eval/run_eval.py --testset eval/holdout3_testset.json --label holdout3
+```
+
+驗證題一旦影響了設計決定就不算沒看過，下一輪要再建新的一批；各批的使用情形記錄在 [RESULTS.md](RESULTS.md)。
+
 ## 已知限制
 
 - 關鍵字比對只能判斷「有沒有提到」，無法判斷敘述是否完全正確；正確性細節仍需人工複核

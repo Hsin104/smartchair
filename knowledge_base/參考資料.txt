@@ -27,3 +27,19 @@
 [25] Effectiveness of Wearable Devices for Posture Correction: A Systematic Review of Evidence from Randomized and Quasi-Experimental Studies (2025). MDPI Applied Sciences, 16(1), 81. https://www.mdpi.com/2076-3417/16/1/81
 [26] Wearable Smartphone-Based Multisensory Feedback System for Torso Posture Correction: Iterative Design and Within-Subjects Study (2025). JMIR Aging. https://aging.jmir.org/2025/1/e55455
 [27] Ergonomic Innovation: A Modular Smart Chair for Enhanced Workplace Health and Wellness. PMC12252288. https://pmc.ncbi.nlm.nih.gov/articles/PMC12252288/
+
+--- 11/14 新增（肩頸／髖關節／眼睛疲勞／下肢伸展文獻補充）---
+[28] Jones, L. B., Jadhakhan, F., & Falla, D. (2024). The influence of exercise on pain, disability and quality of life in office workers with chronic neck pain: A systematic review and meta-analysis. Applied Ergonomics, 117, 104216. https://doi.org/10.1016/j.apergo.2023.104216
+[29] Chen, X., Coombes, B. K., Sjøgaard, G., Jun, D., O'Leary, S., & Johnston, V. (2018). Workplace-Based Interventions for Neck Pain in Office Workers: Systematic Review and Meta-Analysis. Physical Therapy, 98(1), 40–62. https://doi.org/10.1093/ptj/pzx101
+[30] Seo, Y. G., Park, W. H., Lee, C. S., Kang, K. C., Min, K. B., Lee, S. M., & Yoo, J. C. (2020). Is Scapular Stabilization Exercise Effective for Managing Nonspecific Chronic Neck Pain?: A Systematic Review. Asian Spine Journal, 14(1), 122–129. PMC7010515. https://pmc.ncbi.nlm.nih.gov/articles/PMC7010515/
+[31] NHS. Neck pain. https://www.nhs.uk/conditions/neck-pain-and-stiff-neck/
+[32] NHS. Sitting exercises. https://www.nhs.uk/live-well/exercise/strength-and-flexibility-exercises/sitting-exercises/
+[33] NHS. Flexibility exercises. https://www.nhs.uk/live-well/exercise/strength-and-flexibility-exercises/flexibility-exercises/
+[34] Boukabache, A., Preece, S. J., & Brookes, N. (2021). Prolonged sitting and physical inactivity are associated with limited hip extension: A cross-sectional study. Musculoskeletal Science and Practice, 51, 102282. https://doi.org/10.1016/j.msksp.2020.102282
+[35] Waqas, M. S., Ali, M., Hussain, S., & Mahmood, S. (2016). Frequency of reduced hamstring flexibility in prolong sitting (6-8 hours) among office workers. Journal Riphah College of Rehabilitation Sciences, 4(2), 77–80. https://journals.riphah.edu.pk/index.php/jrcrs/article/view/449
+[36] Sheppard, A. L., & Wolffsohn, J. S. (2018). Digital eye strain: prevalence, measurement and amelioration. BMJ Open Ophthalmology, 3(1), e000146. PMC6020759. https://pmc.ncbi.nlm.nih.gov/articles/PMC6020759/
+[37] Talens-Estarelles, C., Cerviño, A., García-Lázaro, S., Fogelton, A., Sheppard, A., & Wolffsohn, J. S. (2023). The effects of breaks on digital eye strain, dry eye and binocular vision: Testing the 20-20-20 rule. Contact Lens and Anterior Eye, 46(2), 101744. https://doi.org/10.1016/j.clae.2022.101744
+[38] OSHA. Computer Workstations eTool: Monitors. https://www.osha.gov/etools/computer-workstations/components/monitors
+[39] Bandy, W. D., & Irion, J. M. (1994). The effect of time on static stretch on the flexibility of the hamstring muscles. Physical Therapy, 74(9), 845–850. https://doi.org/10.1093/ptj/74.9.845
+[40] Bandy, W. D., Irion, J. M., & Briggler, M. (1997). The effect of time and frequency of static stretching on flexibility of the hamstring muscles. Physical Therapy, 77(10), 1090–1096. https://doi.org/10.1093/ptj/77.10.1090
+[41] Garber, C. E., et al. (2011). American College of Sports Medicine position stand: Quantity and quality of exercise for developing and maintaining cardiorespiratory, musculoskeletal, and neuromotor fitness in apparently healthy adults. Medicine & Science in Sports & Exercise, 43(7), 1334–1359. https://doi.org/10.1249/mss.0b013e318213fefb

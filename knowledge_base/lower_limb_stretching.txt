@@ -1,0 +1,40 @@
+來源機構：Physical Therapy 期刊、美國運動醫學會（ACSM）、NHS
+主題：下肢伸展的做法與劑量（每次要維持多久、每週做幾次）
+
+健康風險與機制：
+- 久坐時下肢長時間不動，腿後側（膕旁肌）、小腿與髖部容易變緊；一項調查發現每天坐 6 至 8 小時的辦公室工作者中，85.7% 腿後側柔軟度下降（詳見髖關節活動度文獻）
+- 靜態伸展是把肌肉拉到有伸展感的位置後維持不動，是改善柔軟度最常用的方式
+
+伸展要維持多久（實證依據）：
+- Bandy 與 Irion（1994）將 57 位腿後側偏緊的受試者分成伸展 15 秒、30 秒、60 秒與不伸展四組，每週 5 天、持續 6 週
+- 結果：維持 30 秒與 60 秒的效果都比 15 秒或不伸展好，而 30 秒與 60 秒之間沒有顯著差異
+- Bandy 等人（1997）再以 93 位受試者比較不同時間與頻率，同樣每週 5 天、持續 6 週：有伸展的組別膝伸直角度都比不伸展進步，但把時間從 30 秒拉長到 60 秒、或從每天 1 次增加到每天 3 次，都沒有帶來額外進步
+- 結論：腿後側靜態伸展每次維持 30 秒、每天 1 次就有效，做更久或更多次不會更好
+- 限制：受試者為 21 至 39 歲的成年人，只測量腿後側，其他肌群與年長者不一定相同
+
+每週要做幾次：
+- 美國運動醫學會（ACSM，2011）建議：每個主要肌肉群的柔軟度運動，每個動作累計伸展 60 秒，每週至少 2 天
+- 同一份建議也指出，除了規律運動，還應減少久坐時間，並頻繁穿插短暫的站立與活動
+- NHS 同樣建議柔軟度運動每週至少做 2 次，並循序漸進
+
+立即改善動作：
+1. 腳踝伸展（坐姿，NHS）：坐直並扶住椅子側邊，左腿伸直、腳離地，腳尖先朝遠處下壓，再朝自己勾回；每腳做 2 組、每組 5 次
+2. 坐姿抬膝踏步（坐姿，NHS）：坐直不靠椅背，左膝彎曲抬到舒適的最高處再有控制地放下，換腳；每腳 5 次
+3. 小腿伸展（站姿，NHS）：雙手扶牆，一腳彎曲在前，另一腳向後跨至少一個腳掌的距離並保持伸直，雙腳腳掌貼地、後腳腳跟不離地，感覺後腳小腿伸展；每邊 3 次
+4. 站姿側彎（NHS）：雙腳與髖同寬站立，一手沿身體側面往下滑到舒適的位置，感覺對側髖部伸展，維持 2 秒；每邊 3 次
+5. 腿後側靜態伸展：將腿後側拉到有伸展感的位置後維持 30 秒（Bandy 與 Irion 研究中有效的時間）
+
+注意事項：
+- 每個動作做到「舒適的最大範圍」即可（NHS），並循序漸進增加
+- 不適症狀持續時應諮詢醫師或物理治療師
+
+長期預防：
+- 每週至少 2 天進行下肢柔軟度運動，每個動作累計 60 秒（例如 30 秒做 2 次）
+- 不需要為了效果把單次伸展拉長到 1 分鐘以上
+- 搭配久坐提醒起身活動，比只在座位上伸展更能中斷下肢長時間不動
+
+參考文獻：
+- Bandy, W. D., & Irion, J. M. (1994). The effect of time on static stretch on the flexibility of the hamstring muscles. Physical Therapy, 74(9), 845–850. https://doi.org/10.1093/ptj/74.9.845
+- Bandy, W. D., Irion, J. M., & Briggler, M. (1997). The effect of time and frequency of static stretching on flexibility of the hamstring muscles. Physical Therapy, 77(10), 1090–1096. https://doi.org/10.1093/ptj/77.10.1090
+- Garber, C. E., et al. (2011). American College of Sports Medicine position stand: Quantity and quality of exercise for developing and maintaining cardiorespiratory, musculoskeletal, and neuromotor fitness in apparently healthy adults. Medicine & Science in Sports & Exercise, 43(7), 1334–1359. https://doi.org/10.1249/mss.0b013e318213fefb
+- NHS. Sitting exercises / Flexibility exercises. https://www.nhs.uk/live-well/exercise/strength-and-flexibility-exercises/

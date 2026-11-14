@@ -1,0 +1,43 @@
+來源機構：BMJ Open Ophthalmology / Contact Lens and Anterior Eye、美國職業安全衛生署（OSHA）
+主題：數位眼睛疲勞（Digital Eye Strain）與螢幕距離、照明、20-20-20 休息法
+
+健康風險與機制：
+- 數位眼睛疲勞又稱電腦視覺症候群，Sheppard 與 Wolffsohn（2018）的文獻回顧估計電腦使用者中有 50% 以上受影響
+- 常見症狀：眼睛疲勞、頭痛、視力模糊、眼睛乾澀，以及頸部與肩膀疼痛
+- 症狀分兩類：與乾眼有關的外在症狀（灼熱、刺激、乾澀），以及與調節或雙眼協調負擔有關的內在症狀（眼睛痠脹、眼後方頭痛）
+- 看螢幕時眨眼次數會明顯減少：研究紀錄到從每分鐘 18.4 次降到 3.6 次，另一項研究為每分鐘 22 次降到 7 次；眨眼不完全可能比眨眼次數更影響乾眼
+- 同時使用兩個以上裝置的人，出現症狀的比例（75%）高於只用一個裝置的人（53%）
+
+常見原因：
+- 長時間連續注視螢幕、沒有休息
+- 螢幕距離太近或位置不當
+- 窗戶或頂燈在螢幕上造成反光（眩光）
+- 眨眼次數減少造成眼睛表面乾燥
+
+20-20-20 休息法：
+- 做法：每 20 分鐘休息 20 秒，看 20 英尺（約 6 公尺）以外的遠處物體
+- Talens-Estarelles 等人（2023）讓 29 位有症狀的電腦使用者使用 20-20-20 提醒軟體 2 週：數位眼睛疲勞與乾眼症狀明顯減輕
+- 限制：停止提醒 1 週後，改善效果沒有維持；2 週內淚液與眼表的客觀檢查沒有變化，雙眼視覺功能除調節靈敏度外也沒有改善；樣本只有 29 人。也就是說必須持續執行才有效
+
+螢幕位置與照明（OSHA 建議）：
+- 距離：螢幕放在正前方，眼睛到螢幕至少 20 英吋，建議範圍為 20 至 40 英吋（50 至 100 公分）；螢幕較小時放大字體，而不是把臉靠近
+- 高度：螢幕最上面一行文字與眼睛齊平或略低，螢幕中心在水平視線下方 15 至 20 度
+- 角度：螢幕不要偏離正前方視線左右 35 度以上；螢幕傾斜到與視線垂直，通常不超過 10 至 20 度
+- 照明：螢幕與窗戶呈垂直方向擺放以減少反光；螢幕向後傾斜可能反射頂燈造成眩光，必要時使用防眩光濾鏡
+- 定期清潔螢幕上的灰塵
+
+立即改善動作：
+1. 看遠處：定時把視線移到遠處物體（例如約 20 英尺外的時鐘），讓眼睛放鬆
+2. 刻意眨眼：停下來、移開視線，並完整眨眼讓眼睛濕潤
+3. 交替工作：電腦作業與非電腦作業（例如整理文件、講電話）交替進行
+
+關於抗藍光：
+- Sheppard 與 Wolffsohn（2018）指出，現有研究認為螢幕藍光在一般使用強度下不構成生物危害；抗藍光鏡片對改善數位眼睛疲勞的效果尚未被證實，仍需高品質隨機對照試驗
+
+智慧椅應用：
+- 智慧椅的久坐與坐姿提醒可以同時作為眼睛休息的時機：收到提醒時順便把視線移到遠處並完整眨眼
+
+參考文獻：
+- Sheppard, A. L., & Wolffsohn, J. S. (2018). Digital eye strain: prevalence, measurement and amelioration. BMJ Open Ophthalmology, 3(1), e000146. PMC6020759. https://pmc.ncbi.nlm.nih.gov/articles/PMC6020759/
+- Talens-Estarelles, C., Cerviño, A., García-Lázaro, S., Fogelton, A., Sheppard, A., & Wolffsohn, J. S. (2023). The effects of breaks on digital eye strain, dry eye and binocular vision: Testing the 20-20-20 rule. Contact Lens and Anterior Eye, 46(2), 101744. https://doi.org/10.1016/j.clae.2022.101744
+- OSHA. Computer Workstations eTool: Monitors. https://www.osha.gov/etools/computer-workstations/components/monitors
