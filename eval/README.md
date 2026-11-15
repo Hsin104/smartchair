@@ -57,12 +57,27 @@
 | [holdout_testset.json](holdout_testset.json) | 10 | 10/26 | 第一批（H01～H10） |
 | [holdout2_testset.json](holdout2_testset.json) | 16 | 11/14 | 第二批（N01～N16），含 4 題針對 11/14 新增文獻、3 題飲食類拒答 |
 | [holdout3_testset.json](holdout3_testset.json) | 14 | 11/14 | 第三批（M01～M14），9 題應拒答（每個不可回答類別至少 1 題）＋5 題容易被誤拒的題目 |
+| [holdout4_testset.json](holdout4_testset.json) | 12 | 11/15 | 第四批（Q01～Q12），6 題要求提供動作、3 題測主題文獻檢索、3 題問知識庫沒有的數字或研究；沒有應拒答題 |
 
 ```
 python eval/run_eval.py --testset eval/holdout3_testset.json --label holdout3
 ```
 
 驗證題一旦影響了設計決定就不算沒看過，下一輪要再建新的一批；各批的使用情形記錄在 [RESULTS.md](RESULTS.md)。
+
+## LLM 複核：無依據動作率（`--judge`）
+
+```
+python eval/run_eval.py --testset eval/holdout4_testset.json --label holdout4 --judge
+python eval/run_eval.py --rescore eval/results/<結果檔>.json --testset <對應題庫> --judge   # 複核已存的回覆，不重新呼叫 Agent
+```
+
+禁止詞與無出處數字抓不到「沒有數字的捏造動作」（例如自己編一個知識庫沒有的伸展）。`--judge` 會請 gpt-4o 列出回覆中的每個運動動作，並從這次查到的內容逐字引用證據，程式再確認引文真的存在；找不到的動作會單獨再問一次。兩次都沒有有效引文就算無依據。
+
+- 指標「無依據動作率」＝有任一無依據動作的回答 ÷ 非拒答的回答，獨立列出、不併入幻覺率
+- 被標記的動作存在結果檔每題的 `judgement.llm_unsupported`，數字不合理時先看這裡
+- 複核模型固定用 gpt-4o（`--judge-model` 可改）；gpt-4o-mini 誤判太多不能用，驗證過程見 [RESULTS.md](RESULTS.md) 第七節
+- 需要 `OPENAI_API_KEY`（環境變數或專案根目錄的 `.env`），每個非拒答的回答約 1～3 次 gpt-4o 呼叫
 
 ## 打正式環境時要降低同時請求數
 

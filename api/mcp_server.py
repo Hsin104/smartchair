@@ -107,7 +107,11 @@ def _build_retriever():
         vs.save_local(str(FAISS_DIR))
         logger.info(f'[MCP] FAISS 已儲存至磁碟：{FAISS_DIR}')
 
-    _retriever = vs.as_retriever(search_type='mmr', search_kwargs={'k': 4, 'fetch_k': 10})
+    # lambda_mult 預設 0.5 時多樣性權重太高：知識庫擴充到 21 份後，相似度排第 4、第 6 的對應文獻
+    # 會被排第 9 的無關文獻擠掉（查「站立工作時間建議」拿不到 sit_stand_desk.txt）。調到 0.8 以相關性為主，
+    # 仍避免 4 段全來自同一份文獻。以評測記錄的查詢重放比較：0.5 時 144 次中漏 5 次，0.8 時全中
+    _retriever = vs.as_retriever(
+        search_type='mmr', search_kwargs={'k': 4, 'fetch_k': 10, 'lambda_mult': 0.8})
     return _retriever
 
 
@@ -124,18 +128,37 @@ POSTURE_KEYWORD_SOURCES = [
     (('久坐',), 'sedentary.txt'),
     (('標準坐姿', '正確坐姿'), 'normal.txt'),
 ]
-_PINNED_CHUNKS = 2  # 每個被點名的坐姿文獻補進幾段
+# 主題關鍵字 → 對應的主題文獻。知識庫擴充到 21 份後，主題文獻也出現同樣的問題：
+# 查「手腕伸展運動」拿到下肢伸展、肩頸、通用伸展三份，就是沒有 wrist_rsi.txt，Agent 查不到就自己編動作。
+TOPIC_KEYWORD_SOURCES = [
+    (('手腕', '滑鼠', '鍵盤', '腕隧道'), 'wrist_rsi.txt'),
+    (('站立辦公', '站著', '站立工作', '升降桌', '坐站'), 'sit_stand_desk.txt'),
+    (('眼睛', '藍光', '20-20-20'), 'eye_strain.txt'),
+    (('核心',), 'core_stability.txt'),
+    (('下背', '腰痛', '護具'), 'low_back_pain.txt'),
+    (('髖',), 'hip_mobility.txt'),
+    (('肩頸', '肩胛', '脖子', '頸部'), 'neck_shoulder.txt'),
+    (('小腿', '腿後', '腳踝', '下肢'), 'lower_limb_stretching.txt'),
+    (('座深', '扶手', '腰靠', '椅背'), 'chair_adjustment.txt'),
+    (('呼吸', '胸椎'), 'thoracic_breathing.txt'),
+    (('瑜伽',), 'office_yoga.txt'),
+    (('震動', '穿戴'), 'smart_wearable_feedback.txt'),
+    (('螢幕', '桌面'), 'desk_ergonomics.txt'),
+    (('休息', '起身'), 'microbreak_guidelines.txt'),
+]
+_PINNED_CHUNKS = 2      # 每個被點名的文獻補進幾段
+_MAX_PINNED_FILES = 3   # 一次查詢最多補幾份，避免查詢提到很多主題時把結果塞滿
 
 
 def _keyword_pinned_docs(query: str, vs, docs: list) -> list:
-    """關鍵字導向＋語意檢索：把查詢點名、但語意檢索沒找到的坐姿文獻補到最前面。"""
+    """關鍵字導向＋語意檢索：把查詢點名、但語意檢索沒找到的文獻補到最前面（坐姿文獻優先於主題文獻）。"""
     have = {Path(d.metadata.get('source', '')).name for d in docs}
+    missing = [fname for keywords, fname in POSTURE_KEYWORD_SOURCES + TOPIC_KEYWORD_SOURCES
+               if fname not in have and any(k in query for k in keywords)]
     pinned = []
-    for keywords, fname in POSTURE_KEYWORD_SOURCES:
-        if fname in have or not any(k in query for k in keywords):
-            continue
+    for fname in missing[:_MAX_PINNED_FILES]:
         pinned += vs.similarity_search(
-            query, k=_PINNED_CHUNKS, fetch_k=50,
+            query, k=_PINNED_CHUNKS, fetch_k=100,
             filter=lambda md, f=fname: Path(md.get('source', '')).name == f,
         )
     return pinned + docs

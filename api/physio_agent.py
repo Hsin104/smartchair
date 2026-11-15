@@ -59,14 +59,19 @@ Step 0 — 範疇判斷（有「使用者自述」時必做，優先於偵測到
     看螢幕造成的眼睛疲勞與乾澀（螢幕距離、照明、休息方式）、肩頸與下肢的肌力或伸展運動、
     腰靠／護具等輔具能否預防下背痛或肩頸痛（屬於人體工學，不是疾病診斷）、
     坐姿相關的痠痛與不適（頭痛、肩頸緊、腰痠）、
+    久坐對健康的一般影響（知識庫有收錄，不是針對個人病史的風險評估）、
     詢問某個與坐姿、人體工學、伸展或久坐有關的數據或研究說法是否正確
     （知識庫查不到的部分說明「知識庫沒有這項資料」即可，不可整題拒答）
+  → 拒答句只用於上面列出的不可回答範疇。可回答範疇的問題即使知識庫沒有使用者要的數字或研究，
+    也必須先查詢，再說明「知識庫沒有這項資料」並提供查到的相關內容，不可使用拒答句
   → 不確定是否屬於不可回答範疇時，一律視為可回答
 Step 1 — 呼叫 get_posture_history(user_id)
   → 觀察（Observation）：使用者身高體重（BMI）、最近 5 筆坐姿趨勢、近 7 天壞坐姿統計，
     判斷「哪一種坐姿問題最頻繁」及「是持續不良或偶發」
 Step 2 — 呼叫 search_knowledge_base(query)
   → 觀察（Observation）：針對 Step 1 判斷出的最頻繁坐姿問題查詢對應醫學文獻，作為建議依據
+  → 有「使用者自述」時，查詢字串以使用者問的主題為主；查詢結果沒有回答到使用者的問題時，
+    換一組關鍵字再查一次，不可用自己的知識補足
   → 若查無相關文獻，且問題仍屬「辦公室人體工學／坐姿」範疇，可呼叫 web_search(query) 補充查詢
 Step 3 — 根據 Step 1~2 的完整觀察結果，產生個人化建議回覆（結合 7 天統計出的優先問題與 BMI 體型差異）
 
@@ -99,6 +104,8 @@ Step 3 — 根據 Step 1~2 的完整觀察結果，產生個人化建議回覆�
 ✗ 診斷任何疾病或評估病情嚴重程度
 ✗ 推薦任何藥物、手術或補充品
 ✗ 捏造具體數字（百分比、角度、時間），除非直接引用自查詢結果
+✗ 提供查詢結果中沒有的伸展或運動動作、步驟（即使是常見動作也不行）；
+  查詢結果沒寫次數或秒數的動作，不可自行加上次數或秒數
 
 【可回答的主題（知識庫涵蓋範圍）】
 ✓ 辦公室六種坐姿：正常坐姿、頭部前傾、身體左傾、身體右傾、過度後仰、久坐未動
@@ -114,7 +121,8 @@ Step 3 — 根據 Step 1~2 的完整觀察結果，產生個人化建議回覆�
 ⚠️ 問題分析
 （直接引用知識庫說明，可標註來源如「根據 forward.txt 文獻」）
 
-✅ 立即改善（3個具體動作，需出自知識庫）
+✅ 立即改善（最多 3 個動作，只能列查詢結果中有的動作，名稱、做法、次數與秒數都照查詢結果；
+　　查到的動作不足 3 個就只列查到的，不可自行補其他動作湊數）
 1.
 2.
 3.
@@ -183,6 +191,8 @@ async def _run_react(question: str, api_key: str) -> tuple[str, list]:
 
             messages = [SystemMessage(content=_SYSTEM_PROMPT), HumanMessage(content=question)]
             steps = []
+            # 規則 1（先查知識庫）用程式強制，不只靠 Prompt：評測發現模型會跳過知識庫直接用 web_search 回答
+            kb_searched = False
 
             for i in range(MAX_ITERATIONS):
                 response = await llm.ainvoke(messages)
@@ -195,8 +205,12 @@ async def _run_react(question: str, api_key: str) -> tuple[str, list]:
                     tool = next((t for t in tools if t.name == call['name']), None)
                     if tool is None:
                         observation = f'錯誤：找不到工具 {call["name"]}'
+                    elif call['name'] == 'web_search' and not kb_searched:
+                        observation = ('錯誤：必須先呼叫 search_knowledge_base 查詢知識庫，'
+                                       '查無相關文獻時才可以使用 web_search')
                     else:
                         observation = await tool.ainvoke(call['args'])
+                        kb_searched = kb_searched or call['name'] == 'search_knowledge_base'
 
                     steps.append({
                         'step':         i + 1,
@@ -238,9 +252,9 @@ scope = "out"（使用者想得到的是以下任何一類答案）：
 scope = "in"（其餘皆是），例如：
 - 坐姿、桌椅螢幕鍵盤滑鼠等人體工學設置、輔具（腰靠、護具、站立桌）有沒有用
 - 伸展、肌力、核心、呼吸等運動怎麼做、做多久
-- 休息與起身頻率、久坐的影響
+- 休息與起身頻率、久坐的影響（包含久坐對健康、壽命的一般影響，知識庫有收錄）
 - 看螢幕造成的眼睛疲勞
-- 描述痠痛、僵硬、疲勞並想知道怎麼調整或改善（沒有要求判斷是什麼病）
+- 描述痠痛、僵硬、疲勞等不適（沒有問「是不是某種病」就不算要求診斷），想知道怎麼調整或改善
 - 問如何「預防」某種職業傷害（例如怎麼放手腕才不會受傷）
 - 問某個與上述主題有關的數據、研究或說法是否正確
 - 只是描述自己的習慣或狀況，沒有提出上述 "out" 類別的問題
@@ -281,6 +295,9 @@ async def _answer(question: str, user_message: str, api_key: str) -> tuple[str, 
     }
     if scope['scope'] == 'out':
         return REFUSAL_SENTENCE, [scope_step]
+    # 刻意不把「已判定可回答」告訴 ReAct 迴圈：試過加上「不可使用拒答句」的提示，誘導題（問知識庫沒有的
+    # 數字、研究、品牌）確實不再被拒答，但幻覺率從 0% 升到 4.6%（開始推薦品牌、不查知識庫就回答）。
+    # 寧可偶爾保守拒答。Step 0 仍把關，因為分類器偶爾會漏（例如代問家人懷孕的椅子調整）
     output, steps = await _run_react(question, api_key)
     return output, [scope_step] + steps
 

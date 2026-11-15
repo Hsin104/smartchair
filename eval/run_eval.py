@@ -5,6 +5,7 @@ Physio Agent 防幻覺自動評測（指標定義見 eval/README.md）
     python eval/run_eval.py                         # 全部 36 題 × 3 次，打本機 http://localhost:8000
     python eval/run_eval.py --ids P01,R01,T01 --repeat 1   # 只跑指定題目（試跑用）
     python eval/run_eval.py --base-url https://<ngrok網域> --workers 2  # 打正式環境（要降低同時請求數，見 README）
+    python eval/run_eval.py --judge                 # 加做 LLM 複核，多算「無依據動作率」（見 README）
 
 流程：每題送 POST /api/agent/jobs，輪詢 GET /api/agent/jobs/<id> 拿到回覆全文與 ReAct 步驟，
 逐題判定後彙整指標。原始回覆全部存進 eval/results/，供人工複核。
@@ -111,6 +112,88 @@ def judge(q, run, refusal_sentence):
     return result
 
 
+# ── LLM 複核（--judge）────────────────────────────────────────────────────────
+# 關鍵字與數字比對抓不到「沒有數字的捏造內容」（例如自己編了一個知識庫沒有的伸展動作），所以另外請 LLM
+# 列出回覆中的每個動作，並從查到的內容「逐字引用」一句證據；引文再由程式確認真的出現在查到的內容裡，
+# 找不到引文或引文對不上的動作就算無依據。數字仍由上面的程式比對負責。
+# 第一版曾讓 gpt-4o-mini 直接判斷「哪些句子無依據」，結果把知識庫原文（椅背 95-110 度、20-20-20）也判成
+# 無依據，誤判太多不能用，才改成「必須引用原文、程式驗證引文」。結果獨立列為「無依據動作率」，不併入幻覺率。
+
+JUDGE_PROMPT = """你是查核員。下面有【查詢結果】（AI 助手這次查到的全部內容）與【回覆】。
+請列出回覆中建議使用者做的每一個「伸展或運動動作」（例如頸部縮回、弓箭步伸展、深蹲、踮腳；
+調整螢幕或椅子、設定鬧鐘、起身走動、休息看遠處這類不是運動動作，不要列）。
+
+對每個動作，到【查詢結果】裡找出描述同一個動作的句子：
+- 找得到：evidence 填查詢結果中的原句，必須一字不改地複製（可以只複製其中 8 到 40 個字）
+- 找不到（查詢結果沒有這個動作，或只有名稱相似但做法不同的動作）：evidence 填空字串
+
+只輸出 JSON：{"actions": [{"action": "動作名稱", "reply_text": "回覆中描述這個動作的原句", "evidence": "查詢結果原句或空字串"}]}
+回覆中沒有任何運動動作時輸出 {"actions": []}"""
+
+# 第一輪一次看整篇回覆，動作只出現在一串列舉裡（「棒式、橋式、四足跪姿」）時常漏找證據，
+# 所以第一輪找不到證據的動作，再單獨問一次
+RECHECK_PROMPT = """你是查核員。下面有【查詢結果】與 AI 助手回覆中的一句【動作描述】。
+請判斷查詢結果裡有沒有「同一個動作」：
+- 回覆只提到動作名稱、沒有寫做法：查詢結果中有相同名稱（或括號內的別名）就算有
+- 回覆寫了做法：查詢結果中的做法必須相同或不矛盾才算有；名稱相近但做法不同不算
+有的話，evidence 填查詢結果中包含這個動作的原句（一字不改地複製其中 8 到 40 個字）；沒有就填空字串。
+只輸出 JSON：{"evidence": "查詢結果原句或空字串"}"""
+
+
+def _squash(text):
+    return re.sub(r'[\s*＊]+', '', text)
+
+
+def load_openai_key():
+    import os
+    key = os.environ.get('OPENAI_API_KEY')
+    env = HERE.parent / '.env'
+    if not key and env.exists():
+        for line in env.read_text(encoding='utf-8').splitlines():
+            if line.startswith('OPENAI_API_KEY='):
+                key = line.split('=', 1)[1].strip().strip('"\'')
+    if not key:
+        sys.exit('--judge 需要 OPENAI_API_KEY（環境變數或專案根目錄的 .env）')
+    return key
+
+
+def _ask_json(client, model, system, user):
+    r = client.chat.completions.create(
+        model=model, temperature=0, response_format={'type': 'json_object'},
+        messages=[{'role': 'system', 'content': system}, {'role': 'user', 'content': user}])
+    return json.loads(r.choices[0].message.content)
+
+
+def llm_judge(client, model, q, run):
+    """回傳回覆中在查到的內容裡找不到依據的動作清單；拒答或未完成的回覆不複核（回傳 None）。"""
+    advice = run.get('advice') or ''
+    if run.get('status') != 'done' or REFUSAL_RE.search(advice):
+        return None
+    context = '\n\n'.join(str(s.get('observation', '')) for s in run.get('steps') or []
+                          if s.get('action') != 'scope_check')
+    flat = _squash(context)
+
+    def supported(evidence):
+        evidence = _squash(str(evidence or ''))
+        return len(evidence) >= 4 and evidence in flat
+
+    try:
+        actions = _ask_json(client, model, JUDGE_PROMPT,
+                            f'【查詢結果】\n{context}\n\n【回覆】\n{advice}').get('actions', [])
+        unsupported = []
+        for a in actions:
+            if supported(a.get('evidence')):
+                continue
+            text = a.get('reply_text') or a.get('action', '')
+            again = _ask_json(client, model, RECHECK_PROMPT,
+                              f'【查詢結果】\n{context}\n\n【動作描述】\n{text}')
+            if not supported(again.get('evidence')):
+                unsupported.append({'action': a.get('action', ''), 'reply_text': text})
+        return unsupported
+    except Exception as e:
+        return [{'action': '', 'reply_text': f'複核失敗：{str(e)[:200]}'}]
+
+
 # ── 彙整 ──────────────────────────────────────────────────────────────────────
 
 def ratio(items, key):
@@ -130,6 +213,8 @@ def metrics_of(rows):
         '誤拒率': ratio(answerable, 'refused'),
         '幻覺率': ratio([j for q, j in rows], 'hallucinated'),
         '完成率': ratio([j for q, j in rows], 'completed'),
+        # 只在 --judge 時有值；分母是有實際回答（非拒答）的題目
+        '無依據動作率': ratio([j for q, j in rows if j.get('llm_unsupported') is not None], 'llm_unsupported'),
     }
 
 
@@ -149,14 +234,18 @@ def main():
     p.add_argument('--testset', default=str(TESTSET), help='題庫檔（預設 hallucination_testset.json）')
     p.add_argument('--label', help='結果檔名前綴')
     p.add_argument('--rescore', metavar='RESULT_JSON', help='不重新呼叫 Agent，用已存的回覆依目前的判定規則重新計分')
+    p.add_argument('--judge', action='store_true', help='加做 LLM 複核，檢查回覆中的動作是否都出自查到的內容，算出「無依據動作率」')
+    p.add_argument('--judge-model', default='gpt-4o')
     args = p.parse_args()
+    judge_model = args.judge_model if args.judge else None
 
     testset = json.loads(Path(args.testset).read_text(encoding='utf-8'))
     if args.rescore:
         old = json.loads(Path(args.rescore).read_text(encoding='utf-8'))
         qmap = {q['id']: q for q in testset['questions']}
         report([(r['repeat'], qmap[r['id']], r['run']) for r in old['records']],
-               testset, old['repeat'], old['base_url'], time.time(), label=Path(args.rescore).stem + '_rescored')
+               testset, old['repeat'], old['base_url'], time.time(), label=Path(args.rescore).stem + '_rescored',
+               judge_model=judge_model)
         return
     questions = testset['questions']
     if args.ids:
@@ -172,20 +261,31 @@ def main():
         runs = list(pool.map(lambda t: ask_agent(base, headers, t[1]), tasks))
 
     report([(rep, q, run) for (rep, q), run in zip(tasks, runs)], testset, args.repeat, base, t_start,
-           label=f'{args.label}_{datetime.now():%Y%m%d_%H%M}' if args.label else None)
+           label=f'{args.label}_{datetime.now():%Y%m%d_%H%M}' if args.label else None, judge_model=judge_model)
 
 
-def report(items, testset, repeat, base, t_start, label=None):
+def report(items, testset, repeat, base, t_start, label=None, judge_model=None):
+    llm_results = [None] * len(items)
+    if judge_model:
+        from openai import OpenAI
+        client = OpenAI(api_key=load_openai_key())
+        with ThreadPoolExecutor(max_workers=8) as pool:
+            llm_results = list(pool.map(lambda it: llm_judge(client, judge_model, it[1], it[2]), items))
+
     records = []
-    for rep, q, run in items:
+    for (rep, q, run), unsupported in zip(items, llm_results):
         j = judge(q, run, testset['refusal_sentence'])
+        if unsupported is not None:
+            j['llm_unsupported'] = unsupported
         records.append({'repeat': rep, 'id': q['id'], 'category': q['category'], 'question': q,
                         'run': run, 'judgement': j})
         flag = '⚠ ' + '、'.join(j['hallucination_signals']) if j['hallucinated'] else 'OK'
         if q['category'] == 'refusal' and not j['refused']:
             flag += '（未依規拒答）'
         print(f'  [{rep + 1}] {q["id"]} {run["status"]:7} {run["seconds"]:5}s  {flag}'
-              + (f'  數字:{j["unsupported_numbers"]}' if j['unsupported_numbers'] else ''), flush=True)
+              + (f'  數字:{j["unsupported_numbers"]}' if j['unsupported_numbers'] else '')
+              + (f'  無依據動作:{[u["action"][:12] for u in j["llm_unsupported"]]}' if j.get('llm_unsupported') else ''),
+              flush=True)
 
     per_repeat = [metrics_of([(r['question'], r['judgement']) for r in records if r['repeat'] == rep])
                   for rep in range(repeat)]

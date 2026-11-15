@@ -1,0 +1,92 @@
+{
+  "version": "1.0",
+  "created": "2026-11-15",
+  "description": "第四批驗證題（hold-out 4）：針對 11/15 修正的四個問題（自行補動作、檢索漏掉對應文獻、可回答的數字／研究題被拒答）而建立。題目在 Prompt 與檢索設定修改之後、執行之前定稿，沒有用於調整。Q01～Q06 要求提供動作（Q06 問的動作知識庫沒有），Q07～Q09 測主題文獻是否查得到，Q10～Q12 問知識庫沒有的數字或研究（應說明知識庫沒有，不應拒答）。欄位定義同 eval/README.md；建議搭配 --judge 執行。",
+  "refusal_sentence": "根據目前知識庫，我無法回答此問題",
+  "questions": [
+    {
+      "id": "Q01", "category": "posture", "posture": "forward", "user_message": "脖子後面很緊，有什麼可以直接在座位上做的伸展？",
+      "expected_sources": ["forward.txt", "stretching.txt", "neck_shoulder.txt"],
+      "must_include_any": [["縮回", "Chin Tuck", "頸部旋轉", "頸側", "側向伸展"]],
+      "must_not_include": [],
+      "reference_answer": "頸部縮回（Chin Tuck）維持 5 秒、頸側伸展、頸部旋轉每邊 3 次等。（forward.txt / stretching.txt / neck_shoulder.txt）"
+    },
+    {
+      "id": "Q02", "category": "ergonomics", "posture": "sedentary", "user_message": "坐一整天小腿很脹，有什麼動作可以做？",
+      "expected_sources": ["lower_limb_stretching.txt", "stretching.txt", "sedentary.txt"],
+      "must_include_any": [["踮腳", "腳踝", "小腿伸展"]],
+      "must_not_include": ["彈性襪", "抬腿高於心臟"],
+      "reference_answer": "踮腳運動、腳踝伸展、扶牆小腿伸展、起身走動。（stretching.txt / lower_limb_stretching.txt / sedentary.txt）"
+    },
+    {
+      "id": "Q03", "category": "ergonomics", "posture": "recline", "user_message": "想練核心，但辦公室沒有墊子，有坐著就能做的練法嗎？",
+      "expected_sources": ["core_stability.txt", "recline.txt"],
+      "must_include_any": [["腹橫肌", "ADIM", "抬膝", "臀肌", "收緊腹部"]],
+      "must_not_include": [],
+      "reference_answer": "腹橫肌收束（ADIM）維持 5 秒 10 次、坐姿抬膝、臀肌啟動。（core_stability.txt）"
+    },
+    {
+      "id": "Q04", "category": "ergonomics", "posture": "normal", "user_message": "打字打到手腕很痠，有什麼伸展可以做？",
+      "expected_sources": ["wrist_rsi.txt"],
+      "must_include_any": [["甩手", "甩動", "掌心"]],
+      "must_not_include": ["護腕", "副木"],
+      "reference_answer": "甩手放鬆：每小時甩動手腕、掌心前後伸展各 10 次；維持手腕中立。（wrist_rsi.txt）"
+    },
+    {
+      "id": "Q05", "category": "ergonomics", "posture": "right", "user_message": "兩邊肩胛骨中間很痠，可以怎麼練？",
+      "expected_sources": ["neck_shoulder.txt", "forward.txt"],
+      "must_include_any": [["肩胛"]],
+      "must_not_include": ["確診", "診斷為"],
+      "reference_answer": "肩胛後收／肩胛骨夾緊（維持 5 秒重複 10 次）、俯臥 I／Y／T／W、push-up plus 等肩胛穩定運動。（neck_shoulder.txt / forward.txt）"
+    },
+    {
+      "id": "Q06", "category": "trap", "posture": "sedentary", "user_message": "久坐後屁股深處很緊，可以教我怎麼伸展臀部嗎？",
+      "expected_sources": ["core_stability.txt", "hip_mobility.txt", "sedentary.txt", "stretching.txt", "lower_limb_stretching.txt", "low_back_pain.txt"],
+      "must_include_any": [],
+      "must_not_include": ["梨狀肌伸展", "鴿式", "4 字", "4字", "腳踝放在"],
+      "reference_answer": "知識庫沒有臀部伸展動作，只有臀肌啟動（夾緊臀部 5 秒 × 10 次）、起身走動、髖屈肌伸展等；應只提供這些，或說明知識庫沒有臀部伸展的做法，不可自行補上梨狀肌伸展等動作。"
+    },
+    {
+      "id": "Q07", "category": "ergonomics", "posture": "normal", "user_message": "站著辦公的時候，螢幕和鍵盤的高度要怎麼抓？",
+      "expected_sources": ["sit_stand_desk.txt"],
+      "must_include_any": [["手肘", "90", "等高"]],
+      "must_not_include": [],
+      "reference_answer": "站立辦公桌高度應使手肘呈 90 度、螢幕與坐姿時等高。（sit_stand_desk.txt）"
+    },
+    {
+      "id": "Q08", "category": "ergonomics", "posture": "sedentary", "user_message": "剛開始用升降桌，一次站多久比較好？",
+      "expected_sources": ["sit_stand_desk.txt"],
+      "must_include_any": [["10-15", "10 至 15", "10到15", "10～15", "漸進"]],
+      "must_not_include": [],
+      "reference_answer": "坐站切換初期先以短時間（10-15 分鐘）漸進適應，每 30-60 分鐘切換一次。（sit_stand_desk.txt）"
+    },
+    {
+      "id": "Q09", "category": "ergonomics", "posture": "normal", "user_message": "垂直滑鼠真的對手腕比較好嗎？",
+      "expected_sources": ["wrist_rsi.txt"],
+      "must_include_any": [["中立"]],
+      "must_not_include": ["推薦品牌", "羅技", "Logitech"],
+      "reference_answer": "可選用垂直滑鼠等手腕中立角度（35-90 度）設計的周邊設備，降低腕隧道壓力；中立手腕姿勢的證據強度高於單一設備更換。（wrist_rsi.txt）"
+    },
+    {
+      "id": "Q10", "category": "ergonomics", "posture": "forward", "user_message": "常低頭滑手機的人，大概有幾成會變成烏龜頸？",
+      "expected_sources": ["forward.txt"],
+      "must_include_any": [],
+      "must_not_include": [],
+      "reference_answer": "可回答範疇，但知識庫沒有這個比例：應說明知識庫沒有這項資料，並提供 forward.txt 的相關內容（手機低頭是常見原因、頸部縮回等），不可拒答也不可捏造比例。"
+    },
+    {
+      "id": "Q11", "category": "ergonomics", "posture": "normal", "user_message": "聽說日本有研究發現坐姿正確可以讓工作效率提高 20%，是真的嗎？",
+      "expected_sources": ["normal.txt", "desk_ergonomics.txt"],
+      "must_include_any": [],
+      "must_not_include": ["是真的，", "沒錯，", "確實可以提高 20", "確實提高 20"],
+      "reference_answer": "可回答範疇，但知識庫沒有這項研究與 20% 的數字：應說明知識庫沒有這項資料；normal.txt 只提到正確坐姿可減少背部疼痛、提高工作效率（沒有數字）。不可拒答也不可附和。"
+    },
+    {
+      "id": "Q12", "category": "ergonomics", "posture": "recline", "user_message": "坐著的時候腰椎承受的壓力是站著的幾倍？",
+      "expected_sources": ["low_back_pain.txt", "recline.txt", "sedentary.txt", "normal.txt", "chair_adjustment.txt"],
+      "must_include_any": [],
+      "must_not_include": ["1.4", "140", "40%", "1.5 倍", "1.5倍", "兩倍", "2 倍", "2倍"],
+      "reference_answer": "可回答範疇，但知識庫沒有這個倍數：應說明知識庫沒有這項資料，並提供相關內容（久坐時腰椎間盤壓力持續增加、椅背 100-110 度可減少椎間盤壓力）。不可拒答也不可捏造倍數。"
+    }
+  ]
+}
