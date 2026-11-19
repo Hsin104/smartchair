@@ -19,6 +19,8 @@ ESP32 重心規則依 demo/MQTT資料說明.md 第 4.2 節在電腦上重現（�
 
 執行：python compare_esp32_rule.py   （只讀資料庫，不連 MQTT、不呼叫 OpenAI）
       在已部署的容器內執行（不需重建）：docker compose exec -T django python - < compare_esp32_rule.py
+      嚴格驗證（重新訓練暫時模型、不覆蓋正式模型，CPU 約數分鐘）：
+          docker compose exec -T django python - --strict < compare_esp32_rule.py
 """
 
 import json
@@ -97,10 +99,12 @@ def load_df(calibrated):
     rows = []
     for r in qs:
         s, b = r.seat_pressure_data, r.back_pressure_data
-        rows.append({'posture': r.posture, 'timestamp': r.timestamp, **{k: s.get(k, 0) for k in POS},
+        rows.append({'posture': r.posture, 'timestamp': r.timestamp, 'user_id': r.user_id or 0,
+                     'device_posture': r.device_posture or '', **{k: s.get(k, 0) for k in POS},
                      'spine_upper': b.get('spine_upper', 0), 'spine_mid': b.get('spine_mid', 0),
                      'spine_lower': b.get('spine_lower', 0)})
-    df = pd.DataFrame(rows).dropna()
+    df = pd.DataFrame(rows)
+    df = df.dropna(subset=[c for c in df.columns if c != 'device_posture'])
     if df.empty:
         return df
     seat = sum(df[k] for k in POS)
@@ -204,7 +208,104 @@ def evaluate(key):
     return result
 
 
+# ── 更嚴格的驗證：重新訓練暫時模型（不覆蓋正式模型檔）──────────────────────────────
+# 原本的測試集是把連續收集的感測資料「隨機」切 20%，相鄰幾秒幾乎相同的資料會分到訓練與測試兩邊，
+# 準確率可能偏樂觀。這裡用和 train_model_dl.py 相同的架構與參數重新訓練，換兩種切法：
+#   時間切分：每個類別各自依時間排序，前 80% 訓練、後 20% 測試（測的是「之後收集的資料」）
+#   留一人：用其他人的資料訓練，測這個人（測的是「沒看過的新使用者」）
+
+def build_mlp(input_dim, num_classes):
+    """與 train_model_dl.build_model 相同的架構（複製一份，避免容器內 import 訓練腳本的路徑問題）。"""
+    k = tf.keras
+    model = k.Sequential([
+        k.layers.Input(shape=(input_dim,)),
+        k.layers.Dense(64, activation='relu'), k.layers.BatchNormalization(), k.layers.Dropout(0.3),
+        k.layers.Dense(128, activation='relu'), k.layers.BatchNormalization(), k.layers.Dropout(0.3),
+        k.layers.Dense(64, activation='relu'), k.layers.Dropout(0.2),
+        k.layers.Dense(32, activation='relu'),
+        k.layers.Dense(num_classes, activation='softmax'),
+    ])
+    model.compile(optimizer=k.optimizers.Adam(learning_rate=1e-3),
+                  loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+    return model
+
+
+def train_and_predict(train_df, test_df):
+    from sklearn.preprocessing import LabelEncoder, StandardScaler
+    tf.keras.utils.set_random_seed(42)
+    le = LabelEncoder().fit(train_df['posture'].values)
+    scaler = StandardScaler().fit(train_df[FEATURES].values.astype(np.float32))
+    model = build_mlp(len(FEATURES), len(le.classes_))
+    cb = [tf.keras.callbacks.EarlyStopping(monitor='val_accuracy', patience=15, restore_best_weights=True),
+          tf.keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=7, min_lr=1e-6)]
+    # 訓練資料打亂後再切驗證集，避免 validation_split 只拿到最後一個類別
+    tr = train_df.sample(frac=1, random_state=42)
+    model.fit(scaler.transform(tr[FEATURES].values.astype(np.float32)), le.transform(tr['posture'].values),
+              validation_split=0.2, epochs=100, batch_size=32, callbacks=cb, verbose=0)
+    probs = model.predict(scaler.transform(test_df[FEATURES].values.astype(np.float32)), verbose=0)
+    return le.inverse_transform(probs.argmax(axis=1)), probs.max(axis=1)
+
+
+def sessions(df, gap_minutes=10):
+    """同一類別相鄰兩筆超過 gap_minutes 分鐘視為不同次收集，回傳各類別收集次數。"""
+    out = {}
+    for label, g in df.sort_values('timestamp').groupby('posture'):
+        gaps = g['timestamp'].diff() > pd.Timedelta(minutes=gap_minutes)
+        out[label] = int(gaps.sum()) + 1
+    return out
+
+
+def strict_validation(key):
+    files = MODELS[key]
+    df = load_df(key == 'calibrated')
+    print(f'\n################ 嚴格驗證：{files[0]}')
+    if df.empty:
+        return {'available': False}
+    result = {'available': True, 'collection_sessions': sessions(df),
+              'users': {str(u): int(n) for u, n in df['user_id'].value_counts().items()}}
+    print(f'  各類別收集次數（相隔 10 分鐘以上算不同次）：{result["collection_sessions"]}')
+    print(f'  各使用者筆數：{result["users"]}')
+
+    df = df.sort_values('timestamp')
+    test_idx = []
+    for _, g in df.groupby('posture'):
+        test_idx += list(g.index[int(len(g) * 0.8):])
+    test, train = df.loc[test_idx], df.drop(index=test_idx)
+    result['time_split_range'] = {'train_until': str(train['timestamp'].max()), 'test_from': str(test['timestamp'].min())}
+    pred, conf = train_and_predict(train, test)
+    result['time_split_model'] = report(f'{files[0]}架構 — 時間切分（各類別前 80% 訓練、後 20% 測試）',
+                                        test['posture'].values, pred, conf)
+    if key == 'uncalibrated':
+        result['time_split_esp32_rule'] = report('ESP32 重心規則（重現）— 同一份時間切分測試集',
+                                                 test['posture'].values, test.apply(esp32_rule, axis=1).values)
+
+    loso = {}
+    for uid, n in df['user_id'].value_counts().items():
+        other = df[df['user_id'] != uid]
+        if n < 50 or other['posture'].nunique() < len(LABELS) or len(other) < 200:
+            continue
+        mine = df[df['user_id'] == uid]
+        pred, conf = train_and_predict(other, mine)
+        loso[str(uid)] = report(f'{files[0]}架構 — 留一人：測使用者 {uid}（用其他人訓練）', mine['posture'].values, pred, conf)
+    result['leave_one_user_out'] = loso or '只有一位使用者有足夠資料，無法做留一人驗證'
+    if not loso:
+        print('  只有一位使用者有足夠資料，無法做留一人驗證')
+
+    dev = df[df['device_posture'].isin(LABELS)]
+    if len(dev):
+        result['device_firmware'] = report('椅子韌體實際判斷（device_posture 有紀錄的資料）',
+                                           dev['posture'].values, dev['device_posture'].values)
+    else:
+        result['device_firmware'] = '這批資料沒有記錄椅子韌體的判斷'
+        print('  這批資料沒有記錄椅子韌體的判斷（device_posture）')
+    return result
+
+
 def main():
+    if '--strict' in sys.argv:
+        results = {key: strict_validation(key) for key in MODELS}
+        print('\nSTRICT_JSON ' + json.dumps(results, ensure_ascii=False, default=str))
+        return
     results = {key: evaluate(key) for key in MODELS}
     # 在容器內執行時沒有 demo/ 資料夾（.dockerignore 排除），改成只印出 JSON
     print('\nRESULT_JSON ' + json.dumps(results, ensure_ascii=False, default=str))
