@@ -158,7 +158,8 @@
 - 活動量高且少坐者被動髖伸展多 6.1 度 → Boukabache et al. 2021, Musculoskeletal Science and Practice 51:102282 摘要 Results（A，11/14 核對）
 - 272 人中 85.7% 腿後側柔軟度下降 → Waqas et al. 2016, Journal Riphah College of Rehabilitation Sciences 4(2):77–80 Results（A，11/14 核對）
 - 坐姿抬膝踏步每腳 5 次 → NHS〈Sitting exercises〉（A，11/14 核對）
-- 證據限制：Boukabache 為橫斷面研究，只能說明相關；Waqas 為單一地區調查、沒有對照組。「髖屈肌伸展（弓箭步）」一條沒有標出處，待補來源或刪除。
+- 半跪姿髖部伸展（弓箭步跪姿、往前移到髖前側有伸展感、膝下可墊靠墊）→ South Tees Hospitals NHS Foundation Trust〈Hip stretch in half kneeling〉病人講義（A，11/19 核對）
+- 證據限制：Boukabache 為橫斷面研究，只能說明相關；Waqas 為單一地區調查、沒有對照組；South Tees 講義沒有指定秒數與次數（由物理治療師決定）。
 
 22. eye_strain.txt　數位眼睛疲勞
 - 50% 以上電腦使用者受影響、症狀分類、眨眼次數下降、多裝置 75% vs 53%、抗藍光效果未證實 → Sheppard & Wolffsohn 2018, BMJ Open Ophthalmology 3(1):e000146（PMC6020759）各節（A，11/14 核對）

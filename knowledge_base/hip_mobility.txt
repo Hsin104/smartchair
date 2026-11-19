@@ -22,7 +22,7 @@
 立即改善動作：
 1. 起身站立走動：站直時髖關節回到伸展位置，是中斷髖關節長時間彎曲最直接的方式
 2. 坐姿抬膝踏步（Hip marching，NHS）：坐直不靠椅背，雙手扶住椅子兩側，將左膝在彎曲狀態下抬到舒適的最高處，再有控制地放下，換右腳；每腳 5 次
-3. 髖屈肌伸展：單腳向後跨步呈弓箭步，感覺後腳髖部前側伸展，換邊
+3. 半跪姿髖部伸展（South Tees NHS）：一腳跪地呈弓箭步，髖部與膝蓋朝正前方，身體慢慢往前移，直到跪地那一側的髖部前側有伸展感，再回到起始姿勢；膝蓋跪著不舒服時墊靠墊或枕頭。原講義沒有指定維持秒數與次數
 
 長期預防：
 - 減少每日總坐姿時間，並搭配每週至少 150 分鐘的身體活動（研究中「活動量高且少坐」組的髖關節伸展角度最好）
@@ -36,3 +36,4 @@
 - Boukabache, A., Preece, S. J., & Brookes, N. (2021). Prolonged sitting and physical inactivity are associated with limited hip extension: A cross-sectional study. Musculoskeletal Science and Practice, 51, 102282. https://doi.org/10.1016/j.msksp.2020.102282
 - Waqas, M. S., Ali, M., Hussain, S., & Mahmood, S. (2016). Frequency of reduced hamstring flexibility in prolong sitting (6-8 hours) among office workers. Journal Riphah College of Rehabilitation Sciences, 4(2), 77–80. https://journals.riphah.edu.pk/index.php/jrcrs/article/view/449
 - NHS. Sitting exercises. https://www.nhs.uk/live-well/exercise/strength-and-flexibility-exercises/sitting-exercises/
+- South Tees Hospitals NHS Foundation Trust. Hip stretch in half kneeling (patient information). https://www.southtees.nhs.uk/resources/hip-stretch-in-half-kneeling/
