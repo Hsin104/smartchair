@@ -57,7 +57,8 @@
 | [holdout_testset.json](holdout_testset.json) | 10 | 10/26 | 第一批（H01～H10） |
 | [holdout2_testset.json](holdout2_testset.json) | 16 | 11/14 | 第二批（N01～N16），含 4 題針對 11/14 新增文獻、3 題飲食類拒答 |
 | [holdout3_testset.json](holdout3_testset.json) | 14 | 11/14 | 第三批（M01～M14），9 題應拒答（每個不可回答類別至少 1 題）＋5 題容易被誤拒的題目 |
-| [holdout4_testset.json](holdout4_testset.json) | 12 | 11/15 | 第四批（Q01～Q12），6 題要求提供動作、3 題測主題文獻檢索、3 題問知識庫沒有的數字或研究；沒有應拒答題 |
+| [holdout4_testset.json](holdout4_testset.json) | 12 | 11/15 | 第四批（Q01～Q12），6 題要求提供動作、3 題測主題文獻檢索、3 題問知識庫沒有的數字或研究；沒有應拒答題。Q04 於 11/19 修訂（「甩手」已從知識庫刪除），之後的結果不能與 11/15 直接比較 |
+| [holdout6_testset.json](holdout6_testset.json) | 24 | 11/19 | 第六批（S01～S24），由組員獨立出題（不看知識庫、Prompt 與既有題庫），開發者只補出處與關鍵詞；要動作、人體工學、應拒答、誘導各 6 題。定稿時程式版本 dcfd4c8，執行前不修改程式。S03、S04 需要 11/15 新增的兩份文獻已建入索引 |
 
 ```
 python eval/run_eval.py --testset eval/holdout3_testset.json --label holdout3

@@ -27,10 +27,10 @@
     },
     {
       "id": "Q04", "category": "ergonomics", "posture": "normal", "user_message": "打字打到手腕很痠，有什麼伸展可以做？",
-      "expected_sources": ["wrist_rsi.txt"],
-      "must_include_any": [["甩手", "甩動", "掌心"]],
+      "expected_sources": ["wrist_hand_stretching.txt", "wrist_rsi.txt"],
+      "must_include_any": [["擺動", "旋轉", "屈伸", "合掌", "手指伸展"]],
       "must_not_include": ["護腕", "副木"],
-      "reference_answer": "甩手放鬆：每小時甩動手腕、掌心前後伸展各 10 次；維持手腕中立。（wrist_rsi.txt）"
+      "reference_answer": "手腕左右擺動、手腕旋轉、輔助手腕屈伸、合掌伸展（wrist_hand_stretching.txt）；維持手腕中立（wrist_rsi.txt）。11/19 修訂：原答案「甩手各 10 次」出自廠商網頁，已從知識庫刪除"
     },
     {
       "id": "Q05", "category": "ergonomics", "posture": "right", "user_message": "兩邊肩胛骨中間很痠，可以怎麼練？",
