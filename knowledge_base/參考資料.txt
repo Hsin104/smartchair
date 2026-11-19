@@ -1,58 +1,190 @@
-知識庫總書目（2026-11-19 依各文獻檔的「參考文獻」段自動彙整；每筆後面列出引用它的文獻檔）
+知識庫資料清單、引用位置與證據限制（2026-11-19 核對）
 
-[1] A Comprehensive Workplace Exercise Intervention to Reduce Musculoskeletal Pain and Improve Functional Capacity in Office Workers. https://pmc.ncbi.nlm.nih.gov/articles/PMC11083576/　〔office_yoga.txt〕
-[2] Agarwal, S. et al. (2018). Sit-stand workstations and impact on low back discomfort: a systematic review and meta-analysis. Ergonomics, 61(4), 538–552. https://pubmed.ncbi.nlm.nih.gov/29115188/　〔sit_stand_desk.txt〕
-[3] Amiri, B. & Zemková, E. (2025). Trunk stability and breathing exercises superior to foam rolling for restoring postural stability after core muscle fatigue in sedentary employees. Scientific Reports, 15. https://doi.org/10.1038/s41598-025-98284-6　〔core_stability.txt、thoracic_breathing.txt〕
-[4] Anwary, A. R. et al. (2021). Smart-Cover: A real time sitting posture monitoring system. Sensors and Actuators A: Physical, 317, 112451. https://doi.org/10.1016/j.sna.2020.112451　〔left.txt、right.txt、sedentary.txt〕
-[5] Bandy, W. D., & Irion, J. M. (1994). The effect of time on static stretch on the flexibility of the hamstring muscles. Physical Therapy, 74(9), 845–850. https://doi.org/10.1093/ptj/74.9.845　〔lower_limb_stretching.txt〕
-[6] Bandy, W. D., Irion, J. M., & Briggler, M. (1997). The effect of time and frequency of static stretching on flexibility of the hamstring muscles. Physical Therapy, 77(10), 1090–1096. https://doi.org/10.1093/ptj/77.10.1090　〔lower_limb_stretching.txt〕
-[7] Boukabache, A., Preece, S. J., & Brookes, N. (2021). Prolonged sitting and physical inactivity are associated with limited hip extension: A cross-sectional study. Musculoskeletal Science and Practice, 51, 102282. https://doi.org/10.1016/j.msksp.2020.102282　〔hip_mobility.txt〕
-[8] Buckley, J. P. et al. (2015). The sedentary office: an expert statement on the growing case for change towards better health and productivity. British Journal of Sports Medicine, 49, 1357–1362. https://doi.org/10.1136/bjsports-2015-094618　〔sedentary.txt、sit_stand_desk.txt〕
-[9] Bull, F. C. et al. (2020). World Health Organization 2020 guidelines on physical activity and sedentary behaviour. British Journal of Sports Medicine, 54(24), 1451–1462. https://doi.org/10.1136/bjsports-2020-102955　〔microbreak_guidelines.txt、sit_stand_desk.txt〕
-[10] Caixeiro, D. et al. (2026). Effectiveness of Wearable Devices for Posture Correction: A Systematic Review of Evidence from Randomized and Quasi-Experimental Studies. Applied Sciences, 16(1), 81. https://doi.org/10.3390/app16010081　〔smart_wearable_feedback.txt〕
-[11] Cambridge University Hospitals NHS Foundation Trust. Stretches for the hip (patient information). https://www.cuh.nhs.uk/patient-information/stretches-for-the-hip/　〔glute_hip_stretching.txt〕
-[12] CCOHS. Office Ergonomics – Ergonomic Chair. https://www.ccohs.ca/oshanswers/ergonomics/office/chair.html　〔chair_adjustment.txt〕
-[13] CCOHS. Office Ergonomics – How to Adjust Office Chairs. https://www.ccohs.ca/oshanswers/ergonomics/office/chair_adjusting.html　〔chair_adjustment.txt〕
-[14] CCOHS. Office Ergonomics – Stretching at the Workstation. https://www.ccohs.ca/oshanswers/ergonomics/office/stretching.html　〔core_stability.txt、forward.txt、glute_hip_stretching.txt、left.txt、low_back_pain.txt、microbreak_guidelines.txt、normal.txt、recline.txt、right.txt、sedentary.txt、sit_stand_desk.txt、stretching.txt、thoracic_breathing.txt、wrist_hand_stretching.txt、wrist_rsi.txt〕
-[15] CDC (2021). Physical Activity Breaks for the Workplace Resource Guide. https://www.cdc.gov/workplace-health-promotion/media/pdfs/2024/06/Workplace-Physical-Activity-Break-Guide-508.pdf　〔microbreak_guidelines.txt〕
-[16] Chen, X., Coombes, B. K., Sjøgaard, G., Jun, D., O'Leary, S., & Johnston, V. (2018). Workplace-Based Interventions for Neck Pain in Office Workers: Systematic Review and Meta-Analysis. Physical Therapy, 98(1), 40–62. https://doi.org/10.1093/ptj/pzx101　〔neck_shoulder.txt〕
-[17] Cleveland Clinic. Diaphragmatic Breathing. https://my.clevelandclinic.org/health/articles/9445-diaphragmatic-breathing　〔thoracic_breathing.txt〕
-[18] Dunstan, D. W. et al. (2012). Breaking up prolonged sitting reduces postprandial glucose and insulin responses. Diabetes Care, 35(5), 976–983. https://pubmed.ncbi.nlm.nih.gov/22374636/　〔microbreak_guidelines.txt〕
-[19] Effect of forward head posture on thoracic shape and respiratory function (2019). https://pubmed.ncbi.nlm.nih.gov/30774207/　〔thoracic_breathing.txt〕
-[20] Ekelund, U. et al. (2016). Does physical activity attenuate, or even eliminate, the detrimental association of sitting time with mortality? The Lancet, 388(10051), 1302–1310. https://doi.org/10.1016/S0140-6736(16)30370-1　〔sedentary.txt〕
-[21] Ergonomic Innovation: A Modular Smart Chair for Enhanced Workplace Health and Wellness. https://pmc.ncbi.nlm.nih.gov/articles/PMC12252288/　〔smart_wearable_feedback.txt〕
-[22] Garber, C. E., et al. (2011). American College of Sports Medicine position stand: Quantity and quality of exercise for developing and maintaining cardiorespiratory, musculoskeletal, and neuromotor fitness in apparently healthy adults. Medicine & Science in Sports & Exercise, 43(7), 1334–1359. https://doi.org/10.1249/mss.0b013e318213fefb　〔lower_limb_stretching.txt〕
-[23] Hansraj, K. K. (2014). Assessment of stresses in the cervical spine caused by posture and position of the head. Surgical Technology International, 25, 277–279. https://pubmed.ncbi.nlm.nih.gov/25393825/　〔forward.txt〕
-[24] Interventions for preventing back pain among office workers – a systematic review and network meta-analysis (2023). https://pmc.ncbi.nlm.nih.gov/articles/PMC10549919/　〔desk_ergonomics.txt、low_back_pain.txt〕
-[25] Jones, L. B., Jadhakhan, F., & Falla, D. (2024). The influence of exercise on pain, disability and quality of life in office workers with chronic neck pain: A systematic review and meta-analysis. Applied Ergonomics, 117, 104216. https://doi.org/10.1016/j.apergo.2023.104216　〔neck_shoulder.txt〕
-[26] Kuptniratsaikul, V. et al. (2023). Pain reduction, physical performance, and psychological status compared between Hatha yoga and stretching exercise to treat sedentary office workers with mild-moderate neck/shoulder pain. Complementary Therapies in Medicine, 79, 102996. https://pubmed.ncbi.nlm.nih.gov/37863244/　〔office_yoga.txt〕
-[27] Mayo Clinic. Office ergonomics: Your how-to guide. https://www.mayoclinic.org/healthy-lifestyle/adult-health/in-depth/office-ergonomics/art-20046169　〔desk_ergonomics.txt、normal.txt〕
-[28] Mayo Clinic. What are the risks of sitting too much? https://www.mayoclinic.org/healthy-lifestyle/adult-health/expert-answers/sitting/faq-20058005　〔sedentary.txt〕
-[29] NHS. Neck pain. https://www.nhs.uk/conditions/neck-pain-and-stiff-neck/　〔neck_shoulder.txt〕
-[30] NHS. Sitting exercises / Flexibility exercises. https://www.nhs.uk/live-well/exercise/strength-and-flexibility-exercises/　〔lower_limb_stretching.txt、neck_shoulder.txt〕
-[31] NHS. Sitting exercises. https://www.nhs.uk/live-well/exercise/strength-and-flexibility-exercises/sitting-exercises/　〔hip_mobility.txt〕
-[32] NIOSH. Carpal Tunnel Syndrome (NHIS 2015 Occupational Health Supplement) charts. https://wwwn.cdc.gov/NIOSH-WHC/chart/ohs-cts/illness　〔wrist_rsi.txt〕
-[33] Odesola, D. F. et al. (2024). Smart sensing chairs for sitting posture detection, classification, and monitoring: A comprehensive review. Sensors, 24(9), 2940. https://pmc.ncbi.nlm.nih.gov/articles/PMC11086066/　〔forward.txt、left.txt、normal.txt、recline.txt、right.txt、sedentary.txt、smart_wearable_feedback.txt〕
-[34] On the Role of Core Exercises in Alleviating Muscular Fatigue Induced by Prolonged Sitting: A Scoping Review (2025). https://pmc.ncbi.nlm.nih.gov/articles/PMC11845640/　〔core_stability.txt〕
-[35] OSHA. Computer Workstations eTool – Chairs. https://www.osha.gov/etools/computer-workstations/components/chairs　〔chair_adjustment.txt、low_back_pain.txt、normal.txt、recline.txt〕
-[36] OSHA. Computer Workstations eTool – Good Working Positions. https://www.osha.gov/etools/computer-workstations/positions　〔chair_adjustment.txt、desk_ergonomics.txt、forward.txt、left.txt、normal.txt、recline.txt、right.txt、sit_stand_desk.txt、wrist_rsi.txt〕
-[37] OSHA. Computer Workstations eTool – Keyboards. https://www.osha.gov/etools/computer-workstations/components/keyboards　〔desk_ergonomics.txt、wrist_rsi.txt〕
-[38] OSHA. Computer Workstations eTool – Monitors. https://www.osha.gov/etools/computer-workstations/components/monitors　〔desk_ergonomics.txt、eye_strain.txt、forward.txt、left.txt、normal.txt〕
-[39] OSHA. Computer Workstations eTool – Pointer/Mouse. https://www.osha.gov/etools/computer-workstations/components/pointer-mouse　〔right.txt、wrist_rsi.txt〕
-[40] OSHA. Computer Workstations eTool – Telephones. https://www.osha.gov/etools/computer-workstations/components/telephones　〔right.txt〕
-[41] Physical Exercise Is Confirmed to Reduce Low Back Pain Symptoms in Office Workers: A Systematic Review (2020). https://pmc.ncbi.nlm.nih.gov/articles/PMC7739349/　〔low_back_pain.txt、office_yoga.txt〕
-[42] Seo, Y. G., et al. (2020). Is Scapular Stabilization Exercise Effective for Managing Nonspecific Chronic Neck Pain?: A Systematic Review. Asian Spine Journal, 14(1), 122–129. PMC7010515. https://pmc.ncbi.nlm.nih.gov/articles/PMC7010515/　〔neck_shoulder.txt〕
-[43] Shariat, A. et al. (2018). Effects of stretching exercise training and ergonomic modifications on musculoskeletal discomforts of office workers: a randomized controlled trial. Brazilian Journal of Physical Therapy, 22(2), 144–153. https://pubmed.ncbi.nlm.nih.gov/28939263/　〔office_yoga.txt〕
-[44] Sheppard, A. L., & Wolffsohn, J. S. (2018). Digital eye strain: prevalence, measurement and amelioration. BMJ Open Ophthalmology, 3(1), e000146. PMC6020759. https://pmc.ncbi.nlm.nih.gov/articles/PMC6020759/　〔eye_strain.txt〕
-[45] Silva, H. et al. (2025). The impact of sit-stand desks on full-day and work-based sedentary behavior of office workers: a systematic review. Human Factors, 67(7), 695–713. https://journals.sagepub.com/doi/abs/10.1177/00187208241305591　〔sit_stand_desk.txt〕
-[46] Talens-Estarelles, C., Cerviño, A., García-Lázaro, S., Fogelton, A., Sheppard, A., & Wolffsohn, J. S. (2023). The effects of breaks on digital eye strain, dry eye and binocular vision: Testing the 20-20-20 rule. Contact Lens and Anterior Eye, 46(2), 101744. https://doi.org/10.1016/j.clae.2022.101744　〔eye_strain.txt〕
-[47] The effect of computer prompt in breaks of sedentary behaviour among office workers: a systematic review and meta-analysis. https://pmc.ncbi.nlm.nih.gov/articles/PMC12164069/　〔microbreak_guidelines.txt〕
-[48] The Effect of Core Stabilization Exercise with the Abdominal Drawing-in Maneuver Technique on Stature Change during Prolonged Sitting in Sedentary Workers with Chronic Low Back Pain (2022). https://pmc.ncbi.nlm.nih.gov/articles/PMC8835683/　〔core_stability.txt〕
-[49] The Efficacy of Ruesi Dadton and Yoga on Reducing Neck and Shoulder Pain in Office Workers. https://pmc.ncbi.nlm.nih.gov/articles/PMC10824298/　〔office_yoga.txt〕
-[50] Thomsen, J. F., Gerr, F. & Atroshi, I. (2008). Carpal tunnel syndrome and the use of computer mouse and keyboard: A systematic review. BMC Musculoskeletal Disorders, 9, 134. https://pmc.ncbi.nlm.nih.gov/articles/PMC2569035/　〔wrist_rsi.txt〕
-[51] van der Berg, J. D. et al. (2016). Associations of total amount and patterns of sedentary behaviour with type 2 diabetes and the metabolic syndrome: The Maastricht Study. Diabetologia, 59, 709–718. https://pubmed.ncbi.nlm.nih.gov/26831300/　〔sedentary.txt〕
-[52] van Duijvenbode, I. et al. (2008). Lumbar supports for prevention and treatment of low back pain. Cochrane Database of Systematic Reviews, CD001823. https://www.cochrane.org/CD001823/BACK_lumbar-supports-for-prevention-and-treatment-of-low-back-pain　〔low_back_pain.txt〕
-[53] Waqas, M. S., Ali, M., Hussain, S., & Mahmood, S. (2016). Frequency of reduced hamstring flexibility in prolong sitting (6-8 hours) among office workers. Journal Riphah College of Rehabilitation Sciences, 4(2), 77–80. https://journals.riphah.edu.pk/index.php/jrcrs/article/view/449　〔hip_mobility.txt〕
-[54] Wearable Smartphone-Based Multisensory Feedback System for Torso Posture Correction: Iterative Design and Within-Subjects Study. JMIR Aging, 2025;8:e55455. https://aging.jmir.org/2025/1/e55455　〔smart_wearable_feedback.txt〕
-[55] WHO (2010). Global recommendations on physical activity for health. https://www.who.int/publications/i/item/9789241599979　〔sedentary.txt〕
-[56] WHO (2020). WHO guidelines on physical activity and sedentary behaviour. https://www.who.int/publications/i/item/9789240015128　〔microbreak_guidelines.txt〕
+說明
+- 本檔不建入向量索引，只供人工查閱。共 23 份文獻；每份列出「內容 → 來源 → 引用位置」與「證據限制」。
+- 核對方式：A＝讀過來源原文；B＝來源網站擋自動抓取，只透過搜尋結果中的原文摘錄或摘要核對；C＝只核對到二手報導（新聞稿、大學新聞）。
+- 證據等級用語：系統性回顧／統合分析＞隨機對照試驗＞觀察性研究（橫斷面、世代）＞專家共識＞官方衛教指引。官方衛教指引（OSHA、CCOHS、NHS、Cleveland Clinic、Mayo Clinic）屬專家建議，不是研究證據。
+- 共同限制：知識庫內容未經物理治療專業人員審閱；本系統不提供診斷。
+
+
+一、坐姿（6 份）
+
+1. normal.txt　標準坐姿
+- 頭部水平、手肘 90–120 度、大腿與地面平行、膝與臀同高、雙腳踩地或腳踏墊 → OSHA Computer Workstations eTool〈Good Working Positions〉「Neutral body positions」段（A）
+- 腰靠高度可調、貼住下背 → OSHA eTool〈Chairs〉backrest／lumbar support 段（A）
+- 螢幕 50–100 公分、最上面一行與眼睛齊平或略低 → OSHA eTool〈Monitors〉（A）；Mayo Clinic〈Office ergonomics: Your how-to guide〉monitor 段（B）
+- 長時間維持同一姿勢仍不健康、應經常變換 → OSHA〈Good Working Positions〉頁末變換姿勢段（A）
+- 每小時休息 5–10 分鐘 → CCOHS〈Stretching at the Workstation〉「What can be done to minimize this strain?」段（A）
+- 20 種坐姿、直立坐姿最常被偵測、準確率約 90%、訓練資料缺乏體型多樣性 → Odesola et al. 2024, Sensors 24(9):2940（PMC11086066）Figure 2、Discussion 與 Conclusions（A）
+- 證據限制：坐姿要點來自官方衛教指引，屬專家建議；Odesola 是文獻回顧，談的是感測椅技術，不是健康效果。
+
+2. forward.txt　頭部前傾
+- 前傾 15／30／45／60 度頸椎承受約 27／40／49／60 磅 → Hansraj 2014, Surgical Technology International 25:277–279（PubMed 25393825）摘要（C：PubMed 擋抓取，數字由 NPR 等 2014 年報導核對）
+- 螢幕位置與距離 → OSHA〈Monitors〉（A）
+- 頸部縮回（數到 20、5–10 次）、胸口伸展、聳肩（3–5 秒、2–3 次）→ CCOHS〈Stretching at the Workstation〉「stretches for the neck and shoulders」段（A）
+- 前傾為第二常被偵測的坐姿 → Odesola 2024 Figure 2 排序（A）
+- 證據限制：Hansraj 是電腦模型估算，不是活體量測，也未經大型研究驗證；伸展動作來自衛教指引，沒有針對頭部前傾的療效數據。
+
+3. left.txt　身體左傾
+- 長時間不對稱坐姿可能加重背痛與脊椎變形；Smart-Cover 用 Velostat 座墊感測、規則式分類器、10 人各坐 30 分鐘 → Anwary et al. 2021, Sensors and Actuators A 317:112451 摘要（B：全文未取得）
+- 螢幕放正前方、偏離不超過 35 度 → OSHA〈Monitors〉（A）
+- 坐正要點 → OSHA〈Good Working Positions〉（A）
+- 側向伸展、頸部放鬆 → CCOHS「stretches for the back, side and legs」「neck and shoulders」段（A）
+- 「向左傾」為獨立坐姿類別 → Odesola 2024 Figure 2（A）
+- 證據限制：Anwary 只有 10 位健康年輕受試者，是系統開發研究，沒有健康結果；「不對稱坐姿加重背痛」是該論文的研究動機敘述，不是其研究結果。
+
+4. right.txt　身體右傾
+- 滑鼠靠近鍵盤、左右手輪流 → OSHA eTool〈Pointer/Mouse〉Quick Tips（A）
+- 電話夾在肩膀與頭之間可能造成頸部疼痛、改用耳機或擴音 → OSHA eTool〈Telephones〉（A）
+- 其餘同 left.txt（Anwary 2021、OSHA、CCOHS、Odesola 2024）
+- 證據限制：同 left.txt；OSHA 的建議屬專家建議。
+
+5. recline.txt　過度後仰
+- 後仰坐姿為軀幹與大腿夾角 105–120 度 → OSHA〈Good Working Positions〉「Reclined sitting」參考姿勢（A）
+- 椅背可後仰至少 15 度、腰靠高度可調、座墊前緣不碰膝後 → OSHA〈Chairs〉（A）
+- 站姿後仰 → CCOHS「stretches for the back, side and legs」段（A）
+- 「向後靠」為常見坐姿類別 → Odesola 2024 Figure 2（A）
+- 證據限制：沒有研究證據指出特定椅背角度能預防下背痛；舊版「超過 110 度屬異常後仰」查無出處，已刪除。
+
+6. sedentary.txt　久坐未動
+- 身體活動不足為全球第四大死亡風險因子、占死亡 6% → WHO 2010《Global recommendations on physical activity for health》前言；6% 見 WHO 2014 fact sheet（B）
+- 坐太久與肥胖、心臟病與癌症死亡風險有關；60–75 分鐘中等強度活動可抵銷 → Mayo Clinic〈What are the risks of sitting too much?〉（B）
+- 每多 1 小時靜態時間，第二型糖尿病勝算比 1.22 → van der Berg et al. 2016, Diabetologia 59:709–718（PubMed 26831300）摘要 Results（B）
+- 60–75 分鐘中等強度活動似乎可消除坐超過 8 小時的死亡風險 → Ekelund et al. 2016, The Lancet 388:1302–1310 Interpretation 段（B，另由劍橋大學新聞稿核對）
+- 站立與輕度活動從每天 2 小時逐步到 4 小時 → Buckley et al. 2015, BJSM 49:1357–1362 建議段（B）
+- 踝關節屈伸 → CCOHS「legs」段（A）
+- 證據限制：WHO 講的是「活動不足」不是「久坐」；van der Berg 是橫斷面研究，只能說明相關；Ekelund 是觀察性研究的統合分析，「消除」指統計相關而非因果；Buckley 是專家共識，作者自述主要依據觀察性與短期研究。
+
+
+二、伸展與運動（8 份）
+
+7. stretching.txt　辦公室簡易伸展
+- 全部動作、秒數、次數與注意事項 → CCOHS〈Stretching at the Workstation〉三個動作段落與「What can be done to minimize this strain?」段（A）
+- 證據限制：官方衛教指引；多數動作 CCOHS 沒有指定秒數，只有一般建議 10–20 秒；沒有療效研究數據。
+
+8. neck_shoulder.txt　肩頸肌力訓練
+- 職場頸肩肌力訓練有中等品質證據、人體工學調整只有低品質證據 → Chen et al. 2018, Physical Therapy 98(1):40–62 摘要 Conclusions（A，11/14 核對）
+- 8 篇 RCT 中 7 篇疼痛下降、證據確定性低 → Jones et al. 2024, Applied Ergonomics 117:104216 摘要（A，11/14 核對）
+- 肩胛穩定運動可視為有效介入、使用的動作 → Seo et al. 2020, Asian Spine Journal 14(1):122–129（PMC7010515）Results 與 Table（A，11/14 核對）
+- 坐姿頸部旋轉、側向伸展、胸口伸展的秒數與次數；何時就醫 → NHS〈Sitting exercises〉〈Flexibility exercises〉〈Neck pain〉（A，11/14 核對）
+- 證據限制：Jones 2024 的 8 篇研究偏差風險都高；Seo 2020 只有 4 篇、追蹤 4–10 週，各研究定義不一致。
+
+9. lower_limb_stretching.txt　下肢伸展劑量
+- 腿後側伸展 30 秒與 60 秒效果相同、優於 15 秒 → Bandy & Irion 1994, Physical Therapy 74(9):845–850 摘要（A，11/14 核對）
+- 延長到 60 秒或每天 3 次沒有額外進步 → Bandy et al. 1997, Physical Therapy 77(10):1090–1096 摘要（A，11/14 核對）
+- 每個肌群累計 60 秒、每週至少 2 天 → ACSM 2011 position stand（Garber et al., MSSE 43(7):1334–1359）柔軟度建議段（A，11/14 核對）
+- 腳踝伸展、坐姿抬膝、小腿伸展、站姿側彎 → NHS〈Sitting exercises〉〈Flexibility exercises〉（A，11/14 核對）
+- 85.7% 腿後側柔軟度下降 → 引用自 hip_mobility.txt 的 Waqas 2016
+- 證據限制：Bandy 研究受試者為 21–39 歲、只測腿後側，不能直接套用到其他肌群或年長者。
+
+10. glute_hip_stretching.txt　臀部、髖部伸展
+- 坐姿髖部伸展、抱小腿捲背、站姿後仰、坐姿直腿抬高 → CCOHS「stretches for the back, side and legs」段（A）
+- 臀肌伸展、梨狀肌伸展、抱膝伸展、腿後側伸展、股四頭肌伸展 → Cambridge University Hospitals NHS〈Stretches for the hip〉病人講義（A，11/15 核對）
+- 證據限制：兩者都是衛教資料，CUH 動作沒有指定秒數與次數；沒有療效研究數據。11/15 新增，尚未建入正式環境索引。
+
+11. wrist_hand_stretching.txt　手腕、手指伸展
+- 5 個動作的做法、秒數（3–5 秒、5–7 秒）與次數（3 次）→ CCOHS「stretches for the hands and forearms that can be done at the workstation」段（A，11/19 再次核對）
+- 證據限制：衛教指引；手指伸展 CCOHS 未指定秒數；沒有療效研究數據。11/15 新增，尚未建入正式環境索引。
+
+12. core_stability.txt　核心穩定
+- 久坐造成深層軀幹肌疲勞、核心運動可減輕疲勞、回顧中的運動種類 → On the Role of Core Exercises in Alleviating Muscular Fatigue Induced by Prolonged Sitting（PMC11845640）Abstract 與 Conclusions（A）
+- ADIM 做法（下腹部往脊椎收、維持 10 秒、10 下一組）與 5 週訓練結果 → PMC8835683 Methods（訓練方案）與 Results（A）
+- 軀幹穩定與呼吸運動比滾筒放鬆恢復快 → Amiri & Zemková 2025, Scientific Reports 15（doi:10.1038/s41598-025-98284-6）摘要（B）
+- 交替抬腿 → CCOHS「legs」段（A）
+- 證據限制：PMC8835683 只有 30 人、沒有對照組、在實驗室進行，效果約 2 毫米（低於臨床意義門檻 3 毫米）；Amiri 只有 18 人，15 分鐘後差異消失；範疇回顧指出肌電圖效果仍不確定。
+
+13. office_yoga.txt　辦公室瑜伽與伸展
+- 150 人瑜伽「初步」不劣於伸展 → Kuptniratsaikul et al. 2023, Complementary Therapies in Medicine 79:102996（PubMed 37863244）摘要 Conclusion（B）
+- 80 人三組疼痛都下降、組間無差異 → PMC10824298 摘要（A）
+- 142 人伸展組與伸展＋人體工學組疼痛下降、只有伸展組持續改善 → Shariat et al. 2018, Brazilian Journal of Physical Therapy 22(2):144–153（PubMed 28939263）摘要（B）
+- 70 人 6 個月督導運動，疼痛降低 43.1–70%、缺勤 −84.6% → PMC11083576 摘要與 Results（A）
+- 有督導或網路輔助方案效果較好 → PMC7739349 Conclusions（A）
+- 證據限制：Kuptniratsaikul 只分析 130／150 人；PMC10824298 的摘要與結果段對組間差異的描述不一致；43.1–70% 是持續時間與強度兩個指標合併的範圍。
+
+14. thoracic_breathing.txt　胸椎與橫隔膜呼吸
+- 頭部前傾時肺功能與下胸廓活動度下降 → Effect of forward head posture on thoracic shape and respiratory function, 2019（PubMed 30774207）摘要（B）
+- 橫隔膜呼吸做法 → Cleveland Clinic〈Diaphragmatic Breathing〉instructions 段（B）
+- 呼吸運動恢復姿勢穩定 → Amiri & Zemková 2025 摘要（B）
+- 胸口伸展、側向伸展 → CCOHS（A）
+- 證據限制：PubMed 30774207 只有 15 人、比較的是刻意擺出的姿勢，不是長期駝背者；橫隔膜呼吸對胸椎活動度沒有直接研究證據。
+
+
+三、人體工學設置（4 份）
+
+15. chair_adjustment.txt　辦公椅調整
+- 座墊前緣與小腿留約 5 公分（一個拳頭）、手肘 90 度扶手輕碰、椅背貼下背凹陷處、手肘與桌面同高 → CCOHS〈How to Adjust Office Chairs〉（A）
+- 坐時膝後不受壓、腳踏墊 → CCOHS〈Ergonomic Chair〉（A）
+- 後仰至少 15 度、105–120 度後仰坐姿 → OSHA〈Chairs〉〈Good Working Positions〉（A）
+- 證據限制：全部是官方衛教指引；舊版「座深 2–3 指」「椅背 100–110 度」查無出處，已刪除。
+
+16. desk_ergonomics.txt　桌面與螢幕
+- 螢幕高度、距離、角度 → OSHA〈Monitors〉（A）；雙焦眼鏡再降 2–5 公分、腳踏墊替代品、桌緣加墊 → Mayo Clinic〈Office ergonomics〉（B）
+- 鍵盤位置、手腕中立 → OSHA eTool〈Keyboards〉（B）
+- 單獨人體工學介入對下背痛強度無顯著效果 → PMC10549919 摘要與 Results（A）
+- 證據限制：設置建議屬專家建議；PMC10549919 顯示人體工學調整本身的健康效果證據薄弱。
+
+17. sit_stand_desk.txt　坐站交替桌
+- 全天久坐減少 68.7／77.7／62.1 分鐘（3／6／12 個月）→ Silva et al. 2025, Human Factors 67(7):695–713 摘要 Results（A，由作者學位論文所收全文核對）
+- 下背不適標準化平均差 −0.23 → Agarwal et al. 2018, Ergonomics 61(4):538–552（PubMed 29115188）摘要（B）
+- 2 小時逐步到 4 小時 → Buckley et al. 2015（B）
+- 站姿參考、站立時的設置 → OSHA〈Good Working Positions〉（A）
+- 每週 150–300 分鐘中等強度活動 → Bull et al. 2020, BJSM 54(24) WHO 2020 指引摘要（B）
+- 證據限制：Silva 指出長期效果與工作以外的影響仍不確定；Agarwal 缺少已有下背痛者的研究，也不知道要站多久才有效。
+
+18. wrist_rsi.txt　鍵盤滑鼠與腕隧道
+- 約 389 萬名勞工目前有腕隧道症候群、880 萬人曾被診斷 → NIOSH Worker Health Charts〈Carpal Tunnel Syndrome（NHIS 2015）〉（B）
+- 電腦工作與腕隧道症候群的因果證據不足 → Thomsen, Gerr & Atroshi 2008, BMC Musculoskeletal Disorders 9:134（PMC2569035）摘要 Conclusion（B）
+- 手腕中立、手肘角度、滑鼠位置與輪流 → OSHA〈Keyboards〉（B）〈Good Working Positions〉〈Pointer/Mouse〉（A）
+- 證據限制：NIOSH 數字為美國自陳調查；Thomsen 納入的 8 篇研究都有暴露評估不精確、樣本數不足或偏誤等限制。舊版「甩手各 10 次」（出自滑鼠廠商網頁）已刪除。
+
+
+四、健康主題（5 份）
+
+19. microbreak_guidelines.txt　久坐中斷與休息
+- 減少久坐、任何強度活動取代久坐都有益、證據不足以訂時間門檻 → WHO 2020 guidelines（Bull et al. 2020, BJSM 54(24):1451–1462）建議摘要（B）
+- 每 20 分鐘走 2 分鐘降低餐後血糖與胰島素 → Dunstan et al. 2012, Diabetes Care 35(5):976–983（PubMed 22374636）摘要 Results（B）
+- 電腦提醒研究：每 30–60 分鐘提醒、上班久坐每天減少約 12.5 分鐘、步數增加約 1,030 步 → PMC12164069 Results 與 Conclusions（A）
+- 5–10 分鐘活動休息 → CDC〈Physical Activity Breaks for the Workplace Resource Guide〉（2021）前言（A）
+- 證據限制：Dunstan 只有 19 位過重成人、為單次實驗室試驗；PMC12164069 的證據確定性為低到中等，全天久坐時間沒有顯著改變。智慧椅提醒間隔是本專題的設計選擇，不是研究結論。
+
+20. low_back_pain.txt　下背痛預防
+- 腰部護具預防下背痛不比不介入有效 → van Duijvenbode et al. 2008, Cochrane CD001823 摘要 Authors' conclusions（B）
+- 職場運動可減輕下背痛、督導或網路方案較好 → PMC7739349 Conclusions（A）
+- 多數介入只有小幅效果、無介入能降低盛行率 → PMC10549919 摘要與 Results（A）
+- 站姿後仰、側向伸展 → CCOHS（A）；腰靠調整 → OSHA〈Chairs〉（A）
+- 證據限制：Cochrane 版本為 2008 年，可能已有更新；PMC7739349 納入研究差異大、依從性報告不一致；PMC10549919 中身體活動合併人體工學的效果為低確定性證據。
+
+21. hip_mobility.txt　久坐與髖關節
+- 活動量高且少坐者被動髖伸展多 6.1 度 → Boukabache et al. 2021, Musculoskeletal Science and Practice 51:102282 摘要 Results（A，11/14 核對）
+- 272 人中 85.7% 腿後側柔軟度下降 → Waqas et al. 2016, Journal Riphah College of Rehabilitation Sciences 4(2):77–80 Results（A，11/14 核對）
+- 坐姿抬膝踏步每腳 5 次 → NHS〈Sitting exercises〉（A，11/14 核對）
+- 證據限制：Boukabache 為橫斷面研究，只能說明相關；Waqas 為單一地區調查、沒有對照組。「髖屈肌伸展（弓箭步）」一條沒有標出處，待補來源或刪除。
+
+22. eye_strain.txt　數位眼睛疲勞
+- 50% 以上電腦使用者受影響、症狀分類、眨眼次數下降、多裝置 75% vs 53%、抗藍光效果未證實 → Sheppard & Wolffsohn 2018, BMJ Open Ophthalmology 3(1):e000146（PMC6020759）各節（A，11/14 核對）
+- 20-20-20 提醒 2 週減輕症狀、停用 1 週後效果消失 → Talens-Estarelles et al. 2023, Contact Lens and Anterior Eye 46(2):101744 摘要與 Results（A，11/14 核對）
+- 螢幕距離、高度、角度、照明 → OSHA〈Monitors〉（A）
+- 證據限制：Talens-Estarelles 只有 29 人、追蹤 3 週，客觀眼表檢查沒有變化；智慧椅提醒同時作為眼睛休息時機是本專題的應用建議，不是研究結論。
+
+23. smart_wearable_feedback.txt　震動回饋矯正坐姿
+- 穿戴式矯正裝置有潛力、但證據不足以做臨床建議 → Caixeiro et al. 2026, Applied Sciences 16(1):81 摘要 Conclusions（B）
+- 83 位學生、準確率 94.78%、97.59% 收到警示後調整、平均反應 3.27 秒、震動＋LED 警示 → PMC12252288 Section 5.1 與 Table 4（A）
+- Postural SmartVest 協助中風後病人改善姿勢 → JMIR Aging 2025;8:e55455 摘要（B）
+- 只有 36% 研究有回饋機制、手機 App 最常見 → Odesola 2024 Discussion（A）
+- 證據限制：PMC12252288 為單一試點、受試者是學生、沒有對照組；JMIR 受試者為中風病人，不能推論到一般上班族；「依部位震動」是本專題的設計選擇，沒有研究直接比較其效果。
+
+
+五、11/19 核對中刪除的內容（查無出處或與來源矛盾）
+- 「Nguyen 2024：前傾伴隨心率異常、後仰伴隨嗜睡、久坐心率趨穩」→ 論文全文沒有這些內容
+- 「Singh 2023 智慧椅用震動馬達」→ 論文用網頁、桌面與手機通知；震動馬達是它引用的其他研究
+- 「Anwary 2021：81.8% 工作時間靜態久坐、右傾與右手滑鼠高度相關」→ 查無出處
+- 「Arthi 2025：側傾 5 分鐘、後仰 15 分鐘提醒」→ 全文無法取得，無法查證
+- 「每天運動 1 小時仍無法抵消久坐」→ 與 Ekelund 2016 結論相反
+- 「個人化人體工學介入已證實降低下背痛盛行率」→ 與 PMC10549919 結論相反
+- 「WHO：久坐為第四大致死風險」→ WHO 講的是身體活動不足
+- 「WHO 建議每 30–60 分鐘中斷久坐」→ WHO 未訂時間門檻
+- 「椅背 95–110 度、超過 110 度屬異常」「座深 2–3 指」「腰靠對準皮帶線」→ 與 OSHA／CCOHS 不符或查無出處
+- 「ADIM 維持 5 秒」→ 原研究為 10 秒
+- 「NIOSH 每年 800 萬人腕隧道症候群」→ 880 萬是曾被診斷的總數
+- 「震動回饋須在 1–3 秒內、3–5 天會習慣化」→ 查無出處
+- 「每小時甩手各 10 次」→ 出自滑鼠廠商網頁
