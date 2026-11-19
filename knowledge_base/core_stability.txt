@@ -1,28 +1,21 @@
-來源機構：Scientific Reports / PMC Scoping Review
+來源機構：Scientific Reports（Amiri & Zemková 2025）/ PMC 研究（PMC8835683）/ PMC 範疇回顧（PMC11845640）
 主題：核心肌群與骨盆穩定訓練
 
-健康風險與機制：
-- 核心肌群（腹肌、脊旁肌、臀肌、骨盆底肌、橫膈膜、髖部肌群）為腰椎骨盆穩定的基礎，久坐易使核心肌群逐漸失能、耐力下降
-- 核心肌群疲勞會導致姿勢穩定性下降，是久坐者容易出現駝背、骨盆後傾等代償姿勢的原因之一
-- 腹橫肌收束訓練法（Abdominal Drawing-in Maneuver, ADIM）能有效活化深層軀幹肌群，對久坐型慢性下背痛工作者有保護作用
-
-常見原因：
-- 長時間久坐缺乏肌肉主動收縮，核心肌群逐漸「關機」
-- 核心無力導致坐姿仰賴椅背被動支撐，脊椎穩定度下降
+研究證據：
+- 範疇回顧（2025）：長時間坐著會造成深層軀幹肌肉疲勞，之後改由表層肌肉支撐脊椎，增加韌帶與椎間盤的負擔；核心運動能有效減輕久坐造成的肌肉疲勞
+- 回顧中的核心運動包括：腹橫肌收束（ADIM，也稱 hollowing）、核心穩定運動（bracing、側棒式與俯臥棒式、橋式、背部伸展、bird dog、軀幹扭轉）、在動態辦公椅或抗力球上做骨盆前後與左右轉動、交替抬腿
+- 30 位慢性下背痛成人做 5 週核心穩定訓練（含 ADIM）後，休息時的疼痛與功能障礙改善，久坐 41 分鐘時的脊椎高度流失減少，腹橫肌與腹內斜肌疲勞改善；但沒有對照組、在實驗室進行，效果僅約 2 毫米（PMC8835683）
+- 18 位久坐上班族在核心肌群疲勞後，做軀幹穩定運動或呼吸運動，姿勢穩定性恢復得比滾筒放鬆或單純休息快；15 分鐘後各組差異消失（Amiri & Zemková，2025）
 
 立即改善動作：
-1. 腹橫肌收束（ADIM）：坐姿下緩慢收緊下腹部（如穿緊身褲的感覺），維持5秒放鬆，重複10次
-2. 坐姿抬膝：雙手扶椅面，輪流將膝蓋抬離座墊5公分，維持3秒，各10次，活化核心與髖屈肌
-3. 臀肌啟動：坐姿下夾緊臀部肌肉維持5秒，重複10次，喚醒久坐失能的臀肌
+1. 腹橫肌收束（ADIM）：輕輕把下腹部往脊椎方向收，正常呼吸，脊椎與骨盆不動；PMC8835683 的訓練是每次維持 10 秒、10 下為一組
+2. 交替抬腿：坐在椅子前半部，一腳伸直抬離地面幾公分，稍停後放下，換腳（CCOHS 坐姿抬腿）
 
 長期預防：
-- 建議搭配軀幹穩定訓練（棒式、橋式、四足跪姿）作為規律運動的一部分，可有效降低久坐引起的核心肌群疲勞
-- 呼吸訓練（橫隔膜呼吸）與軀幹穩定訓練合併執行，對恢復久坐後的姿勢穩定性有加成效果
-
-智慧椅研究補充（學術來源）：
-- 骨盆穩定度不足常反映在椅背椅墊壓力分佈的不對稱，智慧椅椅背感測器可作為長期追蹤核心穩定度變化的間接指標
+- 規律做核心穩定運動，例如棒式、橋式、bird dog（四足跪姿抬手抬腳）
 
 參考文獻：
-- Trunk stability and breathing exercises superior to foam rolling for restoring postural stability after core muscle fatigue in sedentary employees. Scientific Reports. https://www.nature.com/articles/s41598-025-98284-6
-- The Effect of Core Stabilization Exercise with the Abdominal Drawing-in Maneuver Technique on Stature Change during Prolonged Sitting in Sedentary Workers with Chronic Low Back Pain. PMC8835683. https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8835683/
-- On the Role of Core Exercises in Alleviating Muscular Fatigue Induced by Prolonged Sitting: A Scoping Review. PMC11845640. https://www.ncbi.nlm.nih.gov/pmc/articles/PMC11845640/
+- On the Role of Core Exercises in Alleviating Muscular Fatigue Induced by Prolonged Sitting: A Scoping Review (2025). https://pmc.ncbi.nlm.nih.gov/articles/PMC11845640/
+- The Effect of Core Stabilization Exercise with the Abdominal Drawing-in Maneuver Technique on Stature Change during Prolonged Sitting in Sedentary Workers with Chronic Low Back Pain (2022). https://pmc.ncbi.nlm.nih.gov/articles/PMC8835683/
+- Amiri, B. & Zemková, E. (2025). Trunk stability and breathing exercises superior to foam rolling for restoring postural stability after core muscle fatigue in sedentary employees. Scientific Reports, 15. https://doi.org/10.1038/s41598-025-98284-6
+- CCOHS. Office Ergonomics – Stretching at the Workstation. https://www.ccohs.ca/oshanswers/ergonomics/office/stretching.html

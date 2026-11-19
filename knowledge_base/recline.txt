@@ -1,38 +1,31 @@
-來源機構：Cleveland Clinic / NHS
+來源機構：OSHA / CCOHS / Sensors（Odesola 2024）
 主題：過度後仰（Excessive Recline / Slouching）
 
-健康風險：
-- 腰椎承受剪力（Shear Force），增加L4-L5及L5-S1椎間盤壓力
-- 腹部核心肌群（腹橫肌、多裂肌）無法有效啟動，長期弱化
-- 後仰常伴隨頸部代償性前伸，形成複合性不良姿勢
-- 髖屈肌（Iliopsoas）長期縮短，引發下背痛
+後仰本身不一定是壞姿勢（OSHA）：
+- OSHA 把「後仰坐姿」列為參考姿勢之一：軀幹與頸部保持直線，與大腿夾角在 105 至 120 度之間
+- 椅子應能讓使用者從垂直往後仰至少 15 度，椅背可鎖定或調整張力
+- 問題在於椅背沒有支撐到下背、身體往前滑或駝背縮在椅子上，而不是椅背角度本身
 
-常見原因：
-- 椅背過於直立或不符合身體曲線
-- 下午疲勞時的無意識放鬆
-- 椅子高度過高，雙腳無法平放
+常見原因（OSHA 椅子指引）：
+- 腰靠高度不對：腰靠應可調整高度，讓椅背向外的弧度貼在下背
+- 座椅太深：膝蓋後側碰到座墊前緣，身體會往前滑
+- 椅子太高、雙腳踩不到地
 
 立即改善動作：
-1. 坐直，啟動核心：輕輕收緊腹部（約30%力道），感覺腰椎微微前凸
-2. 使用腰枕（Lumbar Support）填補腰部與椅背的空隙
-3. 調整椅背角度至95-110度（微後傾是正常的，但不超過110度）
-4. 骨盆傾斜練習（Pelvic Tilt）：坐姿下輕輕前後搖動骨盆，喚醒腰椎感知
+1. 調整腰靠（腰部支撐）高度，讓椅背的弧度貼住下背（OSHA）
+2. 座墊深度調整到膝蓋後側不碰座墊前緣（OSHA）
+3. 雙腳整個腳掌踩到地面；椅子無法降低時使用腳踏墊（OSHA）
+4. 站姿後仰伸展（CCOHS）：站立、膝蓋微彎，雙手放在下背，輕輕往前推，同時身體稍微向後仰
 
 長期預防：
-- 每天訓練核心穩定肌群（Bird-Dog、Dead Bug 等低衝擊動作）
-- 選擇有良好腰部支撐的人體工學椅
-- 下午設定鬧鐘提醒，疲勞是後仰的主要觸發點
+- 經常小幅變換姿勢、調整椅背，偶爾起身走動幾分鐘（OSHA）
+- 每小時離開工作站休息 5 到 10 分鐘（CCOHS）
 
 智慧椅研究補充（學術來源）：
-- 「後仰/後靠（Backward Recline）」是 Odesola 等人（2024）整理的20種坐姿分類之一，為智慧椅系統中常見偵測目標
-- 研究指出椅背角度 95–110 度為最佳範圍：超過 110 度即進入異常後仰區間，腰椎剪力明顯上升
-- 壓力感測陣列在後仰姿勢下，座墊前方感測元素讀值下降、靠背感測元素讀值上升，可作為後仰程度指標（Odesola et al., 2024）
-- 後仰姿勢若持續超過15分鐘，研究建議系統發出矯正提醒（Arthi & Savitha, 2025）
-- IoT 智慧椅可結合後仰偵測與心率監測：研究發現長時間後仰常伴隨低覺醒狀態（嗜睡），心率趨緩可作為輔助判斷指標（Nguyen et al., 2024）
+- Odesola 等人（2024）整理的 20 種坐姿中，「向後靠（leaning back）」是常見的偵測類別
 
 參考文獻：
-- Cleveland Clinic. Back Pain: Causes, Diagnosis and Treatment.
-- NHS. Sitting and lower back pain.
-- Odesola, D. F. et al. (2024). Smart sensing chairs for sitting posture detection, classification, and monitoring. Sensors, 24(9), 2940.
-- Arthi, M., & Savitha, J. (2025). IOT driven smart chair for posture and health monitoring. IJSRCSEIT, 11(2), 1444–1452.
-- Nguyen, T. M. H. et al. (2024). A smart chair for health monitoring in daily life. arXiv:2410.01459.
+- OSHA. Computer Workstations eTool – Good Working Positions. https://www.osha.gov/etools/computer-workstations/positions
+- OSHA. Computer Workstations eTool – Chairs. https://www.osha.gov/etools/computer-workstations/components/chairs
+- CCOHS. Office Ergonomics – Stretching at the Workstation. https://www.ccohs.ca/oshanswers/ergonomics/office/stretching.html
+- Odesola, D. F. et al. (2024). Smart sensing chairs for sitting posture detection, classification, and monitoring: A comprehensive review. Sensors, 24(9), 2940. https://pmc.ncbi.nlm.nih.gov/articles/PMC11086066/

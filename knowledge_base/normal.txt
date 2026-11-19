@@ -1,27 +1,26 @@
-來源機構：Mayo Clinic / Cleveland Clinic
+來源機構：OSHA / Mayo Clinic / CCOHS / Sensors（Odesola 2024）
 主題：標準坐姿（正確辦公坐姿要點）
 
-正確坐姿的五大要素：
-1. 脊椎對齊：保持腰椎自然前凸（S型曲線），使用腰枕支撐腰部，避免駝背或過度後仰。
-2. 雙腳支撐：雙腳平放地面，膝關節彎曲約90度，必要時使用腳踏板。
-3. 螢幕位置：螢幕頂端與眼睛等高，距離50-70公分，避免頸部長期彎曲。
-4. 手臂位置：手肘彎曲90度，前臂與桌面平行，肩膀自然下垂不聳肩。
-5. 動態坐姿：每坐30-45分鐘起身活動3-5分鐘，靜態姿勢是最大傷害來源。
+正確坐姿的要點（OSHA 中立姿勢）：
+1. 頭部：頭部水平、朝前、保持平衡
+2. 手肘：手肘靠近身體，彎曲 90 至 120 度
+3. 大腿與臀部：有椅面支撐，大致與地面平行；膝蓋與臀部約同高，雙腳稍微往前
+4. 雙腳：完整踩在地面上；桌子高度無法調整時可使用腳踏墊
+5. 腰部：椅背的腰靠高度可調整，讓椅背向外的弧度貼在下背
+6. 螢幕：放在正前方，距離 50 至 100 公分（約一個手臂長），螢幕最上面一行與眼睛齊平或略低（OSHA、Mayo Clinic）
 
-維持良好坐姿的好處：
-- 預防頸椎病、腰椎間盤突出、肩頸肌筋膜炎等職業病
-- 減少背部疼痛，提高工作效率
-- 改善血液循環，降低疲勞感
+坐姿不只要正確，也要常變換：
+- 即使姿勢正確，長時間維持同一個姿勢或久坐不動仍然不健康；應經常小幅調整椅子或椅背、伸展手臂與軀幹，偶爾起身走動幾分鐘（OSHA）
+- 每小時離開工作站休息 5 到 10 分鐘，最好站起來走動（CCOHS）
 
 智慧椅研究補充（學術來源）：
-- 智慧感測椅研究中，「正確直立坐姿（Upright with backrest support）」是20種已分類坐姿中的基準類別（Odesola et al., 2024）
-- 壓力感測陣列（Force Sensing Resistors, FSR）是目前最主流的正確坐姿偵測感測器，分類準確率可達85-99%
-- 研究強調「動態坐姿」優於靜態完美坐姿：頻繁的微幅移動比長時間維持固定姿勢更有益（Odesola et al., 2024）
-- 智慧椅結合壓力感測與PPG心率監測，可即時顯示坐姿對心率的影響，正確坐姿可達99%分類準確率（Nguyen et al., 2024）
-- 目前智慧椅研究的主要缺口：訓練資料集未能充分代表多元體型與肌骨構型的差異，建議系統個人化校準
+- Odesola 等人（2024）整理智慧感測椅文獻中偵測過的 20 種坐姿，「靠椅背直立坐姿」是最常被偵測的一類
+- 該回顧指出，多數研究的分類準確率可達約 90%，但訓練資料常無法完整代表各種體型與肌肉骨骼構造，受試者多是模仿不良坐姿的健康人（Odesola 等人，2024）
 
 參考文獻：
-- Mayo Clinic. Office ergonomics: Your how-to guide.
-- Cleveland Clinic. Back Pain Prevention: Proper Sitting Posture.
-- Odesola, D. F. et al. (2024). Smart sensing chairs for sitting posture detection, classification, and monitoring. Sensors, 24(9), 2940.
-- Nguyen, T. M. H. et al. (2024). A smart chair for health monitoring in daily life. arXiv:2410.01459.
+- OSHA. Computer Workstations eTool – Good Working Positions. https://www.osha.gov/etools/computer-workstations/positions
+- OSHA. Computer Workstations eTool – Chairs. https://www.osha.gov/etools/computer-workstations/components/chairs
+- OSHA. Computer Workstations eTool – Monitors. https://www.osha.gov/etools/computer-workstations/components/monitors
+- Mayo Clinic. Office ergonomics: Your how-to guide. https://www.mayoclinic.org/healthy-lifestyle/adult-health/in-depth/office-ergonomics/art-20046169
+- CCOHS. Office Ergonomics – Stretching at the Workstation. https://www.ccohs.ca/oshanswers/ergonomics/office/stretching.html
+- Odesola, D. F. et al. (2024). Smart sensing chairs for sitting posture detection, classification, and monitoring: A comprehensive review. Sensors, 24(9), 2940. https://pmc.ncbi.nlm.nih.gov/articles/PMC11086066/

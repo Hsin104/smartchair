@@ -1,29 +1,27 @@
-來源機構：Systematic Review（Sage Journals）/ ScienceDirect / PubMed
+來源機構：Human Factors（Silva 2025 系統性回顧）/ Ergonomics（Agarwal 2018 統合分析）/ BJSM（Buckley 2015）/ OSHA
 主題：坐站交替辦公桌實證研究
 
 健康效益與實證：
-- 系統性回顧顯示：介入組全天久坐時間平均減少 3個月68.7分鐘/天、6個月77.7分鐘/天、12個月62.1分鐘/天（相較對照組）
-- 6篇研究中有3篇顯示坐站桌能顯著降低使用者主觀不適感（討論部位包含下背與頸部）
-- 效果對「行為改變」（減少久坐時間）證據一致且穩定，但對臨床疼痛指標的效果不一致，部分研究顯示改善有限
-- 合併教育介入或主動訓練（active component）時，症狀改善效果更明顯
+- Silva 等人（2025）系統性回顧 12 篇研究：使用坐站桌的介入組，全天久坐時間比對照組平均減少 68.7 分鐘／天（3 個月）、77.7 分鐘／天（6 個月）、62.1 分鐘／天（12 個月）；上班時間減少更多；長期效果與工作以外的影響仍不確定
+- Agarwal 等人（2018）統合分析：在沒有疼痛的族群，使用坐站桌對下背不適有小幅改善（標準化平均差 −0.23）；目前缺少針對已有下背痛者的研究，也不清楚要站多久才有效
+- Buckley 等人（2015）專家共識：上班時間先累積每天 2 小時的站立與輕度活動，逐步增加到每天 4 小時，並用坐站交替桌等方式定期打斷久坐
 
-常見使用建議：
-- 每30-60分鐘切換一次坐姿與站姿，避免單一姿勢持續過久
-- 站立時應維持頭頸軀幹一直線，雙腳略微分開，避免鎖死膝蓋
-- 站立辦公桌高度應使手肘呈90度、螢幕與坐姿時等高，避免另一種不良姿勢
+使用建議：
+- 站立時頭、頸、軀幹與雙腿大致成一直線，雙腳稍微分開（OSHA 站姿參考）
+- 站立時同樣要重新確認螢幕與鍵盤高度，手肘靠近身體、彎曲 90 至 120 度（OSHA）
+- 重點是坐站交替，不是整天站著；不論坐或站，長時間維持同一個姿勢都不健康（OSHA）
 
 立即改善動作：
-1. 若無升降桌，可每小時起身站立2-3分鐘，搭配輕度伸展
-2. 站立時比照坐姿人體工學原則重新確認螢幕、鍵盤高度
-3. 坐站切換初期建議先以短時間（10-15分鐘）漸進適應，避免久站疲勞
+1. 若無升降桌，可利用講電話、看文件等工作站起來做
+2. 每小時離開工作站休息 5 到 10 分鐘並走動（CCOHS）
 
 長期預防：
-- 坐站交替非取代運動，仍建議搭配規律的伸展與活動休息
-- 长期使用建議搭配多元介入（教育、主動訓練）以達到最佳效果
-
-智慧椅研究補充（學術來源）：
-- 智慧椅可作為坐站交替之外的補充方案，透過久坐偵測（sedentary未動判定）主動提醒使用者起身活動，強化行為改變效果
+- 坐站交替不能取代運動；WHO 建議成人每週 150 至 300 分鐘中等強度身體活動
 
 參考文獻：
-- Silva, H. et al. (2025). The Impact of Sit-Stand Desks on Full-Day and Work-Based Sedentary Behavior of Office Workers: A Systematic Review. https://journals.sagepub.com/doi/abs/10.1177/00187208241305591
-- Sit-stand workstations and impact on low back discomfort: a systematic review and meta-analysis. PubMed 29115188. https://pubmed.ncbi.nlm.nih.gov/29115188/
+- Silva, H. et al. (2025). The impact of sit-stand desks on full-day and work-based sedentary behavior of office workers: a systematic review. Human Factors, 67(7), 695–713. https://journals.sagepub.com/doi/abs/10.1177/00187208241305591
+- Agarwal, S. et al. (2018). Sit-stand workstations and impact on low back discomfort: a systematic review and meta-analysis. Ergonomics, 61(4), 538–552. https://pubmed.ncbi.nlm.nih.gov/29115188/
+- Buckley, J. P. et al. (2015). The sedentary office: an expert statement on the growing case for change towards better health and productivity. British Journal of Sports Medicine, 49, 1357–1362. https://doi.org/10.1136/bjsports-2015-094618
+- OSHA. Computer Workstations eTool – Good Working Positions. https://www.osha.gov/etools/computer-workstations/positions
+- CCOHS. Office Ergonomics – Stretching at the Workstation. https://www.ccohs.ca/oshanswers/ergonomics/office/stretching.html
+- Bull, F. C. et al. (2020). WHO 2020 guidelines on physical activity and sedentary behaviour. https://doi.org/10.1136/bjsports-2020-102955

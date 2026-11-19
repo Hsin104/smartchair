@@ -1,38 +1,32 @@
-來源機構：Physiopedia / Cleveland Clinic
+來源機構：OSHA / CCOHS / Sensors and Actuators A（Anwary 2021）/ Sensors（Odesola 2024）
 主題：身體右傾（Body Lateral Tilt — Right）
 
 健康風險：
-- 右側頸肩慢性疼痛，常見於長時間用右手操作滑鼠者
-- 右側腰方肌與豎脊肌過度緊張，左側拮抗肌弱化
-- 脊椎右側椎間盤承受不均勻壓力
-- 可能發展為右側坐骨神經痛
+- 長時間不對稱坐姿很常見，可能加重肌肉骨骼的背痛與脊椎變形（Anwary 等人，2021）
+- 長時間把電話夾在肩膀與頭之間講話，可能造成壓力與頸部疼痛（OSHA）
 
-常見原因：
-- 滑鼠放置過遠或偏右
-- 習慣夾電話於右肩與耳朵之間
-- 習慣性右腿翹腿
+常見原因（OSHA 電腦工作站指引）：
+- 滑鼠離鍵盤太遠，需要伸手操作
+- 把電話夾在肩膀與耳朵之間
 
 立即改善動作：
-1. 將滑鼠移至靠近身體正前方
-2. 使用無線耳機或耳麥取代夾電話
-3. 側向伸展（向左側）：頭頸向左輕傾，右手往下伸，維持15秒，重複3次
-4. 坐正，確認左右坐骨均等受力
+1. 將滑鼠放在靠近鍵盤的位置（OSHA）
+2. 常講電話時改用免持耳機；不會吵到同事時也可以用擴音（OSHA）
+3. 側向伸展（CCOHS 背部／側邊伸展）：雙手十指交扣、手肘伸直舉過頭，往上往後推，再慢慢向左、向右側彎
+4. 坐正：頭部水平朝前，大腿與臀部有椅面支撐，雙腳平放地面或腳踏墊（OSHA）
 
 長期預防：
-- 加強左側核心肌群訓練平衡肌力
-- 考慮改為左手使用滑鼠（輪流使用可預防重複性傷害）
-- 設定站立辦公時段，讓肌肉有機會恢復平衡
+- 左右手輪流操作滑鼠（OSHA）
+- 不要長時間維持同一個姿勢，經常小幅變換姿勢並偶爾起身走動（OSHA）
 
 智慧椅研究補充（學術來源）：
-- 右傾通常與慣用右手操作滑鼠高度相關，屬於非對稱性坐姿中最常見的方向（Anwary et al., 2021）
-- Smart-Cover 的模糊分類器可區分「輕度右傾」與「重度右傾」，為偵測結果提供嚴重程度分級（Anwary et al., 2021）
-- 在 Odesola 等人（2024）整理的20種坐姿分類中，「向右傾（Rightward Lean）」與向左傾並列為主要側向偏差類別
-- 壓力感測陣列的右側感測元素讀值顯著高於左側時，即觸發姿勢警示；研究顯示此類非對稱坐姿是工作相關肌骨疾病（WMSD）的重要風險因子（Anwary et al., 2021）
-- IoT 回饋機制：偵測到持續右傾時，系統可透過手機 App、LED 指示燈或振動回饋通知使用者（Odesola et al., 2024；Singh et al., 2023）
+- Smart-Cover 系統的規則式分類器會依座墊壓力分布提醒使用者左右不對稱的程度（Anwary 等人，2021）
+- Odesola 等人（2024）整理的 20 種坐姿中，「向右傾」與「向左傾」各為獨立的一類
 
 參考文獻：
-- Physiopedia. Postural Assessment and Lateral Deviation.
-- Cleveland Clinic. Neck Pain: Causes and Treatment.
-- Anwary, A. R. et al. (2021). Smart-Cover: A real time sitting posture monitoring system. Sensors and Actuators A, 317, 112451.
-- Odesola, D. F. et al. (2024). Smart sensing chairs for sitting posture detection, classification, and monitoring. Sensors, 24(9), 2940.
-- Singh, S. et al. (2023). IoT-based smart posture correcting chair design. AKGEC International Journal of Technology, 14(1), 13–16.
+- Anwary, A. R. et al. (2021). Smart-Cover: A real time sitting posture monitoring system. Sensors and Actuators A: Physical, 317, 112451. https://doi.org/10.1016/j.sna.2020.112451
+- OSHA. Computer Workstations eTool – Pointer/Mouse. https://www.osha.gov/etools/computer-workstations/components/pointer-mouse
+- OSHA. Computer Workstations eTool – Telephones. https://www.osha.gov/etools/computer-workstations/components/telephones
+- OSHA. Computer Workstations eTool – Good Working Positions. https://www.osha.gov/etools/computer-workstations/positions
+- CCOHS. Office Ergonomics – Stretching at the Workstation. https://www.ccohs.ca/oshanswers/ergonomics/office/stretching.html
+- Odesola, D. F. et al. (2024). Smart sensing chairs for sitting posture detection, classification, and monitoring: A comprehensive review. Sensors, 24(9), 2940. https://pmc.ncbi.nlm.nih.gov/articles/PMC11086066/

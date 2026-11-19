@@ -1,30 +1,28 @@
-來源機構：WHO Guidelines on Physical Activity and Sedentary Behaviour（2020）/ CDC
+來源機構：WHO（2020）/ Diabetes Care（Dunstan 2012）/ CDC / CCOHS / 系統性回顧（PMC12164069）
 主題：久坐中斷與活動休息時間建議
 
 實證建議：
-- WHO 指引：建議每靜態久坐30-60分鐘應中斷一次，並儘量限制每日長時間久坐
-- 實驗室研究顯示：每隔一段時間以短暫（約2分鐘）身體活動中斷久坐，可改善心臟代謝健康指標
-- 部分職場介入方案採每工作小時安排約10分鐘活動休息，並搭配支持策略提升參與度
-- 另有研究採用每2小時進行3-5分鐘主動休息（一天4次），同樣顯示久坐行為減少、身體活動量提升
-
-常見情境：
-- 專注工作時容易忽略時間流逝，連續久坐超過1小時而不自覺
-- 久坐未活動與心血管疾病、代謝症候群等健康風險相關
+- WHO 2020 指引：成人應減少久坐時間；用任何強度（包括輕度）的身體活動取代久坐都有益健康；但 WHO 認為證據不足以訂出具體的久坐時間門檻
+- 實驗室研究（Dunstan 等人，2012，19 位過重成人）：每 20 分鐘起身做 2 分鐘輕度或中度走路，餐後血糖與胰島素反應比連續久坐低
+- 電腦提醒軟體的系統性回顧（2025）：研究中多在每 30 分鐘至 1 小時提醒一次、休息 1 至 10 分鐘；上班時的久坐時間平均每天減少約 12.5 分鐘、步數增加約 1,030 步；但全天久坐時間沒有顯著改變，證據確定性為低到中等
+- CDC 建議雇主在工作日中安排 5 至 10 分鐘的短暫活動休息，例如伸展或辦公室運動
+- CCOHS：每在工作站坐 1 小時，休息 5 到 10 分鐘，最好站起來走動
 
 立即改善動作：
-1. 設定每30-60分鐘一次的活動提醒（智慧椅可透過久坐判定自動觸發震動提醒）
-2. 起身活動2-3分鐘：走動、原地踏步或伸展皆可
-3. 短暫休息中可搭配頸肩伸展或核心啟動動作，一舉兩得
+1. 設定定時提醒起身（研究多用每 30 分鐘至 1 小時一次）
+2. 起身走動幾分鐘；Dunstan 研究用的是每 20 分鐘走 2 分鐘
+3. 休息時可搭配伸展（做法見 stretching.txt）
 
 長期預防：
-- 將活動休息建立為固定習慣，而非依賴當下意志力判斷
-- 搭配計步或活動量記錄，逐步建立久坐中斷的行為模式
-- 長期規律中斷久坐已被證實能降低久坐相關的不良健康結果
+- 用任何強度的活動取代久坐，輕度活動也有幫助（WHO）
 
-智慧椅研究補充（學術來源）：
-- 智慧椅之久坐（sedentary）判定邏輯即依循此類每小時活動中斷建議設計，偵測到持續久坐超過閾值即觸發全部震動馬達提醒起身
+本專題設計說明（非研究結論）：
+- 智慧椅的久坐判定會在連續久坐超過設定時間後震動提醒起身；提醒間隔是依上述研究常用的 30 分鐘至 1 小時範圍設定
 
 參考文獻：
-- WHO Guidelines on Physical Activity and Sedentary Behaviour. NCBI Bookshelf NBK566046. https://www.ncbi.nlm.nih.gov/books/NBK566046/
-- CDC. Physical Activity Breaks for the Workplace Resource Guide (2021). https://www.cdc.gov/workplace-health-promotion/media/pdfs/2024/06/Workplace-Physical-Activity-Break-Guide-508.pdf
-- The effect of computer prompt in breaks of sedentary behaviour among office workers: a systematic review and meta-analysis. PMC12164069. https://www.ncbi.nlm.nih.gov/pmc/articles/PMC12164069/
+- WHO (2020). WHO guidelines on physical activity and sedentary behaviour. https://www.who.int/publications/i/item/9789240015128
+- Bull, F. C. et al. (2020). World Health Organization 2020 guidelines on physical activity and sedentary behaviour. British Journal of Sports Medicine, 54(24), 1451–1462. https://doi.org/10.1136/bjsports-2020-102955
+- Dunstan, D. W. et al. (2012). Breaking up prolonged sitting reduces postprandial glucose and insulin responses. Diabetes Care, 35(5), 976–983. https://pubmed.ncbi.nlm.nih.gov/22374636/
+- The effect of computer prompt in breaks of sedentary behaviour among office workers: a systematic review and meta-analysis. https://pmc.ncbi.nlm.nih.gov/articles/PMC12164069/
+- CDC (2021). Physical Activity Breaks for the Workplace Resource Guide. https://www.cdc.gov/workplace-health-promotion/media/pdfs/2024/06/Workplace-Physical-Activity-Break-Guide-508.pdf
+- CCOHS. Office Ergonomics – Stretching at the Workstation. https://www.ccohs.ca/oshanswers/ergonomics/office/stretching.html

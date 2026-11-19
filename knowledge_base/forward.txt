@@ -1,40 +1,31 @@
-來源機構：Physiopedia / Mayo Clinic / PubMed
+來源機構：OSHA / CCOHS / Surgical Technology International（Hansraj 2014）/ Sensors（Odesola 2024）
 主題：頭部前傾（Forward Head Posture / 烏龜頸 / Text Neck）
 
-健康風險與機制：
-- 頭部每前移2.5公分，頸椎負擔增加約4-5公斤（頭重約5-6公斤）
-- 長期造成頸椎曲度逆轉（頸椎反弓）
-- 上斜方肌、提肩胛肌過度緊張；深層頸屈肌（Deep Cervical Flexors）弱化
-- 可能引發：頸因性頭痛（Cervicogenic Headache）、上肢麻木、肩夾擠症候群
+健康風險：
+- 頭部愈往前低，頸椎承受的力愈大：頭部在中立位置時約 10 至 12 磅（約 4.5 至 5.4 公斤）；前傾 15 度約 27 磅（約 12 公斤）、30 度約 40 磅（約 18 公斤）、45 度約 49 磅（約 22 公斤）、60 度約 60 磅（約 27 公斤）（Hansraj 2014 的電腦模型估算）
+- Hansraj 建議保持脊椎中立，看手機時用眼睛往下看，而不是把頭低下去
 
-常見原因：
-- 螢幕位置過低或過遠
-- 視力不足導致本能前傾
-- 手機低頭使用（Text Neck）
+常見原因（OSHA 電腦工作站指引）：
+- 螢幕太低：螢幕最上面一行應與眼睛齊平或略低
+- 螢幕太遠或太近：建議觀看距離 50 至 100 公分（20 至 40 英吋）
+- 螢幕沒有放在正前方：偏離正前方超過 35 度，頭頸就要轉向一側
 
-立即改善動作：
-1. 頸部縮回（Chin Tuck）：下巴水平向後縮，感覺後頸被拉長，維持5秒，每小時10次
-2. 螢幕提高至眼睛等高，或後移至50-70cm
-3. 肩胛骨夾緊（Scapular Retraction）：雙肩向後夾，維持5秒，重複10次
-4. 胸大肌伸展：雙手扶門框，身體微前傾，維持30秒
+立即改善動作（CCOHS 工作站伸展指引）：
+1. 頸部縮回（Chin Tuck，CCOHS 稱 head glide）：坐直或站直，頭部水平往後滑，下巴不要抬高，會有「雙下巴」的感覺；維持數到 20，重複 5 到 10 次
+2. 胸口伸展：雙手放在頭後，把兩側肩胛骨往中間夾
+3. 聳肩放鬆：肩膀往耳朵方向抬到稍有張力，維持 3 到 5 秒後放下，做 2 到 3 次
+4. 調整螢幕：螢幕最上面一行與眼睛齊平或略低，放在正前方、距離 50 至 100 公分
 
 長期預防：
-- 每天訓練深層頸屈肌（頸部縮回配合輕阻力）
-- 使用文件架將紙本文件提高，減少低頭
-- 眼鏡度數定期更新，視力不足是主因之一
+- 每小時離開工作站休息 5 到 10 分鐘，最好站起來走動（CCOHS）
+- 不要長時間維持同一個姿勢，經常小幅變換姿勢（OSHA）
 
 智慧椅研究補充（學術來源）：
-- 頭部前傾/軀幹前傾是智慧椅研究中最常被偵測的不良坐姿類別之一，在20種坐姿分類中屬高頻出現姿勢（Odesola et al., 2024）
-- Smart-Cover 系統使用 Velostat 壓阻材料製成的座墊感測器，能有效偵測前傾導致的壓力分佈重心前移（Anwary et al., 2021）
-- 辦公室工作者平均 81.8% 工作時間為靜態久坐，其中前傾是最常見的疲勞後代償姿勢（Anwary et al., 2021）
-- IoT 智慧椅可透過振動馬達即時提供回饋，提醒使用者矯正前傾姿勢（Singh et al., 2023）
-- 結合壓力感測與PPG心率監測的研究顯示，長時間前傾姿勢會伴隨心率異常，建議同步監測（Nguyen et al., 2024）
+- Odesola 等人（2024）的回顧整理出智慧感測椅文獻中偵測過的 20 種坐姿；依被偵測的頻率排序，「不靠椅背的前傾（駝背）」排第二，僅次於靠椅背直立坐姿
 
 參考文獻：
-- Physiopedia. Forward Head Posture.
-- Mayo Clinic. Neck Pain: Symptoms and Causes.
-- PubMed. Cervical Spine Load in Forward Head Posture (Hansraj, 2014).
-- Odesola, D. F. et al. (2024). Smart sensing chairs for sitting posture detection, classification, and monitoring. Sensors, 24(9), 2940.
-- Anwary, A. R. et al. (2021). Smart-Cover: A real time sitting posture monitoring system. Sensors and Actuators A, 317, 112451.
-- Singh, S. et al. (2023). IoT-based smart posture correcting chair design. AKGEC International Journal of Technology, 14(1), 13–16.
-- Nguyen, T. M. H. et al. (2024). A smart chair for health monitoring in daily life. arXiv:2410.01459.
+- Hansraj, K. K. (2014). Assessment of stresses in the cervical spine caused by posture and position of the head. Surgical Technology International, 25, 277–279. https://pubmed.ncbi.nlm.nih.gov/25393825/
+- OSHA. Computer Workstations eTool – Monitors. https://www.osha.gov/etools/computer-workstations/components/monitors
+- OSHA. Computer Workstations eTool – Good Working Positions. https://www.osha.gov/etools/computer-workstations/positions
+- CCOHS. Office Ergonomics – Stretching at the Workstation. https://www.ccohs.ca/oshanswers/ergonomics/office/stretching.html
+- Odesola, D. F. et al. (2024). Smart sensing chairs for sitting posture detection, classification, and monitoring: A comprehensive review. Sensors, 24(9), 2940. https://pmc.ncbi.nlm.nih.gov/articles/PMC11086066/

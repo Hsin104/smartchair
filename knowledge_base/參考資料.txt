@@ -1,49 +1,58 @@
-[1] Odesola, D. F., Kulon, J., Verghese, S., Partlow, A., & Gibson, C. (2024). Smart sensing chairs for sitting posture detection, classification, and monitoring: A comprehensive review. Sensors, 24(9), 2940. https://doi.org/10.3390/s24092940
-[2] https://github.com/LIAAD/physio
-[3] Singh, S., Sharma, U., Sharma, S., & Mangesh, S. (2023). IoT-based smart posture correcting chair design. AKGEC International Journal of Technology, 14(1), 13–16.
-[4] Arthi, M., & Savitha, J. (2025). IOT driven smart chair for posture and health monitoring. International Journal of Scientific Research in Computer Science, Engineering and Information Technology, 11(2), 1444–1452. https://doi.org/10.32628/CSEIT25112484
-[5] Nguyen, T. M. H., Vo, Q. B., Nguyen, T. H., & Huynh, Q. L. (2024). A smart chair for health monitoring in daily life. arXiv. https://arxiv.org/abs/2410.01459
-[6] Anwary, A. R., Cetinkaya, D., Vassallo, M., & Bouchachia, H. (2021). Smart-Cover: A real time sitting posture monitoring system. Sensors and Actuators A: Physical, 317, 112451. https://doi.org/10.1016/j.sna.2020.112451
-[7] Mariettou, S., Shahbandi, S., Triantafyllou, V., & Koutsojannis, C. (2026). Conversational AI agents in physical rehabilitation: A scoping review of design, applications, and future directions for Greek physiotherapy (Preprint). Preprints.org. https://doi.org/10.20944/preprints202602.1769.v1
+知識庫總書目（2026-11-19 依各文獻檔的「參考文獻」段自動彙整；每筆後面列出引用它的文獻檔）
 
---- 07/22 新增（伸展/人體工學文獻補充）---
-[8] Mayo Clinic. Office ergonomics: Your how-to guide. https://www.mayoclinic.org/healthy-lifestyle/adult-health/in-depth/office-ergonomics/art-20046169
-[9] CCOHS. Office Ergonomics - How to Adjust Office Chairs / Ergonomic Chair. https://www.ccohs.ca/oshanswers/ergonomics/office/chair_adjusting.html
-[10] Interventions for preventing back pain among office workers – a systematic review and network meta-analysis (2023). PMC10549919. https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10549919/
-[11] Carpal tunnel syndrome due to keyboarding and mouse tasks: a review. ScienceDirect. https://www.sciencedirect.com/science/article/abs/pii/S0169814102001804
-[12] Lumbar supports for prevention and treatment of low back pain. PubMed 18425875. https://pubmed.ncbi.nlm.nih.gov/18425875/
-[13] Physical Exercise Is Confirmed to Reduce Low Back Pain Symptoms in Office Workers: A Systematic Review (2020). PMC7739349. https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7739349/
-[14] Silva, H., Ramos, P. G. F., Teno, S. C., & Júdice, P. B. (2025). The Impact of Sit-Stand Desks on Full-Day and Work-Based Sedentary Behavior of Office Workers: A Systematic Review. https://journals.sagepub.com/doi/abs/10.1177/00187208241305591
-[15] Sit-stand workstations and impact on low back discomfort: a systematic review and meta-analysis. PubMed 29115188. https://pubmed.ncbi.nlm.nih.gov/29115188/
-[16] WHO Guidelines on Physical Activity and Sedentary Behaviour (2020). NCBI Bookshelf NBK566046. https://www.ncbi.nlm.nih.gov/books/NBK566046/
-[17] The effect of computer prompt in breaks of sedentary behaviour among office workers: a systematic review and meta-analysis. PMC12164069. https://www.ncbi.nlm.nih.gov/pmc/articles/PMC12164069/
-[18] Pain reduction, physical performance, and psychological status compared between Hatha yoga and stretching exercise... (2023). PubMed 37863244. https://pubmed.ncbi.nlm.nih.gov/37863244/
-[19] The Efficacy of Ruesi Dadton and Yoga on Reducing Neck and Shoulder Pain in Office Workers. PMC10824298. https://pmc.ncbi.nlm.nih.gov/articles/PMC10824298/
-[20] A Comprehensive Workplace Exercise Intervention to Reduce Musculoskeletal Pain and Improve Functional Capacity in Office Workers. PMC11083576. https://www.ncbi.nlm.nih.gov/pmc/articles/PMC11083576/
-[21] Trunk stability and breathing exercises superior to foam rolling for restoring postural stability after core muscle fatigue in sedentary employees (2025). Scientific Reports. https://www.nature.com/articles/s41598-025-98284-6
-[22] The Effect of Core Stabilization Exercise with the Abdominal Drawing-in Maneuver Technique on Stature Change during Prolonged Sitting in Sedentary Workers with Chronic Low Back Pain. PMC8835683. https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8835683/
-[23] The Effect of Posture on the Diaphragm. Physiopedia. https://www.physio-pedia.com/The_Effect_of_Posture_on_the_Diaphragm
-[24] Diaphragmatic breathing exercises in recovery from fatigue-induced changes in spinal mobility and postural stability: a study protocol. PMC10340528. https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10340528/
-[25] Effectiveness of Wearable Devices for Posture Correction: A Systematic Review of Evidence from Randomized and Quasi-Experimental Studies (2025). MDPI Applied Sciences, 16(1), 81. https://www.mdpi.com/2076-3417/16/1/81
-[26] Wearable Smartphone-Based Multisensory Feedback System for Torso Posture Correction: Iterative Design and Within-Subjects Study (2025). JMIR Aging. https://aging.jmir.org/2025/1/e55455
-[27] Ergonomic Innovation: A Modular Smart Chair for Enhanced Workplace Health and Wellness. PMC12252288. https://pmc.ncbi.nlm.nih.gov/articles/PMC12252288/
-
---- 11/14 新增（肩頸／髖關節／眼睛疲勞／下肢伸展文獻補充）---
-[28] Jones, L. B., Jadhakhan, F., & Falla, D. (2024). The influence of exercise on pain, disability and quality of life in office workers with chronic neck pain: A systematic review and meta-analysis. Applied Ergonomics, 117, 104216. https://doi.org/10.1016/j.apergo.2023.104216
-[29] Chen, X., Coombes, B. K., Sjøgaard, G., Jun, D., O'Leary, S., & Johnston, V. (2018). Workplace-Based Interventions for Neck Pain in Office Workers: Systematic Review and Meta-Analysis. Physical Therapy, 98(1), 40–62. https://doi.org/10.1093/ptj/pzx101
-[30] Seo, Y. G., Park, W. H., Lee, C. S., Kang, K. C., Min, K. B., Lee, S. M., & Yoo, J. C. (2020). Is Scapular Stabilization Exercise Effective for Managing Nonspecific Chronic Neck Pain?: A Systematic Review. Asian Spine Journal, 14(1), 122–129. PMC7010515. https://pmc.ncbi.nlm.nih.gov/articles/PMC7010515/
-[31] NHS. Neck pain. https://www.nhs.uk/conditions/neck-pain-and-stiff-neck/
-[32] NHS. Sitting exercises. https://www.nhs.uk/live-well/exercise/strength-and-flexibility-exercises/sitting-exercises/
-[33] NHS. Flexibility exercises. https://www.nhs.uk/live-well/exercise/strength-and-flexibility-exercises/flexibility-exercises/
-[34] Boukabache, A., Preece, S. J., & Brookes, N. (2021). Prolonged sitting and physical inactivity are associated with limited hip extension: A cross-sectional study. Musculoskeletal Science and Practice, 51, 102282. https://doi.org/10.1016/j.msksp.2020.102282
-[35] Waqas, M. S., Ali, M., Hussain, S., & Mahmood, S. (2016). Frequency of reduced hamstring flexibility in prolong sitting (6-8 hours) among office workers. Journal Riphah College of Rehabilitation Sciences, 4(2), 77–80. https://journals.riphah.edu.pk/index.php/jrcrs/article/view/449
-[36] Sheppard, A. L., & Wolffsohn, J. S. (2018). Digital eye strain: prevalence, measurement and amelioration. BMJ Open Ophthalmology, 3(1), e000146. PMC6020759. https://pmc.ncbi.nlm.nih.gov/articles/PMC6020759/
-[37] Talens-Estarelles, C., Cerviño, A., García-Lázaro, S., Fogelton, A., Sheppard, A., & Wolffsohn, J. S. (2023). The effects of breaks on digital eye strain, dry eye and binocular vision: Testing the 20-20-20 rule. Contact Lens and Anterior Eye, 46(2), 101744. https://doi.org/10.1016/j.clae.2022.101744
-[38] OSHA. Computer Workstations eTool: Monitors. https://www.osha.gov/etools/computer-workstations/components/monitors
-[39] Bandy, W. D., & Irion, J. M. (1994). The effect of time on static stretch on the flexibility of the hamstring muscles. Physical Therapy, 74(9), 845–850. https://doi.org/10.1093/ptj/74.9.845
-[40] Bandy, W. D., Irion, J. M., & Briggler, M. (1997). The effect of time and frequency of static stretching on flexibility of the hamstring muscles. Physical Therapy, 77(10), 1090–1096. https://doi.org/10.1093/ptj/77.10.1090
-[41] Garber, C. E., et al. (2011). American College of Sports Medicine position stand: Quantity and quality of exercise for developing and maintaining cardiorespiratory, musculoskeletal, and neuromotor fitness in apparently healthy adults. Medicine & Science in Sports & Exercise, 43(7), 1334–1359. https://doi.org/10.1249/mss.0b013e318213fefb
-
---- 11/15 新增（手腕／臀髖伸展動作文獻補充）---
-[42] CCOHS. Office Ergonomics - Stretching at the Workstation. https://www.ccohs.ca/oshanswers/ergonomics/office/stretching.html
-[43] Cambridge University Hospitals NHS Foundation Trust. Stretches for the hip (patient information). https://www.cuh.nhs.uk/patient-information/stretches-for-the-hip/
+[1] A Comprehensive Workplace Exercise Intervention to Reduce Musculoskeletal Pain and Improve Functional Capacity in Office Workers. https://pmc.ncbi.nlm.nih.gov/articles/PMC11083576/　〔office_yoga.txt〕
+[2] Agarwal, S. et al. (2018). Sit-stand workstations and impact on low back discomfort: a systematic review and meta-analysis. Ergonomics, 61(4), 538–552. https://pubmed.ncbi.nlm.nih.gov/29115188/　〔sit_stand_desk.txt〕
+[3] Amiri, B. & Zemková, E. (2025). Trunk stability and breathing exercises superior to foam rolling for restoring postural stability after core muscle fatigue in sedentary employees. Scientific Reports, 15. https://doi.org/10.1038/s41598-025-98284-6　〔core_stability.txt、thoracic_breathing.txt〕
+[4] Anwary, A. R. et al. (2021). Smart-Cover: A real time sitting posture monitoring system. Sensors and Actuators A: Physical, 317, 112451. https://doi.org/10.1016/j.sna.2020.112451　〔left.txt、right.txt、sedentary.txt〕
+[5] Bandy, W. D., & Irion, J. M. (1994). The effect of time on static stretch on the flexibility of the hamstring muscles. Physical Therapy, 74(9), 845–850. https://doi.org/10.1093/ptj/74.9.845　〔lower_limb_stretching.txt〕
+[6] Bandy, W. D., Irion, J. M., & Briggler, M. (1997). The effect of time and frequency of static stretching on flexibility of the hamstring muscles. Physical Therapy, 77(10), 1090–1096. https://doi.org/10.1093/ptj/77.10.1090　〔lower_limb_stretching.txt〕
+[7] Boukabache, A., Preece, S. J., & Brookes, N. (2021). Prolonged sitting and physical inactivity are associated with limited hip extension: A cross-sectional study. Musculoskeletal Science and Practice, 51, 102282. https://doi.org/10.1016/j.msksp.2020.102282　〔hip_mobility.txt〕
+[8] Buckley, J. P. et al. (2015). The sedentary office: an expert statement on the growing case for change towards better health and productivity. British Journal of Sports Medicine, 49, 1357–1362. https://doi.org/10.1136/bjsports-2015-094618　〔sedentary.txt、sit_stand_desk.txt〕
+[9] Bull, F. C. et al. (2020). World Health Organization 2020 guidelines on physical activity and sedentary behaviour. British Journal of Sports Medicine, 54(24), 1451–1462. https://doi.org/10.1136/bjsports-2020-102955　〔microbreak_guidelines.txt、sit_stand_desk.txt〕
+[10] Caixeiro, D. et al. (2026). Effectiveness of Wearable Devices for Posture Correction: A Systematic Review of Evidence from Randomized and Quasi-Experimental Studies. Applied Sciences, 16(1), 81. https://doi.org/10.3390/app16010081　〔smart_wearable_feedback.txt〕
+[11] Cambridge University Hospitals NHS Foundation Trust. Stretches for the hip (patient information). https://www.cuh.nhs.uk/patient-information/stretches-for-the-hip/　〔glute_hip_stretching.txt〕
+[12] CCOHS. Office Ergonomics – Ergonomic Chair. https://www.ccohs.ca/oshanswers/ergonomics/office/chair.html　〔chair_adjustment.txt〕
+[13] CCOHS. Office Ergonomics – How to Adjust Office Chairs. https://www.ccohs.ca/oshanswers/ergonomics/office/chair_adjusting.html　〔chair_adjustment.txt〕
+[14] CCOHS. Office Ergonomics – Stretching at the Workstation. https://www.ccohs.ca/oshanswers/ergonomics/office/stretching.html　〔core_stability.txt、forward.txt、glute_hip_stretching.txt、left.txt、low_back_pain.txt、microbreak_guidelines.txt、normal.txt、recline.txt、right.txt、sedentary.txt、sit_stand_desk.txt、stretching.txt、thoracic_breathing.txt、wrist_hand_stretching.txt、wrist_rsi.txt〕
+[15] CDC (2021). Physical Activity Breaks for the Workplace Resource Guide. https://www.cdc.gov/workplace-health-promotion/media/pdfs/2024/06/Workplace-Physical-Activity-Break-Guide-508.pdf　〔microbreak_guidelines.txt〕
+[16] Chen, X., Coombes, B. K., Sjøgaard, G., Jun, D., O'Leary, S., & Johnston, V. (2018). Workplace-Based Interventions for Neck Pain in Office Workers: Systematic Review and Meta-Analysis. Physical Therapy, 98(1), 40–62. https://doi.org/10.1093/ptj/pzx101　〔neck_shoulder.txt〕
+[17] Cleveland Clinic. Diaphragmatic Breathing. https://my.clevelandclinic.org/health/articles/9445-diaphragmatic-breathing　〔thoracic_breathing.txt〕
+[18] Dunstan, D. W. et al. (2012). Breaking up prolonged sitting reduces postprandial glucose and insulin responses. Diabetes Care, 35(5), 976–983. https://pubmed.ncbi.nlm.nih.gov/22374636/　〔microbreak_guidelines.txt〕
+[19] Effect of forward head posture on thoracic shape and respiratory function (2019). https://pubmed.ncbi.nlm.nih.gov/30774207/　〔thoracic_breathing.txt〕
+[20] Ekelund, U. et al. (2016). Does physical activity attenuate, or even eliminate, the detrimental association of sitting time with mortality? The Lancet, 388(10051), 1302–1310. https://doi.org/10.1016/S0140-6736(16)30370-1　〔sedentary.txt〕
+[21] Ergonomic Innovation: A Modular Smart Chair for Enhanced Workplace Health and Wellness. https://pmc.ncbi.nlm.nih.gov/articles/PMC12252288/　〔smart_wearable_feedback.txt〕
+[22] Garber, C. E., et al. (2011). American College of Sports Medicine position stand: Quantity and quality of exercise for developing and maintaining cardiorespiratory, musculoskeletal, and neuromotor fitness in apparently healthy adults. Medicine & Science in Sports & Exercise, 43(7), 1334–1359. https://doi.org/10.1249/mss.0b013e318213fefb　〔lower_limb_stretching.txt〕
+[23] Hansraj, K. K. (2014). Assessment of stresses in the cervical spine caused by posture and position of the head. Surgical Technology International, 25, 277–279. https://pubmed.ncbi.nlm.nih.gov/25393825/　〔forward.txt〕
+[24] Interventions for preventing back pain among office workers – a systematic review and network meta-analysis (2023). https://pmc.ncbi.nlm.nih.gov/articles/PMC10549919/　〔desk_ergonomics.txt、low_back_pain.txt〕
+[25] Jones, L. B., Jadhakhan, F., & Falla, D. (2024). The influence of exercise on pain, disability and quality of life in office workers with chronic neck pain: A systematic review and meta-analysis. Applied Ergonomics, 117, 104216. https://doi.org/10.1016/j.apergo.2023.104216　〔neck_shoulder.txt〕
+[26] Kuptniratsaikul, V. et al. (2023). Pain reduction, physical performance, and psychological status compared between Hatha yoga and stretching exercise to treat sedentary office workers with mild-moderate neck/shoulder pain. Complementary Therapies in Medicine, 79, 102996. https://pubmed.ncbi.nlm.nih.gov/37863244/　〔office_yoga.txt〕
+[27] Mayo Clinic. Office ergonomics: Your how-to guide. https://www.mayoclinic.org/healthy-lifestyle/adult-health/in-depth/office-ergonomics/art-20046169　〔desk_ergonomics.txt、normal.txt〕
+[28] Mayo Clinic. What are the risks of sitting too much? https://www.mayoclinic.org/healthy-lifestyle/adult-health/expert-answers/sitting/faq-20058005　〔sedentary.txt〕
+[29] NHS. Neck pain. https://www.nhs.uk/conditions/neck-pain-and-stiff-neck/　〔neck_shoulder.txt〕
+[30] NHS. Sitting exercises / Flexibility exercises. https://www.nhs.uk/live-well/exercise/strength-and-flexibility-exercises/　〔lower_limb_stretching.txt、neck_shoulder.txt〕
+[31] NHS. Sitting exercises. https://www.nhs.uk/live-well/exercise/strength-and-flexibility-exercises/sitting-exercises/　〔hip_mobility.txt〕
+[32] NIOSH. Carpal Tunnel Syndrome (NHIS 2015 Occupational Health Supplement) charts. https://wwwn.cdc.gov/NIOSH-WHC/chart/ohs-cts/illness　〔wrist_rsi.txt〕
+[33] Odesola, D. F. et al. (2024). Smart sensing chairs for sitting posture detection, classification, and monitoring: A comprehensive review. Sensors, 24(9), 2940. https://pmc.ncbi.nlm.nih.gov/articles/PMC11086066/　〔forward.txt、left.txt、normal.txt、recline.txt、right.txt、sedentary.txt、smart_wearable_feedback.txt〕
+[34] On the Role of Core Exercises in Alleviating Muscular Fatigue Induced by Prolonged Sitting: A Scoping Review (2025). https://pmc.ncbi.nlm.nih.gov/articles/PMC11845640/　〔core_stability.txt〕
+[35] OSHA. Computer Workstations eTool – Chairs. https://www.osha.gov/etools/computer-workstations/components/chairs　〔chair_adjustment.txt、low_back_pain.txt、normal.txt、recline.txt〕
+[36] OSHA. Computer Workstations eTool – Good Working Positions. https://www.osha.gov/etools/computer-workstations/positions　〔chair_adjustment.txt、desk_ergonomics.txt、forward.txt、left.txt、normal.txt、recline.txt、right.txt、sit_stand_desk.txt、wrist_rsi.txt〕
+[37] OSHA. Computer Workstations eTool – Keyboards. https://www.osha.gov/etools/computer-workstations/components/keyboards　〔desk_ergonomics.txt、wrist_rsi.txt〕
+[38] OSHA. Computer Workstations eTool – Monitors. https://www.osha.gov/etools/computer-workstations/components/monitors　〔desk_ergonomics.txt、eye_strain.txt、forward.txt、left.txt、normal.txt〕
+[39] OSHA. Computer Workstations eTool – Pointer/Mouse. https://www.osha.gov/etools/computer-workstations/components/pointer-mouse　〔right.txt、wrist_rsi.txt〕
+[40] OSHA. Computer Workstations eTool – Telephones. https://www.osha.gov/etools/computer-workstations/components/telephones　〔right.txt〕
+[41] Physical Exercise Is Confirmed to Reduce Low Back Pain Symptoms in Office Workers: A Systematic Review (2020). https://pmc.ncbi.nlm.nih.gov/articles/PMC7739349/　〔low_back_pain.txt、office_yoga.txt〕
+[42] Seo, Y. G., et al. (2020). Is Scapular Stabilization Exercise Effective for Managing Nonspecific Chronic Neck Pain?: A Systematic Review. Asian Spine Journal, 14(1), 122–129. PMC7010515. https://pmc.ncbi.nlm.nih.gov/articles/PMC7010515/　〔neck_shoulder.txt〕
+[43] Shariat, A. et al. (2018). Effects of stretching exercise training and ergonomic modifications on musculoskeletal discomforts of office workers: a randomized controlled trial. Brazilian Journal of Physical Therapy, 22(2), 144–153. https://pubmed.ncbi.nlm.nih.gov/28939263/　〔office_yoga.txt〕
+[44] Sheppard, A. L., & Wolffsohn, J. S. (2018). Digital eye strain: prevalence, measurement and amelioration. BMJ Open Ophthalmology, 3(1), e000146. PMC6020759. https://pmc.ncbi.nlm.nih.gov/articles/PMC6020759/　〔eye_strain.txt〕
+[45] Silva, H. et al. (2025). The impact of sit-stand desks on full-day and work-based sedentary behavior of office workers: a systematic review. Human Factors, 67(7), 695–713. https://journals.sagepub.com/doi/abs/10.1177/00187208241305591　〔sit_stand_desk.txt〕
+[46] Talens-Estarelles, C., Cerviño, A., García-Lázaro, S., Fogelton, A., Sheppard, A., & Wolffsohn, J. S. (2023). The effects of breaks on digital eye strain, dry eye and binocular vision: Testing the 20-20-20 rule. Contact Lens and Anterior Eye, 46(2), 101744. https://doi.org/10.1016/j.clae.2022.101744　〔eye_strain.txt〕
+[47] The effect of computer prompt in breaks of sedentary behaviour among office workers: a systematic review and meta-analysis. https://pmc.ncbi.nlm.nih.gov/articles/PMC12164069/　〔microbreak_guidelines.txt〕
+[48] The Effect of Core Stabilization Exercise with the Abdominal Drawing-in Maneuver Technique on Stature Change during Prolonged Sitting in Sedentary Workers with Chronic Low Back Pain (2022). https://pmc.ncbi.nlm.nih.gov/articles/PMC8835683/　〔core_stability.txt〕
+[49] The Efficacy of Ruesi Dadton and Yoga on Reducing Neck and Shoulder Pain in Office Workers. https://pmc.ncbi.nlm.nih.gov/articles/PMC10824298/　〔office_yoga.txt〕
+[50] Thomsen, J. F., Gerr, F. & Atroshi, I. (2008). Carpal tunnel syndrome and the use of computer mouse and keyboard: A systematic review. BMC Musculoskeletal Disorders, 9, 134. https://pmc.ncbi.nlm.nih.gov/articles/PMC2569035/　〔wrist_rsi.txt〕
+[51] van der Berg, J. D. et al. (2016). Associations of total amount and patterns of sedentary behaviour with type 2 diabetes and the metabolic syndrome: The Maastricht Study. Diabetologia, 59, 709–718. https://pubmed.ncbi.nlm.nih.gov/26831300/　〔sedentary.txt〕
+[52] van Duijvenbode, I. et al. (2008). Lumbar supports for prevention and treatment of low back pain. Cochrane Database of Systematic Reviews, CD001823. https://www.cochrane.org/CD001823/BACK_lumbar-supports-for-prevention-and-treatment-of-low-back-pain　〔low_back_pain.txt〕
+[53] Waqas, M. S., Ali, M., Hussain, S., & Mahmood, S. (2016). Frequency of reduced hamstring flexibility in prolong sitting (6-8 hours) among office workers. Journal Riphah College of Rehabilitation Sciences, 4(2), 77–80. https://journals.riphah.edu.pk/index.php/jrcrs/article/view/449　〔hip_mobility.txt〕
+[54] Wearable Smartphone-Based Multisensory Feedback System for Torso Posture Correction: Iterative Design and Within-Subjects Study. JMIR Aging, 2025;8:e55455. https://aging.jmir.org/2025/1/e55455　〔smart_wearable_feedback.txt〕
+[55] WHO (2010). Global recommendations on physical activity for health. https://www.who.int/publications/i/item/9789241599979　〔sedentary.txt〕
+[56] WHO (2020). WHO guidelines on physical activity and sedentary behaviour. https://www.who.int/publications/i/item/9789240015128　〔microbreak_guidelines.txt〕

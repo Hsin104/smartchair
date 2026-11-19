@@ -1,25 +1,18 @@
-來源機構：MDPI 系統性回顧 / JMIR / PMC 試點研究
+來源機構：Applied Sciences（Caixeiro 等人 2026 系統性回顧）/ PMC12252288 / JMIR Aging 2025 / Sensors（Odesola 2024）
 主題：穿戴式／智慧椅震動回饋矯正坐姿實證研究
 
-健康效益與實證：
-- 系統性回顧（隨機與準實驗研究）證實：穿戴式姿勢矯正裝置對改善使用者坐姿具有實證效果
-- 一項智慧穿戴裝置研究顯示：坐姿分類準確率達90%，震動提醒能有效鼓勵使用者建立更健康的坐姿習慣
-- 83位學生參與的智慧椅試點研究顯示：坐姿偵測準確率達94.78%，97.59%的使用者收到提醒後會主動調整坐姿，平均反應時間僅3.27秒
-- 多重感官回饋（Postural SmartVest）研究顯示，有回饋組與無回饋組在維持正確姿勢時間上具統計顯著差異（P<.001）
+研究證據：
+- 系統性回顧（2026，隨機與準實驗研究）：穿戴式姿勢矯正裝置有潛力作為物理治療的輔助工具，但目前證據不足以做出明確的臨床建議
+- 模組化智慧椅試點研究：83 位學生參與，坐姿辨識準確率 94.78%；姿勢不正確時椅子啟動震動元件與 LED 警示，97.59% 的學生收到警示後會調整坐姿，平均反應時間 3.27 秒（PMC12252288）
+- Postural SmartVest（以手機加速度計偵測軀幹姿勢，提供視覺、觸覺與聽覺回饋）：在中風後病人的復健課程中測試（病人 40 人、治療師 20 人），作者結論是可協助病人在復健時改善姿勢；受試者是中風病人，不是一般上班族（JMIR Aging，2025）
+- 智慧椅研究的回顧中，只有 36% 的研究有回饋機制，最常用的是手機 App，其次是桌面程式；也有研究在座墊加入觸覺馬達或用變色燈泡提醒（Odesola 等人，2024）
 
-回饋機制設計重點：
-- 即時性：回饋須在姿勢偏移後1-3秒內給出，延遲過長會降低矯正效果
-- 避免習慣化：固定不變的震動模式會在3-5天內被大腦「過濾」而失效；有效系統會依使用者反應調整震動強度、節奏或位置
-- 個人化：依偵測到的坐姿類別給予對應部位的震動提醒（如前傾提醒上肢、後仰提醒腰部），比單一無差別提醒更有效
-
-長期使用建議：
-- 定期檢視震動提醒的反應率，若使用者反應時間逐漸拉長，代表可能出現習慣化，需調整提醒模式
-- 搭配歷史坐姿統計，讓使用者了解長期改善趨勢，強化行為改變的正向回饋
-
-智慧椅研究補充（學術來源）：
-- 本專題智慧椅的震動提醒由椅子端（ESP32）即時觸發，依重心偏移方向震動同側的椅墊馬達（左傾→左側、右傾→右側、前傾→前側、後仰→後側），壞坐姿持續越久強度越強，即依循「部位對應式回饋優於無差別提醒」之實證原則設計；斷網時仍可運作
+本專題設計說明（非研究結論）：
+- 本專題智慧椅的震動提醒由椅子端（ESP32）即時觸發，依重心偏移方向震動對應位置的椅墊馬達（左傾→左側、右傾→右側、前傾→前側、後仰→後側），壞坐姿持續越久強度越強；斷網時仍可運作
+- 「依部位震動」是本專題的設計選擇，目前沒有找到研究直接比較它與單一震動的效果
 
 參考文獻：
-- Effectiveness of Wearable Devices for Posture Correction: A Systematic Review of Evidence from Randomized and Quasi-Experimental Studies. MDPI Applied Sciences. https://www.mdpi.com/2076-3417/16/1/81
-- Wearable Smartphone-Based Multisensory Feedback System for Torso Posture Correction: Iterative Design and Within-Subjects Study. JMIR Aging. https://aging.jmir.org/2025/1/e55455
-- Ergonomic Innovation: A Modular Smart Chair for Enhanced Workplace Health and Wellness. PMC12252288. https://pmc.ncbi.nlm.nih.gov/articles/PMC12252288/
+- Caixeiro, D. et al. (2026). Effectiveness of Wearable Devices for Posture Correction: A Systematic Review of Evidence from Randomized and Quasi-Experimental Studies. Applied Sciences, 16(1), 81. https://doi.org/10.3390/app16010081
+- Ergonomic Innovation: A Modular Smart Chair for Enhanced Workplace Health and Wellness. https://pmc.ncbi.nlm.nih.gov/articles/PMC12252288/
+- Wearable Smartphone-Based Multisensory Feedback System for Torso Posture Correction: Iterative Design and Within-Subjects Study. JMIR Aging, 2025;8:e55455. https://aging.jmir.org/2025/1/e55455
+- Odesola, D. F. et al. (2024). Smart sensing chairs for sitting posture detection, classification, and monitoring: A comprehensive review. Sensors, 24(9), 2940. https://pmc.ncbi.nlm.nih.gov/articles/PMC11086066/

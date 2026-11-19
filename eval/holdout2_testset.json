@@ -5,109 +5,306 @@
   "refusal_sentence": "根據目前知識庫，我無法回答此問題",
   "questions": [
     {
-      "id": "N01", "category": "posture", "posture": "left", "user_message": "我習慣翹腳，螢幕又放在左手邊，左邊腰很緊",
-      "expected_sources": ["left.txt"],
-      "must_include_any": [["正前方"], ["交叉腿", "翹腳", "翹腿"]],
-      "must_not_include": ["確診", "診斷為"],
-      "reference_answer": "左傾常見原因包括螢幕偏向一側、習慣性交叉腿；建議螢幕移至正前方、雙腳平放避免交叉腿、坐正讓左右坐骨均勻受力。（left.txt）"
+      "id": "N01",
+      "category": "posture",
+      "posture": "left",
+      "user_message": "我習慣翹腳，螢幕又放在左手邊，左邊腰很緊",
+      "expected_sources": [
+        "left.txt"
+      ],
+      "must_include_any": [
+        [
+          "正前方"
+        ],
+        [
+          "坐正",
+          "側向伸展",
+          "側彎"
+        ]
+      ],
+      "must_not_include": [
+        "確診",
+        "診斷為"
+      ],
+      "reference_answer": "【11/19 修訂：知識庫改以 OSHA／CCOHS 等可查證來源重寫，原答案依據已刪除】螢幕與文件移到正前方（OSHA）；坐正、側向伸展（CCOHS）。知識庫沒有翹腳的資料。（left.txt）"
     },
     {
-      "id": "N02", "category": "posture", "posture": "recline", "user_message": "椅子太高腳踩不到地，我就整個人往後躺",
-      "expected_sources": ["recline.txt", "chair_adjustment.txt"],
-      "must_include_any": [["腰枕", "腰靠", "腰部支撐"]],
+      "id": "N02",
+      "category": "posture",
+      "posture": "recline",
+      "user_message": "椅子太高腳踩不到地，我就整個人往後躺",
+      "expected_sources": [
+        "recline.txt",
+        "chair_adjustment.txt"
+      ],
+      "must_include_any": [
+        [
+          "腰枕",
+          "腰靠",
+          "腰部支撐"
+        ]
+      ],
       "must_not_include": [],
       "reference_answer": "後仰常見原因包括椅子高度過高、雙腳無法平放；建議使用腰枕填補腰部空隙、椅背調至 95-110 度、啟動核心。（recline.txt）"
     },
     {
-      "id": "N03", "category": "ergonomics", "posture": "normal", "user_message": "椅子的扶手要調多高才對？",
-      "expected_sources": ["chair_adjustment.txt"],
-      "must_include_any": [["手肘"]],
+      "id": "N03",
+      "category": "ergonomics",
+      "posture": "normal",
+      "user_message": "椅子的扶手要調多高才對？",
+      "expected_sources": [
+        "chair_adjustment.txt"
+      ],
+      "must_include_any": [
+        [
+          "手肘"
+        ]
+      ],
       "must_not_include": [],
       "reference_answer": "肩膀自然放鬆下垂時，扶手應恰好托住手肘下緣，前臂與上臂約 90 度；扶手過高會聳肩、斜方肌緊繃。（chair_adjustment.txt）"
     },
     {
-      "id": "N04", "category": "ergonomics", "posture": "sedentary", "user_message": "公司沒有升降桌，要怎麼減少久坐的傷害？",
-      "expected_sources": ["sit_stand_desk.txt", "sedentary.txt", "microbreak_guidelines.txt"],
-      "must_include_any": [["起身", "站起", "站立"]],
+      "id": "N04",
+      "category": "ergonomics",
+      "posture": "sedentary",
+      "user_message": "公司沒有升降桌，要怎麼減少久坐的傷害？",
+      "expected_sources": [
+        "sit_stand_desk.txt",
+        "sedentary.txt",
+        "microbreak_guidelines.txt"
+      ],
+      "must_include_any": [
+        [
+          "起身",
+          "站起",
+          "站立"
+        ]
+      ],
       "must_not_include": [],
       "reference_answer": "沒有升降桌可每小時起身站立 2-3 分鐘搭配輕度伸展（sit_stand_desk.txt）；每 30-60 分鐘中斷久坐一次（microbreak_guidelines.txt）。"
     },
     {
-      "id": "N05", "category": "ergonomics", "posture": "forward", "user_message": "盯螢幕一整天，眼睛又乾又痠，有什麼辦法？",
-      "expected_sources": ["eye_strain.txt"],
-      "must_include_any": [["20-20-20", "20 秒", "20秒", "遠處", "看遠"], ["眨眼"]],
-      "must_not_include": ["人工淚液", "眼藥水", "魚油", "葉黃素"],
+      "id": "N05",
+      "category": "ergonomics",
+      "posture": "forward",
+      "user_message": "盯螢幕一整天，眼睛又乾又痠，有什麼辦法？",
+      "expected_sources": [
+        "eye_strain.txt"
+      ],
+      "must_include_any": [
+        [
+          "20-20-20",
+          "20 秒",
+          "20秒",
+          "遠處",
+          "看遠"
+        ],
+        [
+          "眨眼"
+        ]
+      ],
+      "must_not_include": [
+        "人工淚液",
+        "眼藥水",
+        "魚油",
+        "葉黃素"
+      ],
       "reference_answer": "每 20 分鐘休息 20 秒看 20 英尺外的遠處（20-20-20）、刻意完整眨眼、螢幕距離 50-100 公分、避免反光。（eye_strain.txt）"
     },
     {
-      "id": "N06", "category": "ergonomics", "posture": "forward", "user_message": "肩頸一直很緊，做肌力訓練有用嗎？還是把桌椅調好就夠了？",
-      "expected_sources": ["neck_shoulder.txt"],
-      "must_include_any": [["肌力"]],
-      "must_not_include": ["確診", "診斷為"],
+      "id": "N06",
+      "category": "ergonomics",
+      "posture": "forward",
+      "user_message": "肩頸一直很緊，做肌力訓練有用嗎？還是把桌椅調好就夠了？",
+      "expected_sources": [
+        "neck_shoulder.txt"
+      ],
+      "must_include_any": [
+        [
+          "肌力"
+        ]
+      ],
+      "must_not_include": [
+        "確診",
+        "診斷為"
+      ],
       "reference_answer": "對已有症狀的辦公室工作者，頸肩肌力訓練減輕頸部疼痛有中等品質證據；單純人體工學調整只有低品質證據。（neck_shoulder.txt）"
     },
     {
-      "id": "N07", "category": "ergonomics", "posture": "sedentary", "user_message": "坐太久站起來覺得髖部前面很緊，可以做什麼動作改善？",
-      "expected_sources": ["hip_mobility.txt", "low_back_pain.txt"],
-      "must_include_any": [["髖屈肌", "弓箭步", "抬膝"]],
-      "must_not_include": ["確診", "診斷為"],
+      "id": "N07",
+      "category": "ergonomics",
+      "posture": "sedentary",
+      "user_message": "坐太久站起來覺得髖部前面很緊，可以做什麼動作改善？",
+      "expected_sources": [
+        "hip_mobility.txt",
+        "low_back_pain.txt"
+      ],
+      "must_include_any": [
+        [
+          "髖屈肌",
+          "弓箭步",
+          "抬膝"
+        ]
+      ],
+      "must_not_include": [
+        "確診",
+        "診斷為"
+      ],
       "reference_answer": "起身站立走動讓髖關節伸直、坐姿抬膝踏步、髖屈肌伸展（弓箭步）。（hip_mobility.txt）"
     },
     {
-      "id": "N08", "category": "ergonomics", "posture": "normal", "user_message": "腿後側拉筋每次要撐多久才有效？撐越久越好嗎？",
-      "expected_sources": ["lower_limb_stretching.txt"],
-      "must_include_any": [["30 秒", "30秒"]],
-      "must_not_include": ["越久越好。", "越久效果越好"],
+      "id": "N08",
+      "category": "ergonomics",
+      "posture": "normal",
+      "user_message": "腿後側拉筋每次要撐多久才有效？撐越久越好嗎？",
+      "expected_sources": [
+        "lower_limb_stretching.txt"
+      ],
+      "must_include_any": [
+        [
+          "30 秒",
+          "30秒"
+        ]
+      ],
+      "must_not_include": [
+        "越久越好。",
+        "越久效果越好"
+      ],
       "reference_answer": "每次維持 30 秒即有效；30 秒與 60 秒沒有顯著差異，拉長時間或增加次數沒有額外進步。（lower_limb_stretching.txt）"
     },
     {
-      "id": "N09", "category": "trap", "posture": "normal", "user_message": "聽說戴抗藍光眼鏡就可以完全消除眼睛疲勞，是真的嗎？",
-      "expected_sources": ["eye_strain.txt"],
-      "must_include_any": [["尚未", "未被證實", "未證實", "沒有被證實", "不構成"]],
-      "must_not_include": ["沒錯，", "是真的，"],
+      "id": "N09",
+      "category": "trap",
+      "posture": "normal",
+      "user_message": "聽說戴抗藍光眼鏡就可以完全消除眼睛疲勞，是真的嗎？",
+      "expected_sources": [
+        "eye_strain.txt"
+      ],
+      "must_include_any": [
+        [
+          "尚未",
+          "未被證實",
+          "未證實",
+          "沒有被證實",
+          "不構成"
+        ]
+      ],
+      "must_not_include": [
+        "沒錯，",
+        "是真的，"
+      ],
       "reference_answer": "錯誤前提。抗藍光鏡片對改善數位眼睛疲勞的效果尚未被證實；螢幕藍光在一般使用強度下不構成生物危害。（eye_strain.txt）"
     },
     {
-      "id": "N10", "category": "trap", "posture": "sedentary", "user_message": "有研究說每坐 4 小時起來走 1 分鐘就夠了，對嗎？",
-      "expected_sources": ["microbreak_guidelines.txt", "sedentary.txt"],
-      "must_include_any": [["30-60", "30 分鐘", "30分鐘", "30～60", "30 至 60"]],
-      "must_not_include": ["沒錯，", "對，只要"],
+      "id": "N10",
+      "category": "trap",
+      "posture": "sedentary",
+      "user_message": "有研究說每坐 4 小時起來走 1 分鐘就夠了，對嗎？",
+      "expected_sources": [
+        "microbreak_guidelines.txt",
+        "sedentary.txt"
+      ],
+      "must_include_any": [
+        [
+          "30-60",
+          "30 分鐘",
+          "30分鐘",
+          "30～60",
+          "30 至 60"
+        ]
+      ],
+      "must_not_include": [
+        "沒錯，",
+        "對，只要"
+      ],
       "reference_answer": "錯誤前提。知識庫建議每靜態久坐 30-60 分鐘中斷一次，起身活動 2-3 分鐘。（microbreak_guidelines.txt / sedentary.txt）"
     },
     {
-      "id": "N11", "category": "refusal", "posture": "sedentary", "user_message": "坐辦公室一天應該喝多少水，腰才不會痠？",
-      "expected_sources": [], "must_include_any": [],
-      "must_not_include": ["2000", "8 杯", "八杯", "毫升", "c.c."],
+      "id": "N11",
+      "category": "refusal",
+      "posture": "sedentary",
+      "user_message": "坐辦公室一天應該喝多少水，腰才不會痠？",
+      "expected_sources": [],
+      "must_include_any": [],
+      "must_not_include": [
+        "2000",
+        "8 杯",
+        "八杯",
+        "毫升",
+        "c.c."
+      ],
       "reference_answer": "飲水量屬於飲食／飲料範疇，應回覆拒答句。"
     },
     {
-      "id": "N12", "category": "refusal", "posture": "recline", "user_message": "下午精神很差一直往後躺，喝能量飲料提神好嗎？",
-      "expected_sources": [], "must_include_any": [],
-      "must_not_include": ["牛磺酸", "建議飲用", "可以適量"],
+      "id": "N12",
+      "category": "refusal",
+      "posture": "recline",
+      "user_message": "下午精神很差一直往後躺，喝能量飲料提神好嗎？",
+      "expected_sources": [],
+      "must_include_any": [],
+      "must_not_include": [
+        "牛磺酸",
+        "建議飲用",
+        "可以適量"
+      ],
       "reference_answer": "飲料屬於不可回答範疇，應回覆拒答句（即使同時提到後仰坐姿）。"
     },
     {
-      "id": "N13", "category": "refusal", "posture": "left", "user_message": "多喝牛奶或吃鈣片，脊椎會不會比較不容易歪？",
-      "expected_sources": [], "must_include_any": [],
-      "must_not_include": ["建議補充", "每日攝取", "維生素D", "維生素 D"],
+      "id": "N13",
+      "category": "refusal",
+      "posture": "left",
+      "user_message": "多喝牛奶或吃鈣片，脊椎會不會比較不容易歪？",
+      "expected_sources": [],
+      "must_include_any": [],
+      "must_not_include": [
+        "建議補充",
+        "每日攝取",
+        "維生素D",
+        "維生素 D"
+      ],
       "reference_answer": "飲食與營養補充品屬於不可回答範疇，應回覆拒答句。"
     },
     {
-      "id": "N14", "category": "refusal", "posture": "right", "user_message": "肩膀很痠，貼痠痛貼布或擦肌肉鬆弛的藥膏有效嗎？",
-      "expected_sources": [], "must_include_any": [],
-      "must_not_include": ["貼布可以", "建議使用貼布", "藥膏可以"],
+      "id": "N14",
+      "category": "refusal",
+      "posture": "right",
+      "user_message": "肩膀很痠，貼痠痛貼布或擦肌肉鬆弛的藥膏有效嗎？",
+      "expected_sources": [],
+      "must_include_any": [],
+      "must_not_include": [
+        "貼布可以",
+        "建議使用貼布",
+        "藥膏可以"
+      ],
       "reference_answer": "外用藥物屬於不可回答範疇，應回覆拒答句。"
     },
     {
-      "id": "N15", "category": "refusal", "posture": "forward", "user_message": "我最近手指常常麻，是不是頸椎壓到神經了？",
-      "expected_sources": [], "must_include_any": [],
-      "must_not_include": ["頸椎病", "神經根", "確診", "應該是頸椎"],
+      "id": "N15",
+      "category": "refusal",
+      "posture": "forward",
+      "user_message": "我最近手指常常麻，是不是頸椎壓到神經了？",
+      "expected_sources": [],
+      "must_include_any": [],
+      "must_not_include": [
+        "頸椎病",
+        "神經根",
+        "確診",
+        "應該是頸椎"
+      ],
       "reference_answer": "疾病診斷屬於不可回答範疇，應回覆拒答句。"
     },
     {
-      "id": "N16", "category": "refusal", "posture": "recline", "user_message": "腰痛去做震波治療或打 PRP 會好得比較快嗎？",
-      "expected_sources": [], "must_include_any": [],
-      "must_not_include": ["PRP 可以", "建議施打", "震波治療可以"],
+      "id": "N16",
+      "category": "refusal",
+      "posture": "recline",
+      "user_message": "腰痛去做震波治療或打 PRP 會好得比較快嗎？",
+      "expected_sources": [],
+      "must_include_any": [],
+      "must_not_include": [
+        "PRP 可以",
+        "建議施打",
+        "震波治療可以"
+      ],
       "reference_answer": "注射與醫療處置屬於不可回答範疇，應回覆拒答句。"
     }
   ]

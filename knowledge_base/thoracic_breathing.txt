@@ -1,27 +1,21 @@
-來源機構：Physiopedia / PMC 研究文獻
+來源機構：PubMed 30774207（2019）/ Cleveland Clinic / Scientific Reports（Amiri & Zemková 2025）/ CCOHS
 主題：胸椎活動度與橫隔膜呼吸
 
-健康風險與機制：
-- 久坐辦公族群常見胸椎活動度不足，肇因於長時間駝背前彎姿勢，表現為圓肩、手臂難以高舉過頭、呼吸淺短
-- 頭部前傾與胸椎後凸（駝背）會影響呼吸力學：降低胸廓擴張幅度、減少肺泡通氣量、降低橫膈膜下降幅度
-- 胸椎活動度下降時，肋廓無法充分擴張，迫使身體改以「淺胸式呼吸」代償，長期加重頸肩肌群負擔
-
-常見原因：
-- 長時間螢幕前圓肩駝背姿勢
-- 呼吸習慣偏向胸式呼吸，橫膈膜參與度低
+研究證據：
+- 一項 15 位成人的研究：頭部前傾姿勢下，用力肺活量、呼氣與吸氣儲備量、第一秒用力呼氣量與尖峰呼氣流速都比中立姿勢低，下胸廓在呼吸時的活動度也明顯減少（Effect of forward head posture on thoracic shape and respiratory function，2019；樣本小）
+- 18 位久坐上班族在核心肌群疲勞後，做橫隔膜呼吸運動或軀幹穩定運動，姿勢穩定性恢復得比滾筒放鬆或單純休息快（Amiri & Zemková，2025）
 
 立即改善動作：
-1. 橫隔膜呼吸練習：一手放胸口、一手放腹部，吸氣時感覺腹部手上升、胸口手盡量不動，維持5秒後緩慢吐氣，重複10次
-2. 胸椎伸展（椅上開卷式）：雙手交扣舉高過頭，身體緩慢後仰並擴胸，維持10秒
-3. 開肩胸廓伸展：雙手於背後交扣，挺胸夾肩胛，維持15秒
+1. 橫隔膜呼吸（Cleveland Clinic）：一手放在上胸，另一手放在肋骨下方；用鼻子慢慢吸氣，讓肚子往外推、下面的手上升，上胸的手盡量不動；吐氣時收緊腹部，讓肚子往內收、下面的手下降，上胸的手仍盡量不動
+2. 胸口伸展（CCOHS）：雙手放在頭後，把兩側肩胛骨往中間夾
+3. 側向伸展（CCOHS）：雙手十指交扣舉過頭，往上往後推，再慢慢向左、向右側彎
 
 長期預防：
-- 每日安排橫隔膜呼吸練習，可於久坐工作間歇時執行，有助恢復呼吸效率與姿勢穩定
-- 規律的胸椎活動度訓練可預防駝背進一步惡化，並間接改善頭部前傾問題
-
-智慧椅研究補充（學術來源）：
-- 深呼吸訓練被證實有助於恢復因軀幹疲勞而受影響的姿勢穩定性，與核心穩定訓練合併執行效果更佳（參見 core_stability.txt）
+- 持續練習橫隔膜呼吸，會逐漸變成自然的呼吸方式（Cleveland Clinic）
+- 調整螢幕高度與距離，減少頭部前傾（見 forward.txt）
 
 參考文獻：
-- The Effect of Posture on the Diaphragm. Physiopedia. https://www.physio-pedia.com/The_Effect_of_Posture_on_the_Diaphragm
-- Diaphragmatic breathing exercises in recovery from fatigue-induced changes in spinal mobility and postural stability: a study protocol. PMC10340528. https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10340528/
+- Effect of forward head posture on thoracic shape and respiratory function (2019). https://pubmed.ncbi.nlm.nih.gov/30774207/
+- Cleveland Clinic. Diaphragmatic Breathing. https://my.clevelandclinic.org/health/articles/9445-diaphragmatic-breathing
+- Amiri, B. & Zemková, E. (2025). Trunk stability and breathing exercises superior to foam rolling for restoring postural stability after core muscle fatigue in sedentary employees. Scientific Reports, 15. https://doi.org/10.1038/s41598-025-98284-6
+- CCOHS. Office Ergonomics – Stretching at the Workstation. https://www.ccohs.ca/oshanswers/ergonomics/office/stretching.html

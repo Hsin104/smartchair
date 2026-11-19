@@ -1,30 +1,29 @@
-來源機構：CCOHS / ANSI/HFES 100-2007 / Cornell University Ergonomics
-主題：辦公椅座深、扶手、椅背腰靠調整標準
+來源機構：CCOHS / OSHA
+主題：辦公椅座深、扶手、椅背腰靠調整
 
 正確設置原則：
-- 座深（2-3指原則）：膝窩與椅面邊緣應保留約2-3指（3-5公分）的空隙，座墊過深會壓迫膝窩、影響下肢循環
-- 扶手高度：肩膀自然放鬆下垂時，扶手應恰好托住手肘下緣，前臂與上臂呈約90度
-- 椅背腰靠：腰靠支撐點應對準腰椎自然前凸處（約為皮帶線位置），過低或過高都無法有效支撐，會使骨盆向後傾
-- 椅背傾角：建議維持100-110度後傾，減少腰椎椎間盤壓力
+- 座深：坐好後，座墊前緣與小腿之間應留約 5 公分（2 吋）、大約一個拳頭的空隙，膝蓋後側不應受壓（CCOHS、OSHA）
+- 座高：雙腳平放地面；腳踩不到地時使用可調整的腳踏墊支撐雙腳（CCOHS）
+- 扶手：手臂自然下垂、手肘彎曲約 90 度時，扶手剛好輕碰手肘下方；扶手最低仍會把手肘抬高時應拆掉（CCOHS）
+- 椅背腰靠：椅背可前後、上下調整，讓椅背貼合下背的凹陷處；腰靠高度應可調整（CCOHS、OSHA）
+- 椅背後仰：椅子應能讓使用者從垂直往後仰至少 15 度；OSHA 的後仰坐姿是軀幹與大腿夾角 105 至 120 度（OSHA）
+- 桌子高度固定時：調整椅子高度，讓手肘大約與桌面同高（CCOHS）
 
-常見錯誤設置與後果：
-- 座墊太深 → 被迫駝背前移才能踩地，形成過度後仰或前傾代償姿勢
-- 腰靠位置過低 → 骨盆後傾，腰椎曲度消失，形成過度後仰
-- 扶手過高 → 聳肩，斜方肌緊繃
+常見錯誤設置：
+- 座墊太深，膝蓋後側碰到座墊前緣
+- 腰靠沒有貼住下背
+- 扶手太高，手肘被抬高、肩膀無法放鬆
 
 立即改善動作：
-1. 坐滿椅子後檢查膝窩與座墊邊緣距離，超過一個拳頭則需調整椅背前移或更換椅型
-2. 站立時用手觸摸腰椎自然前凸位置，坐下後調整腰靠至同一高度
-3. 放鬆肩膀，調整扶手至恰好托住手肘
+1. 坐好後檢查座墊前緣與小腿之間是否有約一個拳頭的空隙（CCOHS）
+2. 調整椅背或腰靠高度，讓椅背貼住下背的凹陷處（CCOHS）
+3. 手肘彎曲約 90 度，把扶手調到剛好輕碰手肘下方（CCOHS）
 
 長期預防：
-- 定期（每次久坐前）重新確認腰靠與座深設置，避免因移動椅子或更換使用者而失準
-- 搭配動態坐姿（微調椅背角度）減少單一姿勢的持續壓力
-
-智慧椅研究補充（學術來源）：
-- 個人化椅背與座墊感測器可即時偵測坐姿壓力分佈重心偏移，作為智慧椅回饋依據（Anwary et al., 2021）
+- 經常小幅調整椅子或椅背、變換姿勢（OSHA）
 
 參考文獻：
-- CCOHS. Office Ergonomics - Ergonomic Chair. https://www.ccohs.ca/oshanswers/ergonomics/office/chair.html
-- Ergonomic Chair Adjustment Guide: Armrests, Headrest & Seat. https://eurekaergonomic.com/blogs/eureka-ergonomic-blog/ergonomic-chair-adjustment-guide-armrest-headrest-seat
-- Anwary, A. R. et al. (2021). Smart-Cover: A real time sitting posture monitoring system. Sensors and Actuators A, 317, 112451.
+- CCOHS. Office Ergonomics – How to Adjust Office Chairs. https://www.ccohs.ca/oshanswers/ergonomics/office/chair_adjusting.html
+- CCOHS. Office Ergonomics – Ergonomic Chair. https://www.ccohs.ca/oshanswers/ergonomics/office/chair.html
+- OSHA. Computer Workstations eTool – Chairs. https://www.osha.gov/etools/computer-workstations/components/chairs
+- OSHA. Computer Workstations eTool – Good Working Positions. https://www.osha.gov/etools/computer-workstations/positions

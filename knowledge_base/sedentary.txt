@@ -1,40 +1,34 @@
-來源機構：WHO / Mayo Clinic / Physiopedia
+來源機構：WHO / The Lancet（Ekelund 2016）/ Diabetologia（van der Berg 2016）/ BJSM（Buckley 2015）/ Mayo Clinic / CCOHS
 主題：久坐未動（Prolonged Sitting / Sedentary Behaviour）
 
-健康風險（世界衛生組織 WHO 研究）：
-- 久坐被 WHO 列為全球第四大致死風險因子
-- 持續靜坐超過30分鐘，臀大肌、股四頭肌血流量下降，肌肉開始抑制（Muscle Inhibition）
-- 每增加1小時靜坐，第二型糖尿病風險上升22%（PubMed Meta-Analysis）
-- 下肢靜脈血液回流減慢，增加深層靜脈血栓（DVT）風險
-- 與心血管疾病、代謝症候群、特定癌症（大腸癌、乳癌）風險上升相關
+健康風險：
+- WHO 把「身體活動不足」列為全球第四大死亡風險因子，約占全球死亡的 6%（注意：WHO 講的是活動不足，不是久坐本身）
+- 久坐與肥胖有關；整體坐太久也與心臟病、癌症死亡風險上升有關（Mayo Clinic）
+- 荷蘭 Maastricht 研究（2,497 人，配戴加速度計 8 天）：每多 1 小時靜態時間，第二型糖尿病的勝算比為 1.22；這是橫斷面研究，只能說明相關，不能證明因果（van der Berg 等人，2016）
 
 重要研究發現：
-- 即使每天運動1小時，若其餘時間久坐超過8小時，健康效益仍大幅降低
-- 「動態坐姿」（頻繁小幅度移動）比維持完美靜態坐姿更有益健康
+- Ekelund 等人（2016，Lancet，統合 100 多萬人的資料）：每天約 60 至 75 分鐘中等強度活動，似乎可以消除每天坐超過 8 小時帶來的死亡風險增加；但對看電視時間長的人只能減輕、無法消除；風險最高的是活動量不足的人，不論坐多久
+- Mayo Clinic 也指出，每天 60 至 75 分鐘中等強度有氧活動可以抵銷坐太久的影響
 
 立即改善動作：
-1. 立刻站起來，做5-10次深蹲或踮腳運動，活化下肢肌群
-2. 原地踏步或步行至飲水機、廁所等，增加步數
-3. 站立工作5-10分鐘（若有升降桌）
+1. 起身離開座位走動（CCOHS：每小時休息 5 到 10 分鐘，最好站起來走動）
+2. 踝關節屈伸（CCOHS）：坐著一腿伸直、腳離地，腳尖交替往上勾、往下壓，再換腳
+3. 站立工作一段時間（若有升降桌）
 
 長期預防：
-- 每30分鐘設定鬧鐘提醒起身活動3分鐘（Pomodoro 技巧結合起身）
-- 開會時改為站立或走動討論
-- 考慮使用升降桌，每天站立累積2-4小時
-- 午休時間步行至少10分鐘
+- 坐辦公桌的工作者，上班時間先累積每天 2 小時的站立與輕度活動（例如慢走），之後逐步增加到每天 4 小時（Buckley 等人，2015 專家共識，主要依據觀察性研究）
+- 用站立的工作、坐站交替桌或短暫起身，定期打斷久坐（Buckley 等人，2015）
 
 智慧椅研究補充（學術來源）：
-- 研究實測數據：辦公室工作者平均 81.8% 工作時間處於靜態久坐狀態，是工作相關肌骨疾病（WMSD）的主要風險來源（Anwary et al., 2021）
-- Smart-Cover IoT 系統：10名受試者各自連續靜坐30分鐘，感測資料即時上傳雲端，驗證了長時間靜坐的姿勢漂移現象（Anwary et al., 2021）
-- Singh 等人（2023）的 IoT 智慧椅使用振動馬達作為回饋機制：偵測到久坐超過設定閾值時，震動提醒使用者起身活動，是低成本有效的行為介入方式
-- Nguyen 等人（2024）的系統同時監測坐姿與心率（PPG），發現久坐期間心率趨於穩定低值，可作為久坐時間的輔助偵測指標，系統坐姿分類準確率達 99%
-- 回饋機制研究：目前僅 36% 的智慧椅研究有納入使用者回饋系統，是最需要強化的研究缺口（Odesola et al., 2024）；手機 App 是最常見的回饋方式，其次為振動觸覺回饋與 LED 燈號
+- Smart-Cover 系統的座墊感測器能提醒使用者坐太久，並顯示活動與靜態坐姿的比例（Anwary 等人，2021）
+- Odesola 等人（2024）回顧的研究中只有 36% 有回饋機制，最常用的是手機 App，其次是桌面程式；也有研究在座墊加入觸覺馬達或用變色燈泡提醒
 
 參考文獻：
-- WHO. Global recommendations on physical activity for health (2010).
-- Mayo Clinic. What are the risks of sitting too much?
-- Physiopedia. Sedentary Behaviour and Health.
-- Anwary, A. R. et al. (2021). Smart-Cover: A real time sitting posture monitoring system. Sensors and Actuators A, 317, 112451.
-- Singh, S. et al. (2023). IoT-based smart posture correcting chair design. AKGEC International Journal of Technology, 14(1), 13–16.
-- Nguyen, T. M. H. et al. (2024). A smart chair for health monitoring in daily life. arXiv:2410.01459.
-- Odesola, D. F. et al. (2024). Smart sensing chairs for sitting posture detection, classification, and monitoring. Sensors, 24(9), 2940.
+- WHO (2010). Global recommendations on physical activity for health. https://www.who.int/publications/i/item/9789241599979
+- Ekelund, U. et al. (2016). Does physical activity attenuate, or even eliminate, the detrimental association of sitting time with mortality? The Lancet, 388(10051), 1302–1310. https://doi.org/10.1016/S0140-6736(16)30370-1
+- van der Berg, J. D. et al. (2016). Associations of total amount and patterns of sedentary behaviour with type 2 diabetes and the metabolic syndrome: The Maastricht Study. Diabetologia, 59, 709–718. https://pubmed.ncbi.nlm.nih.gov/26831300/
+- Buckley, J. P. et al. (2015). The sedentary office: an expert statement on the growing case for change towards better health and productivity. British Journal of Sports Medicine, 49, 1357–1362. https://doi.org/10.1136/bjsports-2015-094618
+- Mayo Clinic. What are the risks of sitting too much? https://www.mayoclinic.org/healthy-lifestyle/adult-health/expert-answers/sitting/faq-20058005
+- CCOHS. Office Ergonomics – Stretching at the Workstation. https://www.ccohs.ca/oshanswers/ergonomics/office/stretching.html
+- Anwary, A. R. et al. (2021). Smart-Cover: A real time sitting posture monitoring system. Sensors and Actuators A: Physical, 317, 112451. https://doi.org/10.1016/j.sna.2020.112451
+- Odesola, D. F. et al. (2024). Smart sensing chairs for sitting posture detection, classification, and monitoring: A comprehensive review. Sensors, 24(9), 2940. https://pmc.ncbi.nlm.nih.gov/articles/PMC11086066/

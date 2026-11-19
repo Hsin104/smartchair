@@ -1,30 +1,28 @@
-來源機構：NIOSH / Mayo Clinic（經廠商網頁轉述）/ ScienceDirect
+來源機構：OSHA / NIOSH（CDC）/ BMC Musculoskeletal Disorders（Thomsen 2008 系統性回顧）
 主題：鍵盤滑鼠使用與腕隧道症候群、重複性勞損預防
 
-健康風險與機制：
-- 長時間非中立手腕姿勢（過度背屈或掌屈）會增加腕隧道內壓力，壓迫正中神經
-- NIOSH 統計每年超過800萬人受腕隧道症候群影響，長時間電腦作業者風險較高
-- 中立手腕姿勢可降低機械壓力，證據強度高於單一工作站設備更換的預防效果
+健康風險與證據：
+- NIOSH 依 2015 年美國全國健康訪問調查：約 389 萬名勞工目前有腕隧道症候群，約 880 萬人曾被醫師告知患有腕隧道症候群
+- 系統性回顧（Thomsen 等人，2008）：現有流行病學證據不足以證明電腦（滑鼠、鍵盤）工作會造成腕隧道症候群；8 篇研究都有暴露或診斷評估不精確、樣本數不足或偏誤等限制
 
-常見原因：
-- 鍵盤位置過高，需手腕上翹打字
-- 滑鼠距離身體過遠或握持角度不當（過度旋前）
-- 長時間無中斷的重複性點擊、打字動作
+常見原因（OSHA 電腦工作站指引）：
+- 鍵盤太高或太低，手腕往上或往下彎
+- 滑鼠離鍵盤太遠，需要伸手操作
+- 鍵盤托盤太小，滑鼠放不下，只能伸手去拿
 
 立即改善動作：
-1. 手腕中立姿勢：打字與滑鼠操作時，前臂與手腕應維持水平一直線，避免上翹或下垂
-2. 手肘貼近身體，呈約90度，前臂與桌面平行
-3. 定時暫停：每小時暫停打字與操作滑鼠，做手腕、手指伸展（做法與秒數見手腕與手指伸展文獻 wrist_hand_stretching.txt）
-4. 減輕觸鍵與點擊力道，避免過度用力敲擊
+1. 手腕中立：打字與操作滑鼠時，手腕不往上、往下或往兩側彎；可用鍵盤腳調整鍵盤傾斜（OSHA）
+2. 手肘靠近身體、彎曲 90 至 120 度，前臂大致與地面平行（OSHA）
+3. 滑鼠放在靠近鍵盤的位置，左右手輪流操作（OSHA）
+4. 定時暫停打字與操作滑鼠，做手腕、手指伸展（做法與秒數見手腕與手指伸展文獻 wrist_hand_stretching.txt）
 
 長期預防：
-- 使用鍵盤滑鼠時保持輕觸力道，減少不必要的施力
-- 可選用垂直滑鼠等手腕中立角度（35-90度）設計的周邊設備，降低腕隧道壓力
-- 每小時安排短暫休息，避免長時間無中斷的重複性動作
-
-智慧椅研究補充（學術來源）：
-- 職業性重複性動作為肌肉骨骼傷害主要風險因子之一，與久坐姿勢共同構成辦公室工作者的主要健康威脅（Carpal tunnel syndrome due to keyboarding and mouse tasks: a review, ScienceDirect）
+- 每小時離開工作站休息 5 到 10 分鐘（CCOHS）
 
 參考文獻：
-- Contour Design（滑鼠廠商網頁，內容整理 Mayo Clinic／NIOSH 資料，非原始文獻）. How to Prevent Carpal Tunnel Syndrome at Your Desk. https://www.contourdesign.com/resources/health-conditions/carpal-tunnel/how-to-prevent-carpal-tunnel-syndrome
-- Carpal tunnel syndrome due to keyboarding and mouse tasks: a review. ScienceDirect. https://www.sciencedirect.com/science/article/abs/pii/S0169814102001804
+- OSHA. Computer Workstations eTool – Keyboards. https://www.osha.gov/etools/computer-workstations/components/keyboards
+- OSHA. Computer Workstations eTool – Pointer/Mouse. https://www.osha.gov/etools/computer-workstations/components/pointer-mouse
+- OSHA. Computer Workstations eTool – Good Working Positions. https://www.osha.gov/etools/computer-workstations/positions
+- NIOSH. Carpal Tunnel Syndrome (NHIS 2015 Occupational Health Supplement) charts. https://wwwn.cdc.gov/NIOSH-WHC/chart/ohs-cts/illness
+- Thomsen, J. F., Gerr, F. & Atroshi, I. (2008). Carpal tunnel syndrome and the use of computer mouse and keyboard: A systematic review. BMC Musculoskeletal Disorders, 9, 134. https://pmc.ncbi.nlm.nih.gov/articles/PMC2569035/
+- CCOHS. Office Ergonomics – Stretching at the Workstation. https://www.ccohs.ca/oshanswers/ergonomics/office/stretching.html
