@@ -121,3 +121,43 @@ class TokenUsageTests(SimpleTestCase):
         self.assertEqual(step['action'], 'token_usage')
         self.assertEqual(step['action_input'], {'calls': 2, 'input_tokens': 1900, 'cached_tokens': 1024,
                                                 'output_tokens': 320})
+
+
+class ActionCheckTests(SimpleTestCase):
+    """動作出處核對（教授 11/16 第 13 點）：程式比對，不呼叫 LLM。"""
+
+    STEPS = [{'action': 'search_knowledge_base', 'observation': (
+        '【知識庫查詢結果】\\n\\n[文獻1｜來源：neck_stretching.txt]\\n'
+        '1. 頸部縮回（Chin Tuck）：下巴水平向後收，維持 5 秒，重複 10 次\\n'
+        '2. 頸側伸展：頭向右側傾，維持 15 秒\\n\\n---\\n\\n'
+        '[文獻2｜來源：glute_hip_stretching.txt]\\n坐姿梨狀肌伸展：右腳踝放左膝上，維持 30 秒')}]
+
+    def check(self, actions):
+        reply = '⚠️ 問題分析\n說明\n\n✅ 立即改善\n' + '\n'.join(actions) + '\n\n💪 長期預防\n…'
+        return pa._check_actions(reply, self.STEPS)
+
+    def test_supported_actions_pass(self):
+        out, step = self.check(['1. **頸部縮回**：下巴向後收，維持 5 秒，重複 10 次（出處：neck_stretching.txt）',
+                                '2. 坐姿梨狀肌伸展：右腳踝放左膝上，維持 30 秒（出處：glute_hip_stretching.txt）'])
+        self.assertNotIn('⚠️（未能', out)
+        self.assertEqual(step['action_input'], {'checked': 2, 'failed': 0})
+
+    def test_failures_are_flagged(self):
+        out, step = self.check(['1. 頸部縮回：維持 5 秒（出處：neck_stretching.txt）',
+                                '2. 頸部縮回：維持 20 秒（出處：neck_stretching.txt）',      # 數字不在出處
+                                '3. 站立臀部伸展：扶椅背（出處：glute_hip_stretching.txt）',  # 名稱不在出處
+                                '4. 頸側伸展：維持 15 秒（出處：wrist_rsi.txt）',             # 沒查過這個檔
+                                '5. 頸側伸展：維持 15 秒'])                                    # 沒標出處
+        reasons = [r['reason'] for r in json.loads(step['observation'])]
+        self.assertEqual(reasons[0], '')
+        self.assertIn('數字', reasons[1])
+        self.assertIn('動作名稱', reasons[2])
+        self.assertIn('不在這次查到', reasons[3])
+        self.assertEqual(reasons[4], '未標出處')
+        self.assertEqual(out.count('⚠️（未能'), 4)
+        self.assertIn('💪 長期預防', out)
+
+    def test_refusal_not_checked(self):
+        out, step = pa._check_actions(pa.REFUSAL_SENTENCE, self.STEPS)
+        self.assertEqual(out, pa.REFUSAL_SENTENCE)
+        self.assertIsNone(step)

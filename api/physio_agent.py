@@ -14,6 +14,7 @@ Physio Agent — 完整 Agent 架構（四大核心模組）
 import asyncio
 import json
 import logging
+import re
 
 from django.conf import settings
 from langchain_openai import ChatOpenAI
@@ -79,8 +80,8 @@ Step 3 根據 Step 1～2 的結果，寫出個人化建議
 ⚠️ 問題分析
 （引用知識庫說明，可標註「根據 forward.txt 文獻」）
 
-✅ 立即改善（最多 3 個動作）
-1.
+✅ 立即改善（最多 3 個動作；動作名稱用查詢結果的原文用字，每個動作結尾標出處）
+1. 動作名稱：做法（出處：檔名.txt）
 2.
 3.
 
@@ -360,6 +361,99 @@ def _validate_response(response: str) -> str:
     return response
 
 
+# ── 動作出處核對（程式比對，不呼叫 LLM）─────────────────────────────────────────
+# 教授 11/16 第 13 點：動作是否真的出自文獻不能只靠 Prompt。原本用 gpt-4o 檢查，額度用太兇已移除；
+# 改成要求每個動作標「（出處：檔名.txt）」，由程式到「這次實際查到的該檔段落」裡比對：
+#   1. 出處必須是這次 search_knowledge_base／web_search 回傳過的來源
+#   2. 動作行裡的數字（次數、秒數、角度）都要出現在該段落
+#   3. 動作名稱的二字詞至少 70% 出現在該段落（模型常換句話說，逐字比對會誤判）
+# 門檻依 11/14～15 評測的 3,374 個動作行離線估算：逐字比對只有 65% 通過；二字詞 ≥70% 有 90% 通過，
+# 沒通過的多是知識庫補上臀部、手腕文獻前模型自己補的動作（站立臀部伸展、手指伸展）。
+# 對不上的動作不刪除（刪掉會讓編號與上下文斷掉），在該行後面加警告，並記成 action_check 步驟供評測統計。
+
+_ACTION_SECTION_RE = re.compile(r'(✅[^\n]*\n)(.*?)(?=\n\s*(?:💪|⏰|📚|---)|\Z)', re.S)
+_ACTION_LINE_RE = re.compile(r'^\s*\d+[\.、]')
+_CITE_RE = re.compile(r'[（(]\s*出處\s*[：:]\s*([^）)]+?)\s*[）)]')
+_KB_BLOCK_RE = re.compile(r'\[文獻\d+｜來源：([^\]]+)\]\s*(.*?)(?=\n\s*-{3}\s*\n|\[文獻\d+｜|\Z)', re.S)
+_NUMBER_RE = re.compile(r'\d+(?:\.\d+)?')
+_NOISE_RE = re.compile(r'[\s\*＊()（）「」『』、，,。：:；;．.\-－—~～／/A-Za-z]')
+_NAME_COVERAGE = 0.7
+ACTION_WARNING = ' ⚠️（未能在標示的出處中核對到這個動作，請斟酌參考）'
+
+
+def _evidence_by_source(steps: list) -> dict:
+    """把這次查到的內容依來源分組：知識庫依檔名，web_search 整段歸在 'web'。"""
+    evidence = {}
+    for s in steps:
+        obs = str(s.get('observation', '')).replace('\\n', '\n')
+        if s.get('action') == 'search_knowledge_base':
+            for src, body in _KB_BLOCK_RE.findall(obs):
+                evidence[src.strip()] = evidence.get(src.strip(), '') + '\n' + body
+        elif s.get('action') == 'web_search':
+            evidence['web'] = evidence.get('web', '') + '\n' + obs
+    return evidence
+
+
+def _action_name(line: str) -> str:
+    body = _CITE_RE.sub('', _ACTION_LINE_RE.sub('', line, count=1)).strip()
+    bold = re.match(r'\*\*(.+?)\*\*', body)
+    return bold.group(1) if bold else re.split(r'[：:]', body)[0]
+
+
+def _check_action_line(line: str, evidence: dict) -> str:
+    """回傳空字串代表通過，否則回傳沒通過的原因。"""
+    cite = _CITE_RE.search(line)
+    if not cite:
+        return '未標出處'
+    src = cite.group(1).strip()
+    text = evidence.get(src) or (evidence.get('web', '') if src not in evidence and src in evidence.get('web', '') else '')
+    if not text:
+        return f'出處 {src} 不在這次查到的內容中'
+    body = _CITE_RE.sub('', _ACTION_LINE_RE.sub('', line, count=1))
+    missing = [n for n in _NUMBER_RE.findall(body) if n not in text]
+    if missing:
+        return f'數字 {missing} 不在出處中'
+    flat = _NOISE_RE.sub('', text)
+    name = _NOISE_RE.sub('', _action_name(line))
+    grams = [name[i:i + 2] for i in range(len(name) - 1)] or [name]
+    coverage = sum(g in flat for g in grams) / len(grams) if name else 0
+    if coverage < _NAME_COVERAGE:
+        return f'動作名稱與出處相符 {coverage:.0%}，低於 {_NAME_COVERAGE:.0%}'
+    return ''
+
+
+def _check_actions(response: str, steps: list) -> tuple[str, dict | None]:
+    """核對「立即改善」的每個動作；回傳 (加上警告後的回覆, action_check 步驟)。拒答或沒有動作段落時不檢查。"""
+    if _is_refusal(response):
+        return response, None
+    m = _ACTION_SECTION_RE.search(response)
+    if not m:
+        return response, None
+    evidence = _evidence_by_source(steps)
+    lines, results = [], []
+    for line in m.group(2).split('\n'):
+        if _ACTION_LINE_RE.match(line):
+            reason = _check_action_line(line, evidence)
+            results.append({'action': _action_name(line)[:40], 'ok': not reason, 'reason': reason})
+            if reason:
+                line = line.rstrip() + ACTION_WARNING
+        lines.append(line)
+    if not results:
+        return response, None
+    response = response[:m.start(2)] + '\n'.join(lines) + response[m.end(2):]
+    failed = [r for r in results if not r['ok']]
+    step = {
+        'step':         -2,
+        'thought':      '以程式核對每個動作是否出自標示的出處（不呼叫 LLM）',
+        'action':       'action_check',
+        'action_input': {'checked': len(results), 'failed': len(failed)},
+        'observation':  json.dumps(results, ensure_ascii=False),
+    }
+    if failed:
+        logger.warning(f'[PhysioAgent] {len(failed)}/{len(results)} 個動作未通過出處核對：{failed}')
+    return response, step
+
+
 # ── 對外介面 ───────────────────────────────────────────────────────────────────
 
 def _build_question(posture: str, user_id: int, user_message: str) -> str:
@@ -430,7 +524,9 @@ async def get_advice_async(posture: str = '', user_id: int = 0, user_message: st
         output, steps = await asyncio.wait_for(
             _answer(question, user_message, api_key, usage), timeout=_LLM_TIMEOUT_SECONDS)
         logger.info(f'[PhysioAgent] Token 用量：{_usage_step(usage)["observation"]}')
-        return _validate_response(output.strip()), steps + [_usage_step(usage)]
+        output, check_step = _check_actions(output.strip(), steps)
+        extra = [check_step] if check_step else []
+        return _validate_response(output), steps + extra + [_usage_step(usage)]
     except asyncio.TimeoutError as e:
         logger.error(f'[PhysioAgent] OpenAI 請求逾時（{_LLM_TIMEOUT_SECONDS}秒）')
         raise RuntimeError(ERR_TIMEOUT) from e

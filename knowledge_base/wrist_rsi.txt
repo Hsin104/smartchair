@@ -1,4 +1,4 @@
-來源機構：NIOSH / Mayo Clinic / ScienceDirect
+來源機構：NIOSH / Mayo Clinic（經廠商網頁轉述）/ ScienceDirect
 主題：鍵盤滑鼠使用與腕隧道症候群、重複性勞損預防
 
 健康風險與機制：
@@ -14,7 +14,7 @@
 立即改善動作：
 1. 手腕中立姿勢：打字與滑鼠操作時，前臂與手腕應維持水平一直線，避免上翹或下垂
 2. 手肘貼近身體，呈約90度，前臂與桌面平行
-3. 甩手放鬆：每小時甩動手腕、掌心前後伸展各10次，緩解肌腱張力
+3. 定時暫停：每小時暫停打字與操作滑鼠，做手腕、手指伸展（做法與秒數見手腕與手指伸展文獻 wrist_hand_stretching.txt）
 4. 減輕觸鍵與點擊力道，避免過度用力敲擊
 
 長期預防：
@@ -26,5 +26,5 @@
 - 職業性重複性動作為肌肉骨骼傷害主要風險因子之一，與久坐姿勢共同構成辦公室工作者的主要健康威脅（Carpal tunnel syndrome due to keyboarding and mouse tasks: a review, ScienceDirect）
 
 參考文獻：
-- Mayo Clinic / NIOSH 綜合整理. How to Prevent Carpal Tunnel Syndrome at Your Desk. https://www.contourdesign.com/resources/health-conditions/carpal-tunnel/how-to-prevent-carpal-tunnel-syndrome
+- Contour Design（滑鼠廠商網頁，內容整理 Mayo Clinic／NIOSH 資料，非原始文獻）. How to Prevent Carpal Tunnel Syndrome at Your Desk. https://www.contourdesign.com/resources/health-conditions/carpal-tunnel/how-to-prevent-carpal-tunnel-syndrome
 - Carpal tunnel syndrome due to keyboarding and mouse tasks: a review. ScienceDirect. https://www.sciencedirect.com/science/article/abs/pii/S0169814102001804

@@ -44,7 +44,7 @@ LIST_NUMBER_RE = re.compile(r'^\s*[\(（]?\d+[\.\)、）]', re.MULTILINE)
 REFUSAL_RE = re.compile(r'知識庫[^。\n]{0,12}無法回答')
 # Agent 自己的檢查步驟（範疇判斷、動作出處檢查）不是查到的內容，判定「有沒有出處」時要排除，
 # 否則 grounding_check 記下的「無依據動作」原文會被當成出處
-INTERNAL_STEPS = ('scope_check', 'grounding_check', 'token_usage')
+INTERNAL_STEPS = ('scope_check', 'grounding_check', 'token_usage', 'action_check')
 
 # ── 花費控制 ──────────────────────────────────────────────────────────────────
 # 教授的金鑰每月預算 100 美金，11/15 一天的評測（gpt-4o 複核＋反覆重跑）就把額度用完。
@@ -133,6 +133,10 @@ def judge(q, run, refusal_sentence):
     }
     if q['category'] != 'refusal' and q['expected_sources']:
         result['citation_ok'] = any(src in retrieved for src in q['expected_sources'])
+    # Agent 回覆前已用程式核對每個動作的出處（physio_agent._check_actions），這裡只讀結果，不花錢
+    check = next((s for s in steps if s.get('action') == 'action_check'), None)
+    if check:
+        result['action_check'] = check.get('action_input', {})
 
     # 幻覺只算「捏造內容」；應拒答卻沒拒答是違反規則，另由拒答正確率計算（若因此說出藥名等，仍會命中禁止詞）
     signals = []
@@ -253,6 +257,8 @@ def metrics_of(rows):
     answerable = [j for q, j in rows if q['category'] in ('posture', 'ergonomics')]
     refusal = [j for q, j in rows if q['category'] == 'refusal']
     groups = [hit for q, j in rows for hit in j['include_hits']]
+    checked = sum(j.get('action_check', {}).get('checked', 0) for q, j in rows)
+    failed = sum(j.get('action_check', {}).get('failed', 0) for q, j in rows)
     return {
         '引用正確率': ratio([j for q, j in rows if 'citation_ok' in j], 'citation_ok'),
         '關鍵內容命中率': sum(groups) / len(groups) * 100 if groups else None,
@@ -262,6 +268,8 @@ def metrics_of(rows):
         '完成率': ratio([j for q, j in rows], 'completed'),
         # 只在 --judge 時有值；分母是有實際回答（非拒答）的題目
         '無依據動作率': ratio([j for q, j in rows if j.get('llm_unsupported') is not None], 'llm_unsupported'),
+        # 程式核對（不呼叫 LLM）：分母是「立即改善」裡的動作數，不是題數
+        '動作出處未通過率': failed / checked * 100 if checked else None,
     }
 
 
