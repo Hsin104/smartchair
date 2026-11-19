@@ -40,11 +40,11 @@
       "reference_answer": "肩胛後收／肩胛骨夾緊（維持 5 秒重複 10 次）、俯臥 I／Y／T／W、push-up plus 等肩胛穩定運動。（neck_shoulder.txt / forward.txt）"
     },
     {
-      "id": "Q06", "category": "trap", "posture": "sedentary", "user_message": "久坐後屁股深處很緊，可以教我怎麼伸展臀部嗎？",
-      "expected_sources": ["core_stability.txt", "hip_mobility.txt", "sedentary.txt", "stretching.txt", "lower_limb_stretching.txt", "low_back_pain.txt"],
-      "must_include_any": [],
-      "must_not_include": ["梨狀肌伸展", "鴿式", "4 字", "4字", "腳踝放在"],
-      "reference_answer": "知識庫沒有臀部伸展動作，只有臀肌啟動（夾緊臀部 5 秒 × 10 次）、起身走動、髖屈肌伸展等；應只提供這些，或說明知識庫沒有臀部伸展的做法，不可自行補上梨狀肌伸展等動作。"
+      "id": "Q06", "category": "ergonomics", "posture": "sedentary", "user_message": "久坐後屁股深處很緊，可以教我怎麼伸展臀部嗎？",
+      "expected_sources": ["glute_hip_stretching.txt"],
+      "must_include_any": [["交叉", "跨", "對側肩膀"]],
+      "must_not_include": ["鴿式", "4 字", "4字", "腳踝放在"],
+      "reference_answer": "11/15 補上 glute_hip_stretching.txt 後知識庫已有臀部伸展：坐姿髖部伸展（一腿交叉跨在另一腿上、手肘抵住外側）、臀肌伸展、梨狀肌伸展（膝蓋帶向對側肩膀）。這題原本的標註是「知識庫沒有臀部伸展，不可自行補動作」（category 為 trap），適用於補文獻之前的結果。"
     },
     {
       "id": "Q07", "category": "ergonomics", "posture": "normal", "user_message": "站著辦公的時候，螢幕和鍵盤的高度要怎麼抓？",

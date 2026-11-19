@@ -96,6 +96,10 @@ def _build_retriever():
         docs = loader.load()
         # 排除純參考文獻清單（只有作者/期刊/URL，無實際建議內容，會稀釋檢索品質）
         docs = [d for d in docs if not Path(d.metadata.get('source', '')).stem == '參考資料']
+        # 每份文獻最後的「參考文獻」段只有書目，Agent 引用時只寫檔名用不到；切掉它可少索引無用段落，
+        # 也避免它被查到、佔用每次回傳的 Token（書目完整保留在原檔與 參考資料.txt）
+        for d in docs:
+            d.page_content = d.page_content.split('\n參考文獻：')[0].rstrip()
         # chunk_size 拉大到可涵蓋知識庫文件的完整小節（原 400 常把「立即改善動作」清單從中切斷）
         splitter = RecursiveCharacterTextSplitter(chunk_size=700, chunk_overlap=100)
         split_docs = splitter.split_documents(docs)
@@ -132,6 +136,8 @@ POSTURE_KEYWORD_SOURCES = [
 # 查「手腕伸展運動」拿到下肢伸展、肩頸、通用伸展三份，就是沒有 wrist_rsi.txt，Agent 查不到就自己編動作。
 TOPIC_KEYWORD_SOURCES = [
     (('手腕', '滑鼠', '鍵盤', '腕隧道'), 'wrist_rsi.txt'),
+    (('手腕', '手指', '前臂'), 'wrist_hand_stretching.txt'),
+    (('臀', '屁股', '梨狀'), 'glute_hip_stretching.txt'),
     (('站立辦公', '站著', '站立工作', '升降桌', '坐站'), 'sit_stand_desk.txt'),
     (('眼睛', '藍光', '20-20-20'), 'eye_strain.txt'),
     (('核心',), 'core_stability.txt'),
@@ -146,8 +152,11 @@ TOPIC_KEYWORD_SOURCES = [
     (('螢幕', '桌面'), 'desk_ergonomics.txt'),
     (('休息', '起身'), 'microbreak_guidelines.txt'),
 ]
-_PINNED_CHUNKS = 2      # 每個被點名的文獻補進幾段
-_MAX_PINNED_FILES = 3   # 一次查詢最多補幾份，避免查詢提到很多主題時把結果塞滿
+# 11/19 為了 Token 用量收緊：原本最多補 3 份 × 2 段，加上語意檢索 4 段，一次可回傳 10 段（約 3,500 tokens），
+# 而且 ReAct 之後每一輪都會重送。改成每份只補 1 段、最多 2 份，總段數上限 5 段
+_PINNED_CHUNKS = 1      # 每個被點名的文獻補進幾段
+_MAX_PINNED_FILES = 2   # 一次查詢最多補幾份
+_MAX_RESULT_CHUNKS = 5  # 補進的段落優先，語意檢索結果從排名最後的開始捨棄
 
 
 def _keyword_pinned_docs(query: str, vs, docs: list) -> list:
@@ -161,7 +170,7 @@ def _keyword_pinned_docs(query: str, vs, docs: list) -> list:
             query, k=_PINNED_CHUNKS, fetch_k=100,
             filter=lambda md, f=fname: Path(md.get('source', '')).name == f,
         )
-    return pinned + docs
+    return (pinned + docs)[:_MAX_RESULT_CHUNKS]
 
 
 @mcp.tool()

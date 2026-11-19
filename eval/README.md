@@ -79,6 +79,17 @@ python eval/run_eval.py --rescore eval/results/<結果檔>.json --testset <對�
 - 複核模型固定用 gpt-4o（`--judge-model` 可改）；gpt-4o-mini 誤判太多不能用，驗證過程見 [RESULTS.md](RESULTS.md) 第七節
 - 需要 `OPENAI_API_KEY`（環境變數或專案根目錄的 `.env`），每個非拒答的回答約 1～3 次 gpt-4o 呼叫
 
+## 花費控制
+
+教授提供的金鑰每月預算 100 美金，全組與正式環境共用。11/15 一天的評測（gpt-4o 複核加上反覆重跑整套題庫）就把額度用完，正式環境因此無法使用。之後：
+
+- 執行前會印出預估花費，超過 `--budget`（預設 0.5 美金）就不執行
+- 跑完會印出 Agent 實際記錄的 Token 用量（每次回答的 `token_usage` 步驟）與花費，結果檔存在 `agent_cost_usd`
+- 只跑受影響的題目（`--ids`），複核優先用 `--rescore` 重算已存的回覆，不要重新呼叫 Agent
+- `--judge` 用 gpt-4o，單價約是 gpt-4o-mini 的 17 倍，只在需要時加
+
+參考數字（gpt-4o-mini）：11/19 精簡後每次回答平均輸入約 4,300、輸出約 300 tokens，約 0.0008 美金；主題庫 36 題 × 3 次約 0.1 美金。
+
 ## 打正式環境時要降低同時請求數
 
 ```

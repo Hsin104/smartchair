@@ -40,89 +40,46 @@ _LLM_TIMEOUT_SECONDS = 60
 
 # ── System Prompt ──────────────────────────────────────────────────────────────
 
-_SYSTEM_PROMPT = """你是專業的物理治療師 AI 助手「SmartChair」，專精辦公室人體工學與職業傷害預防。
+# 11/19 精簡：原本 2,427 tokens，而且 ReAct 每一輪都要重送一次。刪掉與工具定義（bind_tools 已帶入）、
+# 範疇判斷（已拆成獨立呼叫）重複的段落，規則本身不變。仍保持在 1,024 tokens 以上，OpenAI 自動快取才會生效。
+_SYSTEM_PROMPT = """你是物理治療師 AI 助手「SmartChair」，專精辦公室人體工學與職業傷害預防。
+你只負責諮詢，沒有控制震動馬達的工具，也不可暗示自己會讓椅子震動（震動由智慧椅自行觸發）。
 
-【ReAct 執行流程 — 必須依序執行，不可跳過】
-Step 0 — 範疇判斷（有「使用者自述」時必做，優先於偵測到的坐姿）
-  → 只有使用者「明確要求」以下內容時才拒答：藥物或止痛藥、手術或開刀、注射治療、
-    疾病診斷或嚴重程度判斷、減重／體重管理／BMI 評估、懷孕相關、血壓／中風等心血管問題、
-    焦慮／失眠／憂鬱等精神健康、保健食品、飲食或飲料
-    （該吃什麼、該喝什麼、喝多少、營養、咖啡因、酒精、喝水量）
-  → 使用者同時提到不適又問到上述內容時（例如「脖子痛可以吃什麼止痛藥」「壓力大失眠怎麼辦」），
-    仍屬不可回答範疇，必須拒答，不可只挑坐姿相關的部分回答
-  → 依使用者「問的主題」判斷，不是看句子裡有沒有提到坐姿或痠痛：問某種食物或飲料對姿勢、痠痛、
-    精神的影響（例如「久坐容易累，該吃什麼補充體力」「喝酒會不會讓腰更痠」），主題仍是飲食，必須拒答
-  → 拒答時：只回覆規則 3 的拒答句並停止，不可改給坐姿建議來迴避使用者的問題，也不可回答該問題的任何部分
-  → 以下都屬於「可回答範疇」，必須照常進行 Step 1～3，不可拒答：
-    人體工學設置（螢幕、椅子座深／腰靠／扶手／椅背角度、桌面、鍵盤滑鼠與手腕姿勢）、
-    休息與起身頻率、坐站交替與站立辦公桌、伸展與核心運動、呼吸練習、震動回饋的效果、
-    看螢幕造成的眼睛疲勞與乾澀（螢幕距離、照明、休息方式）、肩頸與下肢的肌力或伸展運動、
-    腰靠／護具等輔具能否預防下背痛或肩頸痛（屬於人體工學，不是疾病診斷）、
-    坐姿相關的痠痛與不適（頭痛、肩頸緊、腰痠）、
-    久坐對健康的一般影響（知識庫有收錄，不是針對個人病史的風險評估）、
-    詢問某個與坐姿、人體工學、伸展或久坐有關的數據或研究說法是否正確
-    （知識庫查不到的部分說明「知識庫沒有這項資料」即可，不可整題拒答）
-  → 拒答句只用於上面列出的不可回答範疇。可回答範疇的問題即使知識庫沒有使用者要的數字或研究，
-    也必須先查詢，再說明「知識庫沒有這項資料」並提供查到的相關內容，不可使用拒答句
-  → 不確定是否屬於不可回答範疇時，一律視為可回答
-Step 1 — 呼叫 get_posture_history(user_id)
-  → 觀察（Observation）：使用者身高體重（BMI）、最近 5 筆坐姿趨勢、近 7 天壞坐姿統計，
-    判斷「哪一種坐姿問題最頻繁」及「是持續不良或偶發」
-Step 2 — 呼叫 search_knowledge_base(query)
-  → 觀察（Observation）：針對 Step 1 判斷出的最頻繁坐姿問題查詢對應醫學文獻，作為建議依據
-  → 有「使用者自述」時，查詢字串以使用者問的主題為主；查詢結果沒有回答到使用者的問題時，
-    換一組關鍵字再查一次，不可用自己的知識補足
-  → 若查無相關文獻，且問題仍屬「辦公室人體工學／坐姿」範疇，可呼叫 web_search(query) 補充查詢
-Step 3 — 根據 Step 1~2 的完整觀察結果，產生個人化建議回覆（結合 7 天統計出的優先問題與 BMI 體型差異）
+【流程】
+Step 0 範疇判斷（有「使用者自述」時必做，優先於偵測到的坐姿）
+- 不可回答範疇：藥物或止痛藥、手術、注射治療、疾病診斷或嚴重程度判斷、減重／體重管理／BMI 評估、
+  懷孕、血壓／中風等心血管問題、焦慮／失眠／憂鬱等精神健康、保健食品、飲食或飲料
+  （該吃什麼、該喝什麼、喝多少、營養、咖啡因、酒精、喝水量）
+- 依使用者「問的主題」判斷：同時提到不適又問上述內容（例如「脖子痛可以吃什麼止痛藥」
+  「喝酒會不會讓腰更痠」），仍屬不可回答，不可只挑坐姿相關的部分回答
+- 不可回答時，只回覆這句並停止：「根據目前知識庫，我無法回答此問題，建議諮詢專業醫師或物理治療師。」
+  不可改給坐姿建議，也不可用 web_search 迴避
+- 其餘都屬可回答，必須照常進行 Step 1～3：人體工學設置（螢幕、座深、腰靠、扶手、椅背、桌面、鍵盤滑鼠、手腕）、
+  休息與起身頻率、坐站交替、伸展與肌力運動、呼吸練習、看螢幕造成的眼睛疲勞、腰靠護具等輔具的效果、
+  震動回饋的效果、坐姿相關的痠痛與不適、久坐對健康的一般影響、詢問相關數據或研究說法是否正確
+- 可回答的問題即使知識庫沒有使用者要的數字或研究，也要先查詢，再說明「知識庫沒有這項資料」
+  並提供查到的相關內容，不可使用拒答句
+- 不確定是否屬於不可回答範疇時，一律視為可回答
+Step 1 呼叫 get_posture_history(user_id)：取得身高體重、最近坐姿與近 7 天壞坐姿統計，找出最需要改善的坐姿
+Step 2 呼叫 search_knowledge_base(query)：有使用者自述時以他問的主題為查詢字串；查詢結果沒有回答到問題，
+  就換一組關鍵字再查一次，不可用自己的知識補足；知識庫查無相關文獻且仍屬人體工學範疇時，才可呼叫 web_search
+Step 3 根據 Step 1～2 的結果，寫出個人化建議
 
-【工具說明（皆透過 MCP Server 呼叫，非傳統 function calling）】
-• get_posture_history(user_id)   — 查詢身高體重（BMI）、最近 5 筆坐姿紀錄、近 7 天壞坐姿統計，
-  用於個人化建議與趨勢判斷
-• search_knowledge_base(query)   — 查詢醫學文獻知識庫，回答任何建議前必須先呼叫
-• web_search(query)              — 網路搜尋補充查詢，僅在知識庫查無相關文獻、且問題仍屬允許範疇時才可使用
-
-【重要】你只負責諮詢與建議，沒有任何工具可以觸發震動馬達，也不應該暗示自己會這麼做。
-震動提醒由智慧椅本身（ESP32）在偵測到壞坐姿或久坐時直接觸發，跟這次對話無關
-（不管這次對話是使用者主動提問、還是系統產生的週報回顧）。
-
-【核心規則 — 防幻覺機制】
-1. 【強制查詢】回答任何問題前，必須先呼叫 search_knowledge_base 工具查詢知識庫。
-2. 【嚴格知識邊界】只能根據 search_knowledge_base 或 web_search 返回的內容回答，嚴禁引用以外的任何資訊。
-3. 【不知道規則】若問題涉及以下範疇，必須直接回覆以下句子並停止：
-   「根據目前知識庫，我無法回答此問題，建議諮詢專業醫師或物理治療師。」
-   不可回答的範疇：藥物、手術、注射治療、疾病診斷、飲食、飲料與營養補充品、
-   非辦公室坐姿相關的健康問題（如血壓、體重、懷孕、精神健康）。
-   此類問題禁止改用 web_search 迴避，仍須直接拒答。
-4. 【強制引用】每則回覆最後必須有「📚 參考來源」章節，列出實際查詢到的 .txt 檔名或網路來源網址。
-   若查無相關文獻，請寫「（無相關知識庫文獻）」並拒絕提供建議。
-5. 【個人化但不評估體重】get_posture_history 回傳的身高體重僅可用於「人體工學建議」的個人化調整
-   （例如提醒依身高調整螢幕高度、椅子座深），嚴禁用於評估體位、健康風險或給予體重管理建議，
-   若使用者詢問體重相關健康問題，仍依規則3回覆「無法回答」。
-
-【嚴禁行為（任何違反均屬幻覺輸出）】
-✗ 引用知識庫與網路搜尋以外的醫學數據或研究
-✗ 診斷任何疾病或評估病情嚴重程度
-✗ 推薦任何藥物、手術或補充品
-✗ 捏造具體數字（百分比、角度、時間），除非直接引用自查詢結果
-✗ 提供查詢結果中沒有的伸展或運動動作、步驟（即使是常見動作也不行）；
-  查詢結果沒寫次數或秒數的動作，不可自行加上次數或秒數
-
-【可回答的主題（知識庫涵蓋範圍）】
-✓ 辦公室六種坐姿：正常坐姿、頭部前傾、身體左傾、身體右傾、過度後仰、久坐未動
-✓ 辦公室人體工學（螢幕高度、椅子座深/扶手/腰靠調整、鍵盤滑鼠位置與手腕中立姿勢）
-✓ 坐姿相關肌肉骨骼問題的自主改善動作（含下背痛、核心穩定、胸椎活動度與呼吸）
-✓ 辦公室伸展運動與簡易預防訓練（含辦公室瑜伽、坐站交替、久坐中斷活動建議）
-✓ 穿戴式／智慧椅震動回饋對坐姿矯正的實證效果
-✓ 肩頸痠痛的肌力與肩胛穩定運動、久坐對髖關節與腿後側柔軟度的影響、下肢伸展的做法與時間
-✓ 看螢幕造成的眼睛疲勞（螢幕距離與照明、定時看遠處休息）
+【防幻覺規則（違反任一條都算幻覺）】
+1. 只能根據 search_knowledge_base 或 web_search 回傳的內容回答，不可引用以外的醫學資訊、研究或數字
+2. 不診斷疾病、不評估病情嚴重程度、不推薦藥物、手術或補充品
+3. 只能列查詢結果中有的伸展或運動動作，做法、次數與秒數照原文；原文沒寫次數或秒數就不要寫；
+   查到的動作不足 3 個就只列查到的，不可自行補其他動作湊數
+4. 身高體重只能用於人體工學調整（例如依身高調整螢幕高度、座深），不可評估體位或健康風險
+5. 回覆最後必須有「📚 參考來源」，列出實際查到的 .txt 檔名或網址；查無相關文獻時寫「（無相關知識庫文獻）」，
+   並且不提供建議
 
 【回答格式】（繁體中文，語氣友善而專業）
 
 ⚠️ 問題分析
-（直接引用知識庫說明，可標註來源如「根據 forward.txt 文獻」）
+（引用知識庫說明，可標註「根據 forward.txt 文獻」）
 
-✅ 立即改善（最多 3 個動作，只能列查詢結果中有的動作，名稱、做法、次數與秒數都照查詢結果；
-　　查到的動作不足 3 個就只列查到的，不可自行補其他動作湊數）
+✅ 立即改善（最多 3 個動作）
 1.
 2.
 3.
@@ -165,7 +122,51 @@ def _leaf_error_message(e: BaseException) -> str:
     return f'{type(e).__name__}: {e}'
 
 
-async def _run_react(question: str, api_key: str) -> tuple[str, list]:
+# App 會直接顯示錯誤文字，所以這裡只放使用者看得懂的中文；原始錯誤（英文、含主機與埠）只寫進 log。
+# 故障測試（fault_test.py，教授 11/16 第 12 點）發現原本會把 OpenAI 的英文錯誤 JSON、
+# 「請確認 python manage.py mcp_server 是否已啟動」這類開發者訊息直接顯示給使用者。
+ERR_QUOTA      = 'AI 服務的使用額度或速率已達上限，請稍後再試'
+ERR_AUTH       = 'AI 服務的金鑰無效或已停用，請通知開發者處理'
+ERR_OPENAI     = '目前無法連線到 AI 服務（OpenAI），請稍後再試'
+ERR_MCP        = '知識庫服務暫時無法連線，請稍後再試'
+ERR_TIMEOUT    = 'AI 服務回應逾時，請稍後再試'
+ERR_UNEXPECTED = 'Physio Agent 發生未預期錯誤，請稍後再試；若持續發生請通知開發者'
+
+
+def _fatal_error(msg: str) -> str:
+    """重試也不會好的錯誤（額度用完、金鑰無效），回傳給使用者的訊息；其他錯誤回傳空字串。"""
+    if '429' in msg or 'insufficient_quota' in msg or 'rate_limit' in msg.lower():
+        return ERR_QUOTA
+    if '401' in msg or 'invalid_api_key' in msg or 'AuthenticationError' in msg:
+        return ERR_AUTH
+    return ''
+
+
+def _is_refusal(response: str) -> bool:
+    return '無法回答' in response and '知識庫' in response
+
+
+# ── Token 用量 ─────────────────────────────────────────────────────────────────
+# 教授提供的金鑰有每月預算（11/15 被評測用到見底），所以每次 LLM 呼叫都記下實際用量，
+# 最後彙整成一個 token_usage 步驟存進 AgentLog.steps，之後報告用實測數字而不是估算。
+# 回覆字數最長約 540 字（11/14～15 評測 2,222 次回答），1,000 tokens 足夠，只防止異常的超長輸出。
+_MAX_OUTPUT_TOKENS = 1000
+
+
+def _add_usage(total: dict, response) -> None:
+    usage = getattr(response, 'usage_metadata', None) or {}
+    total['calls'] += 1
+    total['input_tokens'] += usage.get('input_tokens', 0)
+    total['output_tokens'] += usage.get('output_tokens', 0)
+    # OpenAI 會自動快取超過 1,024 tokens 的相同開頭（System Prompt），快取部分以半價計費
+    total['cached_tokens'] += (usage.get('input_token_details') or {}).get('cache_read', 0)
+
+
+def _new_usage() -> dict:
+    return {'calls': 0, 'input_tokens': 0, 'cached_tokens': 0, 'output_tokens': 0}
+
+
+async def _run_react(question: str, api_key: str, usage: dict) -> tuple[str, list]:
     """
     手寫 ReAct 迴圈：Thought（模型回覆）→ Action（MCP 工具呼叫）→ Observation（工具回傳）→ 再思考。
 
@@ -187,8 +188,10 @@ async def _run_react(question: str, api_key: str) -> tuple[str, list]:
                 model=settings.OPENAI_MODEL,
                 api_key=api_key,
                 temperature=0.2,
+                max_tokens=_MAX_OUTPUT_TOKENS,
             ).bind_tools(tools)
 
+            # System Prompt 必須放在最前面且內容固定，OpenAI 的自動快取才會命中
             messages = [SystemMessage(content=_SYSTEM_PROMPT), HumanMessage(content=question)]
             steps = []
             # 規則 1（先查知識庫）用程式強制，不只靠 Prompt：評測發現模型會跳過知識庫直接用 web_search 回答
@@ -196,6 +199,7 @@ async def _run_react(question: str, api_key: str) -> tuple[str, list]:
 
             for i in range(MAX_ITERATIONS):
                 response = await llm.ainvoke(messages)
+                _add_usage(usage, response)
                 messages.append(response)
 
                 if not response.tool_calls:
@@ -262,30 +266,49 @@ scope = "in"（其餘皆是），例如：
 不確定時判為 "in"。"""
 
 
-async def _classify_scope(user_message: str, api_key: str) -> dict:
-    """
-    判斷使用者自述是否屬於可回答範疇，回傳 {'scope': 'in'|'out', 'category': str, 'reason': str}。
-    分類本身失敗（逾時、格式不對）時視為 'in'，交給 ReAct 迴圈的 Step 0 把關，不讓使用者因為分類器故障拿不到建議。
-    """
-    llm = ChatOpenAI(model=settings.OPENAI_MODEL, api_key=api_key, temperature=0).bind(
-        response_format={'type': 'json_object'})
-    try:
-        response = await llm.ainvoke([SystemMessage(content=_SCOPE_PROMPT), HumanMessage(content=user_message)])
-        result = json.loads(_flatten_content(response.content))
-        if result.get('scope') not in ('in', 'out'):
-            raise ValueError(f'scope 值不合法：{result}')
-        return result
-    except Exception as e:
-        logger.warning(f'[PhysioAgent] 範疇判斷失敗，視為可回答：{_leaf_error_message(e)}')
-        return {'scope': 'in', 'category': '', 'reason': '範疇判斷失敗，改由 Step 0 判斷'}
+# 範疇判斷失敗時的保守回應：不確定能不能答，就不進 ReAct 迴圈給建議。
+# 原本失敗時視為「可回答」、交給 Step 0 把關，但 Step 0 也是 LLM，兩道都可能出錯（教授 11/16 第 12 點）；
+# 健康相關的問題寧可請使用者稍後再試。這句話同時含「知識庫」與「無法回答」，_is_refusal 會當成拒答處理，
+# 不會再被加上「未附來源」警告。
+SCOPE_UNAVAILABLE = '目前無法確認這個問題能否由知識庫回答，暫時無法回答，請稍後再試；如有身體不適，建議諮詢專業醫師或物理治療師。'
+_SCOPE_TIMEOUT_SECONDS = 10
+_SCOPE_MAX_TOKENS = 150   # 只輸出一行 JSON
 
 
-async def _answer(question: str, user_message: str, api_key: str) -> tuple[str, list]:
+async def _classify_scope(user_message: str, api_key: str, usage: dict, llm=None) -> dict:
+    """
+    判斷使用者自述是否屬於可回答範疇，回傳 {'scope': 'in'|'out'|'error', 'category': str, 'reason': str}。
+    逾時、服務中斷或輸出格式不對時重試一次，仍失敗回傳 'error'，由呼叫端給保守回應。
+    llm 參數只給測試注入假模型用。
+    """
+    llm = llm or ChatOpenAI(model=settings.OPENAI_MODEL, api_key=api_key, temperature=0,
+                            max_tokens=_SCOPE_MAX_TOKENS).bind(response_format={'type': 'json_object'})
+    errors = []
+    for _ in range(2):
+        try:
+            response = await asyncio.wait_for(
+                llm.ainvoke([SystemMessage(content=_SCOPE_PROMPT), HumanMessage(content=user_message)]),
+                timeout=_SCOPE_TIMEOUT_SECONDS)
+            _add_usage(usage, response)
+            result = json.loads(_flatten_content(response.content))
+            if result.get('scope') not in ('in', 'out'):
+                raise ValueError(f'scope 值不合法：{result}')
+            return result
+        except Exception as e:  # noqa: BLE001 — 失敗都改走保守回應，原因記進 log 與第 0 步
+            msg = _leaf_error_message(e)
+            if _fatal_error(msg):
+                raise   # 額度用完、金鑰無效，重試也沒用，交給 get_advice_async 回傳明確錯誤，而不是「請稍後再試」
+            errors.append('逾時' if isinstance(e, asyncio.TimeoutError) else msg[:120])
+    logger.error(f'[PhysioAgent] 範疇判斷連續失敗，改回保守回應：{" / ".join(errors)}')
+    return {'scope': 'error', 'category': '', 'reason': '範疇判斷失敗：' + ' / '.join(errors)}
+
+
+async def _answer(question: str, user_message: str, api_key: str, usage: dict) -> tuple[str, list]:
     """有使用者自述時先做範疇判斷：不可回答就直接拒答，不進 ReAct 迴圈；判斷結果記成第 0 步供檢視。"""
     if not user_message:
-        return await _run_react(question, api_key)
+        return await _run_react(question, api_key, usage)
 
-    scope = await _classify_scope(user_message, api_key)
+    scope = await _classify_scope(user_message, api_key, usage)
     scope_step = {
         'step':         0,
         'thought':      '先判斷使用者的問題是否屬於知識庫可回答的範疇',
@@ -295,11 +318,25 @@ async def _answer(question: str, user_message: str, api_key: str) -> tuple[str, 
     }
     if scope['scope'] == 'out':
         return REFUSAL_SENTENCE, [scope_step]
+    if scope['scope'] == 'error':
+        return SCOPE_UNAVAILABLE, [scope_step]
     # 刻意不把「已判定可回答」告訴 ReAct 迴圈：試過加上「不可使用拒答句」的提示，誘導題（問知識庫沒有的
     # 數字、研究、品牌）確實不再被拒答，但幻覺率從 0% 升到 4.6%（開始推薦品牌、不查知識庫就回答）。
     # 寧可偶爾保守拒答。Step 0 仍把關，因為分類器偶爾會漏（例如代問家人懷孕的椅子調整）
-    output, steps = await _run_react(question, api_key)
+    output, steps = await _run_react(question, api_key, usage)
     return output, [scope_step] + steps
+
+
+def _usage_step(usage: dict) -> dict:
+    """把這次回答的 Token 用量記成最後一步（App 不顯示 steps，只供後台與評測統計）。"""
+    return {
+        'step':         -1,
+        'thought':      '本次回答的 OpenAI Token 用量',
+        'action':       'token_usage',
+        'action_input': dict(usage),
+        'observation':  (f'{usage["calls"]} 次呼叫，輸入 {usage["input_tokens"]}（快取 {usage["cached_tokens"]}）、'
+                         f'輸出 {usage["output_tokens"]} tokens'),
+    }
 
 
 # ── 防幻覺驗證 ─────────────────────────────────────────────────────────────────
@@ -315,8 +352,7 @@ def _validate_response(response: str) -> str:
             break
 
     # 拒答（規則 3）本來就不會附來源，不該再加「未附來源」警告，否則使用者會看到拒答句後面跟著一段系統提示
-    is_refusal = '無法回答' in response and '知識庫' in response
-    if not has_citation and not is_refusal:
+    if not has_citation and not _is_refusal(response):
         response += (
             '\n\n---\n⚠️ 系統提示：此回覆未包含知識庫來源引用，'
             '建議僅參考有附出處的資訊，或諮詢專業物理治療師。'
@@ -389,23 +425,28 @@ async def get_advice_async(posture: str = '', user_id: int = 0, user_message: st
     if not api_key:
         raise ValueError('未設定 OPENAI_API_KEY，請確認 .env 檔案')
 
+    usage = _new_usage()
     try:
         output, steps = await asyncio.wait_for(
-            _answer(question, user_message, api_key), timeout=_LLM_TIMEOUT_SECONDS)
-        return _validate_response(output.strip()), steps
+            _answer(question, user_message, api_key, usage), timeout=_LLM_TIMEOUT_SECONDS)
+        logger.info(f'[PhysioAgent] Token 用量：{_usage_step(usage)["observation"]}')
+        return _validate_response(output.strip()), steps + [_usage_step(usage)]
     except asyncio.TimeoutError as e:
         logger.error(f'[PhysioAgent] OpenAI 請求逾時（{_LLM_TIMEOUT_SECONDS}秒）')
-        raise RuntimeError('Physio Agent 請求逾時，請稍後再試') from e
+        raise RuntimeError(ERR_TIMEOUT) from e
     except Exception as e:
         msg = _leaf_error_message(e)
-        if '429' in msg or 'insufficient_quota' in msg or 'rate_limit' in msg.lower():
-            logger.error(f'[PhysioAgent] OpenAI 額度/速率限制：{msg}')
-            raise RuntimeError('OpenAI API 額度或速率已達上限，請稍後再試（全組共用同一組金鑰）') from e
+        fatal = _fatal_error(msg)
+        if fatal:
+            logger.error(f'[PhysioAgent] OpenAI 額度／金鑰錯誤：{msg}')
+            raise RuntimeError(fatal) from e
+        # 先判斷 OpenAI 連線錯誤，再判斷 MCP：兩者底層都是連線失敗，只有 OpenAI 的會包成 *ConnectionError
+        if 'OpenAIConnectionError' in msg or 'APIConnectionError' in msg or 'APITimeoutError' in msg:
+            logger.error(f'[PhysioAgent] 無法連線 OpenAI：{msg}')
+            raise RuntimeError(ERR_OPENAI) from e
         if any(s in msg for s in ('Connection refused', 'Connect call failed', 'ConnectError', 'getaddrinfo failed')):
-            logger.error(f'[PhysioAgent] 無法連線 MCP Server：{msg}')
-            raise RuntimeError(
-                f'無法連線到 MCP Server（{settings.MCP_SERVER_HOST}:{settings.MCP_SERVER_PORT}），'
-                '請確認 python manage.py mcp_server 是否已啟動'
-            ) from e
+            logger.error(f'[PhysioAgent] 無法連線 MCP Server（{settings.MCP_SERVER_HOST}:{settings.MCP_SERVER_PORT}，'
+                         f'請確認 mcp 服務是否啟動）：{msg}')
+            raise RuntimeError(ERR_MCP) from e
         logger.error(f'[PhysioAgent] Physio Agent 呼叫失敗：{msg}', exc_info=True)
-        raise RuntimeError(f'Physio Agent 發生未預期錯誤，請稍後再試或聯絡開發者：{msg[:200]}') from e
+        raise RuntimeError(ERR_UNEXPECTED) from e

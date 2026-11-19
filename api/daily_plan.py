@@ -120,8 +120,9 @@ def _llm_pick(bad_counts, candidates, done_counts):
         json.dumps({'id': ex['id'], 'group': ex['group'], 'name': ex['name'], 'target': ex['target_muscles'],
                     'postures': [p for p in ex['posture_trigger'] if p in BAD_POSTURES]}, ensure_ascii=False)
         for ex, _ in candidates)
+    # 只輸出 3 個任務的 JSON（每則說明 120 字內），600 tokens 足夠；防止異常的超長輸出
     llm = ChatOpenAI(model=settings.OPENAI_MODEL, api_key=settings.OPENAI_API_KEY, temperature=0.3, timeout=20,
-                     model_kwargs={'response_format': {'type': 'json_object'}})
+                     max_tokens=600, model_kwargs={'response_format': {'type': 'json_object'}})
     reply = llm.invoke(_PROMPT % {'stats': stats, 'done': json.dumps(done_counts) if done_counts else '無',
                                   'candidates': cand})
     picks = json.loads(reply.content).get('tasks') or []

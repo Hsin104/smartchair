@@ -43,3 +43,7 @@
 [39] Bandy, W. D., & Irion, J. M. (1994). The effect of time on static stretch on the flexibility of the hamstring muscles. Physical Therapy, 74(9), 845–850. https://doi.org/10.1093/ptj/74.9.845
 [40] Bandy, W. D., Irion, J. M., & Briggler, M. (1997). The effect of time and frequency of static stretching on flexibility of the hamstring muscles. Physical Therapy, 77(10), 1090–1096. https://doi.org/10.1093/ptj/77.10.1090
 [41] Garber, C. E., et al. (2011). American College of Sports Medicine position stand: Quantity and quality of exercise for developing and maintaining cardiorespiratory, musculoskeletal, and neuromotor fitness in apparently healthy adults. Medicine & Science in Sports & Exercise, 43(7), 1334–1359. https://doi.org/10.1249/mss.0b013e318213fefb
+
+--- 11/15 新增（手腕／臀髖伸展動作文獻補充）---
+[42] CCOHS. Office Ergonomics - Stretching at the Workstation. https://www.ccohs.ca/oshanswers/ergonomics/office/stretching.html
+[43] Cambridge University Hospitals NHS Foundation Trust. Stretches for the hip (patient information). https://www.cuh.nhs.uk/patient-information/stretches-for-the-hip/

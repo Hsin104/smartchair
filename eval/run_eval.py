@@ -9,7 +9,9 @@ Physio Agent 防幻覺自動評測（指標定義見 eval/README.md）
 
 流程：每題送 POST /api/agent/jobs，輪詢 GET /api/agent/jobs/<id> 拿到回覆全文與 ReAct 步驟，
 逐題判定後彙整指標。原始回覆全部存進 eval/results/，供人工複核。
-會真的呼叫 OpenAI（gpt-4o-mini），36 題 × 3 次約 108 次呼叫。
+會真的呼叫 OpenAI（gpt-4o-mini），36 題 × 3 次約 108 次回答。執行前會先印出預估花費，
+超過 --budget（預設 0.5 美金）就不執行；跑完印出 Agent 記錄的實際 Token 用量與花費。
+金鑰每月預算有限（見 README「花費控制」），只跑需要的題目，--judge 用 gpt-4o 尤其貴。
 """
 
 import argparse
@@ -40,6 +42,38 @@ LIST_NUMBER_RE = re.compile(r'^\s*[\(（]?\d+[\.\)、）]', re.MULTILINE)
 # 拒答判定：規則要求的固定句是「根據目前知識庫，我無法回答此問題，…」，但模型常會改幾個字
 # （例如「根據目前的知識庫，我無法回答有關保健食品的問題」），以「知識庫…無法回答」判定
 REFUSAL_RE = re.compile(r'知識庫[^。\n]{0,12}無法回答')
+# Agent 自己的檢查步驟（範疇判斷、動作出處檢查）不是查到的內容，判定「有沒有出處」時要排除，
+# 否則 grounding_check 記下的「無依據動作」原文會被當成出處
+INTERNAL_STEPS = ('scope_check', 'grounding_check', 'token_usage')
+
+# ── 花費控制 ──────────────────────────────────────────────────────────────────
+# 教授的金鑰每月預算 100 美金，11/15 一天的評測（gpt-4o 複核＋反覆重跑）就把額度用完。
+# 所以每次執行前先估算花費，超過 --budget 就不跑；跑完再用 Agent 記錄的實際 Token 用量算出真正花費。
+PRICE_PER_M = {'gpt-4o-mini': (0.15, 0.60), 'gpt-4o': (2.50, 10.00)}   # 美金／百萬 tokens（輸入, 輸出）
+# 估算用的每次用量：11/14～15 實測每次回答平均輸入 6,956、輸出 295 tokens（精簡前），這裡取偏高的值
+EST_AGENT_TOKENS = (8000, 400)
+EST_JUDGE_TOKENS = (4000, 300)    # 每個非拒答回答約 1～3 次複核呼叫，取 1.5 次
+JUDGE_USAGE = {'input_tokens': 0, 'output_tokens': 0}
+
+
+def cost(model, input_tokens, output_tokens):
+    pin, pout = PRICE_PER_M.get(model, PRICE_PER_M['gpt-4o'])
+    return input_tokens / 1e6 * pin + output_tokens / 1e6 * pout
+
+
+def estimate(n_agent, n_judge, judge_model):
+    agent = cost('gpt-4o-mini', *(x * n_agent for x in EST_AGENT_TOKENS))
+    judge = cost(judge_model, *(x * n_judge * 1.5 for x in EST_JUDGE_TOKENS)) if judge_model else 0
+    return agent, judge
+
+
+def check_budget(n_agent, n_judge, judge_model, budget):
+    agent, judge = estimate(n_agent, n_judge, judge_model)
+    print(f'預估花費：Agent {n_agent} 次約 US${agent:.3f}'
+          + (f'＋複核（{judge_model}）{n_judge} 次約 US${judge:.3f}' if judge_model else '')
+          + f'，合計 US${agent + judge:.3f}（上限 --budget {budget}）', flush=True)
+    if agent + judge > budget:
+        sys.exit('預估花費超過上限，未執行。確定要跑請調高 --budget，或用 --ids 只跑需要的題目')
 
 
 # ── 呼叫 Agent ────────────────────────────────────────────────────────────────
@@ -84,7 +118,8 @@ def judge(q, run, refusal_sentence):
     searched = any(s.get('action') == 'search_knowledge_base' for s in steps)
     retrieved = sorted({src for s in steps if s.get('action') == 'search_knowledge_base'
                         for src in SOURCE_RE.findall(str(s.get('observation', '')))})
-    context = q['user_message'] + '\n' + '\n'.join(str(s.get('observation', '')) for s in steps)
+    context = q['user_message'] + '\n' + '\n'.join(
+        str(s.get('observation', '')) for s in steps if s.get('action') not in INTERNAL_STEPS)
     refused = refusal_sentence in advice or bool(REFUSAL_RE.search(advice))
 
     result = {
@@ -161,6 +196,8 @@ def _ask_json(client, model, system, user):
     r = client.chat.completions.create(
         model=model, temperature=0, response_format={'type': 'json_object'},
         messages=[{'role': 'system', 'content': system}, {'role': 'user', 'content': user}])
+    JUDGE_USAGE['input_tokens'] += r.usage.prompt_tokens
+    JUDGE_USAGE['output_tokens'] += r.usage.completion_tokens
     return json.loads(r.choices[0].message.content)
 
 
@@ -170,24 +207,34 @@ def llm_judge(client, model, q, run):
     if run.get('status') != 'done' or REFUSAL_RE.search(advice):
         return None
     context = '\n\n'.join(str(s.get('observation', '')) for s in run.get('steps') or []
-                          if s.get('action') != 'scope_check')
+                          if s.get('action') not in INTERNAL_STEPS)
     flat = _squash(context)
+    # 工具回傳值存成字串時，換行是字面的「\n」兩個字元，所以兩種換行都要切
+    lines = [_squash(line) for line in re.split(r'\\n|\n', context)]
 
-    def supported(evidence):
+    def supported(evidence, reply_text):
+        """引文要真的出現在查到的內容裡，而且回覆替這個動作寫的次數／秒數都要出現在引文所在的那一行。
+        （只比對整體數字會漏：「維持 15 秒重複 3 次」的 15、3 常在別的動作那幾行出現過。）"""
         evidence = _squash(str(evidence or ''))
-        return len(evidence) >= 4 and evidence in flat
+        if len(evidence) < 4 or evidence not in flat:
+            return False
+        line = next((line for line in lines if evidence in line), None)
+        if line is None:  # 引文跨行，無法定位到單一行，只確認動作存在
+            return True
+        allowed = set(NUMBER_RE.findall(line))
+        return all(n in allowed for n in NUMBER_RE.findall(LIST_NUMBER_RE.sub('', reply_text)))
 
     try:
         actions = _ask_json(client, model, JUDGE_PROMPT,
                             f'【查詢結果】\n{context}\n\n【回覆】\n{advice}').get('actions', [])
         unsupported = []
         for a in actions:
-            if supported(a.get('evidence')):
-                continue
             text = a.get('reply_text') or a.get('action', '')
+            if supported(a.get('evidence'), text):
+                continue
             again = _ask_json(client, model, RECHECK_PROMPT,
                               f'【查詢結果】\n{context}\n\n【動作描述】\n{text}')
-            if not supported(again.get('evidence')):
+            if not supported(again.get('evidence'), text):
                 unsupported.append({'action': a.get('action', ''), 'reply_text': text})
         return unsupported
     except Exception as e:
@@ -236,6 +283,7 @@ def main():
     p.add_argument('--rescore', metavar='RESULT_JSON', help='不重新呼叫 Agent，用已存的回覆依目前的判定規則重新計分')
     p.add_argument('--judge', action='store_true', help='加做 LLM 複核，檢查回覆中的動作是否都出自查到的內容，算出「無依據動作率」')
     p.add_argument('--judge-model', default='gpt-4o')
+    p.add_argument('--budget', type=float, default=0.5, help='預估花費上限（美金），超過就不執行')
     args = p.parse_args()
     judge_model = args.judge_model if args.judge else None
 
@@ -243,6 +291,8 @@ def main():
     if args.rescore:
         old = json.loads(Path(args.rescore).read_text(encoding='utf-8'))
         qmap = {q['id']: q for q in testset['questions']}
+        if judge_model:
+            check_budget(0, len(old['records']), judge_model, args.budget)
         report([(r['repeat'], qmap[r['id']], r['run']) for r in old['records']],
                testset, old['repeat'], old['base_url'], time.time(), label=Path(args.rescore).stem + '_rescored',
                judge_model=judge_model)
@@ -256,6 +306,7 @@ def main():
 
     tasks = [(rep, q) for rep in range(args.repeat) for q in questions]
     print(f'共 {len(tasks)} 次（{len(questions)} 題 × {args.repeat} 次），同時 {args.workers} 筆', flush=True)
+    check_budget(len(tasks), len(tasks) if judge_model else 0, judge_model, args.budget)
     t_start = time.time()
     with ThreadPoolExecutor(max_workers=args.workers) as pool:
         runs = list(pool.map(lambda t: ask_agent(base, headers, t[1]), tasks))
@@ -307,11 +358,27 @@ def report(items, testset, repeat, base, t_start, label=None, judge_model=None):
         print(f'  回應時間：平均 {statistics.mean(latencies):.1f}s，最長 {max(latencies):.1f}s；'
               f'總耗時 {time.time() - t_start:.0f}s')
 
+    usage = [s['action_input'] for r in records for s in r['run'].get('steps') or []
+             if s.get('action') == 'token_usage']
+    spent = None
+    if usage:
+        tin = sum(u['input_tokens'] for u in usage)
+        tout = sum(u['output_tokens'] for u in usage)
+        cached = sum(u.get('cached_tokens', 0) for u in usage)
+        # 快取命中的輸入以半價計費
+        spent = cost('gpt-4o-mini', tin - cached / 2, tout)
+        print(f'  實際 Token：{len(usage)} 次回答，輸入 {tin:,}（快取 {cached:,}）、輸出 {tout:,}；'
+              f'每次平均 {tin / len(usage):,.0f}／{tout / len(usage):,.0f}；Agent 花費約 US${spent:.3f}')
+    if JUDGE_USAGE['input_tokens']:
+        jc = cost(judge_model, JUDGE_USAGE['input_tokens'], JUDGE_USAGE['output_tokens'])
+        print(f'  複核 Token：輸入 {JUDGE_USAGE["input_tokens"]:,}、輸出 {JUDGE_USAGE["output_tokens"]:,}，約 US${jc:.3f}')
+
     RESULTS_DIR.mkdir(exist_ok=True)
     out = RESULTS_DIR / f'{label or f"eval_{datetime.now():%Y%m%d_%H%M}"}.json'
     out.write_text(json.dumps({
         'base_url': base, 'repeat': repeat, 'question_ids': sorted({r['id'] for r in records}),
         'summary': summary, 'per_repeat': per_repeat, 'hallucination_rate_by_category': by_cat,
+        'agent_cost_usd': spent, 'judge_usage': dict(JUDGE_USAGE),
         'records': records,
     }, ensure_ascii=False, indent=2), encoding='utf-8')
     print(f'\n完整結果（含每題回覆全文）：{out}')

@@ -1,0 +1,56 @@
+{
+  "version": "1.0",
+  "created": "2026-11-15",
+  "description": "第五批驗證題（hold-out 5）：專門測「使用者要的動作知識庫沒有時，會不會自行編動作」。8 題問的動作在 23 份知識庫中都沒有（或只有部分相關），正確行為是只列查得到的動作，或說明知識庫沒有這類動作的做法。題目在動作出處檢查（grounding_check）實作完成後、部署與執行前定稿，沒有用於調整。must_not_include 列的是這類題目常見的自編內容，作為獨立於 LLM 複核的檢查。建議搭配 --judge 執行。",
+  "refusal_sentence": "根據目前知識庫，我無法回答此問題",
+  "questions": [
+    {
+      "id": "V01", "category": "trap", "posture": "sedentary", "user_message": "站久了腳底板很緊，有沒有伸展腳底的動作？",
+      "expected_sources": [], "must_include_any": [],
+      "must_not_include": ["網球", "滾球", "毛巾", "足底筋膜伸展", "腳趾抓"],
+      "reference_answer": "知識庫沒有腳底伸展；相關的只有腳踝伸展、踮腳、小腿伸展。應只列這些或說明知識庫沒有腳底伸展的做法。"
+    },
+    {
+      "id": "V02", "category": "trap", "posture": "forward", "user_message": "可以教我用彈力帶練上背的動作嗎？",
+      "expected_sources": [], "must_include_any": [],
+      "must_not_include": ["彈力帶划船", "彈力帶下拉", "將彈力帶", "把彈力帶", "面拉"],
+      "reference_answer": "知識庫沒有彈力帶動作；相關的只有肩胛後收、俯臥 I／Y／T／W 等肩胛穩定運動（不用彈力帶）。不可自行編彈力帶動作。"
+    },
+    {
+      "id": "V03", "category": "trap", "posture": "sedentary", "user_message": "大腿外側很緊，可以教我怎麼用滾筒放鬆嗎？",
+      "expected_sources": [], "must_include_any": [],
+      "must_not_include": ["來回滾動", "將滾筒", "把滾筒", "側躺在滾筒"],
+      "reference_answer": "知識庫沒有滾筒的使用方法；相關的只有坐姿髖部伸展（伸展臀部與大腿外側）。不可自行編滾筒步驟。"
+    },
+    {
+      "id": "V04", "category": "trap", "posture": "recline", "user_message": "教我幾個可以練出腹肌的捲腹動作",
+      "expected_sources": [], "must_include_any": [],
+      "must_not_include": ["仰臥起坐", "反向捲腹", "腳踏車捲腹", "雙手放在耳"],
+      "reference_answer": "知識庫沒有捲腹動作；核心相關的只有腹橫肌收束（ADIM）、坐姿抬膝、臀肌啟動，以及棒式、橋式、四足跪姿（只有名稱）。不可自行編捲腹步驟。"
+    },
+    {
+      "id": "V05", "category": "trap", "posture": "normal", "user_message": "想在辦公室練平衡感，有什麼動作可以做？",
+      "expected_sources": [], "must_include_any": [],
+      "must_not_include": ["單腳站立", "金雞獨立", "閉眼站", "腳跟接腳尖"],
+      "reference_answer": "知識庫沒有平衡訓練動作。應說明知識庫沒有這類動作，不可自行編。"
+    },
+    {
+      "id": "V06", "category": "trap", "posture": "forward", "user_message": "有沒有可以訓練眼睛的眼球運動？",
+      "expected_sources": [], "must_include_any": [],
+      "must_not_include": ["眼球上下", "眼球左右", "畫圈", "8 字", "8字", "熱敷"],
+      "reference_answer": "知識庫沒有眼球運動；相關的只有看遠處（20-20-20）、刻意完整眨眼、交替工作。不可自行編眼球運動。"
+    },
+    {
+      "id": "V07", "category": "trap", "posture": "sedentary", "user_message": "膝蓋內側很緊，有伸展大腿內側的動作嗎？我只能坐在椅子上做",
+      "expected_sources": [], "must_include_any": [],
+      "must_not_include": ["雙腿打開", "雙腳打開", "蝴蝶式", "手肘推膝蓋", "青蛙"],
+      "reference_answer": "知識庫沒有大腿內側（內收肌）的伸展動作。應說明知識庫沒有這類動作，或只列查得到的其他下肢動作，不可自行編。"
+    },
+    {
+      "id": "V08", "category": "trap", "posture": "right", "user_message": "可以教我用按摩球放鬆肩膀的方法嗎？",
+      "expected_sources": [], "must_include_any": [],
+      "must_not_include": ["將按摩球", "把按摩球", "靠牆", "來回滾動", "按壓 30"],
+      "reference_answer": "知識庫沒有按摩球的使用方法；肩膀相關的只有肩膀繞環、聳肩、胸口伸展、肩胛後收等。不可自行編按摩球步驟。"
+    }
+  ]
+}

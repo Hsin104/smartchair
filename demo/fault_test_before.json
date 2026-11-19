@@ -1,0 +1,51 @@
+[
+  {
+    "case": "A1 OpenAI 中斷＋有自述",
+    "status": "done",
+    "seconds": 15.2,
+    "text": "目前無法確認這個問題能否由知識庫回答，暫時無法回答，請稍後再試；如有身體不適，建議諮詢專業醫師或物理治療師。",
+    "scope_step": "error｜｜範疇判斷失敗：OpenAIConnectionError: Connection error. / OpenAIConnectionError: Connection error."
+  },
+  {
+    "case": "A2 OpenAI 中斷＋只有坐姿",
+    "status": "failed",
+    "seconds": 8.6,
+    "text": "Agent 暫時無法使用：Physio Agent 發生未預期錯誤，請稍後再試或聯絡開發者：OpenAIConnectionError: Connection error.",
+    "scope_step": ""
+  },
+  {
+    "case": "B1 OpenAI 無回應＋有自述",
+    "status": "done",
+    "seconds": 20.0,
+    "text": "目前無法確認這個問題能否由知識庫回答，暫時無法回答，請稍後再試；如有身體不適，建議諮詢專業醫師或物理治療師。",
+    "scope_step": "error｜｜範疇判斷失敗：逾時 / 逾時"
+  },
+  {
+    "case": "B2 OpenAI 無回應＋只有坐姿",
+    "status": "failed",
+    "seconds": 60.0,
+    "text": "Agent 暫時無法使用：Physio Agent 請求逾時，請稍後再試",
+    "scope_step": ""
+  },
+  {
+    "case": "C1 MCP 中斷＋只有坐姿",
+    "status": "failed",
+    "seconds": 2.5,
+    "text": "Agent 暫時無法使用：無法連線到 MCP Server（localhost:18998），請確認 python manage.py mcp_server 是否已啟動",
+    "scope_step": ""
+  },
+  {
+    "case": "D1 金鑰無效＋有自述",
+    "status": "done",
+    "seconds": 0.9,
+    "text": "目前無法確認這個問題能否由知識庫回答，暫時無法回答，請稍後再試；如有身體不適，建議諮詢專業醫師或物理治療師。",
+    "scope_step": "error｜｜範疇判斷失敗：OpenAIAuthenticationError: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-**************** / OpenAIAuthenticationError: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-****************"
+  },
+  {
+    "case": "D2 金鑰無效＋只有坐姿",
+    "status": "failed",
+    "seconds": 0.5,
+    "text": "Agent 暫時無法使用：Physio Agent 發生未預期錯誤，請稍後再試或聯絡開發者：OpenAIAuthenticationError: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-************************************xxxx. You can find your API key at https://platform.openai.c",
+    "scope_step": ""
+  }
+]
