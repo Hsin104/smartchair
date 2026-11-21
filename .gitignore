@@ -61,3 +61,9 @@ docker-compose.override.yml
 
 # collectstatic 產物（Docker build 時產生）
 staticfiles/
+
+# 資料庫備份與匯出的坐姿資料（含使用者資料，不可進版控）
+backups/
+*.sql
+*.sql.gz
+posture_real_export*.json
