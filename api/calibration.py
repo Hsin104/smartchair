@@ -41,11 +41,14 @@ GEOMETRIC_NEUTRAL = (
     round(sum(p[0] for p in SEAT_POSITIONS.values()) / len(SEAT_POSITIONS), 4),
     round(sum(p[1] for p in SEAT_POSITIONS.values()) / len(SEAT_POSITIONS), 4),
 )
-NORMAL_RADIUS = 0.07
+# 綠環半徑：硬體 11/14 回覆韌體 2.0 時建議 0.055（原本 0.07 實測範圍太大），11/21 改用
+NORMAL_RADIUS = 0.055
 
 CALIBRATION_DURATION_SECONDS = 5     # 椅子取樣秒數（設計 2-2）
 DEVICE_TIMEOUT_SECONDS = 10          # 等椅子回報，逾時改後端計算（設計 2-3）
-STABILITY_LIMIT = NORMAL_RADIUS / 2  # 重心偏移超過綠環半徑一半＝坐不穩（設計 2-4）
+# 重心偏移超過此值＝坐不穩（設計 2-4）。原本是半徑的一半（0.07/2）；半徑改小後固定為 0.035，
+# 維持原本的判定，也與韌體校正判斷 unstable 的 0.035 一致
+STABILITY_LIMIT = 0.035
 FALLBACK_WINDOW_SECONDS = 20         # 後端備案取最近幾秒的資料
 DEFAULT_MIN_SAMPLES = 200            # 椅子累積幾筆正常坐姿才用自己的預設值（設計 3-7）
 FLEET_DEFAULT_KEY = 'default_neutral'

@@ -12,8 +12,13 @@
   採集完後執行 python train_model_dl.py（不加 --calibrated）重新訓練。
 
 執行方式：
-    python collect_data.py          # 校準模式
-    python collect_data.py --raw    # 原始值模式
+    python collect_data.py                          # 校準模式，椅子用 .env 的 DEFAULT_CHAIR_DEVICE_ID
+    python collect_data.py --raw                    # 原始值模式
+    python collect_data.py --device chair_86C6D0    # 指定椅子
+
+韌體 2.0（11/21 起只支援）：訂閱 chair/{device_id}/pressure。椅子只在有變動時送資料，
+坐著完全不動約 5 秒一筆、有小幅移動時每秒 1～2 筆。每筆會同時存下椅子韌體當下的判斷（device_posture），
+之後可以用同一批標註資料同時評估雲端模型與韌體。
 """
 
 import os
@@ -31,7 +36,7 @@ import paho.mqtt.client as mqtt
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from api.models import PostureRecord
-from api.sensor_adapter import parse_esp32_payload
+from api.sensor_adapter import device_posture, parse_esp32_payload
 
 User = get_user_model()
 
@@ -42,7 +47,9 @@ MQTT_USERNAME = getattr(settings, 'MQTT_USERNAME', '')
 MQTT_PASSWORD = getattr(settings, 'MQTT_PASSWORD', '')
 MQTT_USE_TLS  = getattr(settings, 'MQTT_USE_TLS',  False)
 
-TOPIC = 'chair/pressure/01'
+DEVICE_ID = (sys.argv[sys.argv.index('--device') + 1] if '--device' in sys.argv[:-1]
+             else getattr(settings, 'DEFAULT_CHAIR_DEVICE_ID', ''))
+TOPIC = f'chair/{DEVICE_ID}/pressure'
 
 POSTURE_LABELS = {
     '1': ('normal',  '標準坐姿'),
@@ -126,6 +133,7 @@ class Collector:
             seat_pressure_data=delta_seat,
             back_pressure_data=delta_back,
             source='real',
+            device_posture=device_posture(payload),   # 椅子韌體當下的判斷，供評估韌體準確率
         )
         print(f'  [{count}/{total}] 已儲存 {posture}', end='\r')
 
@@ -196,6 +204,11 @@ def main():
         print(f'[Error] 找不到帳號 {username}，請先在後端註冊')
         sys.exit(1)
     print(f'  使用者：{user.username}')
+    if not DEVICE_ID or DEVICE_ID == 'chair_01':
+        print('[Error] 請用 --device 指定椅子編號（例如 --device chair_86C6D0）；'
+              'chair_01 是舊韌體的固定編號，韌體 2.0 不會再送這個 topic')
+        sys.exit(1)
+    print(f'  椅子：{DEVICE_ID}（訂閱 {TOPIC}）')
 
     # 建立 MQTT client
     client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
@@ -246,8 +259,10 @@ def main():
     collector_holder[0] = collector
 
     # 依序採集每種姿勢
-    print(f'\n>>> 第二步：各姿勢採集（每種 {SAMPLES_PER_POSTURE} 筆）')
-    print('    坐好後按 Enter 開始，系統會自動計數\n')
+    print(f'\n>>> 第二步：各姿勢採集（每種 {SAMPLES_PER_POSTURE} 筆，椅子 {DEVICE_ID}）')
+    print('    坐好後按 Enter 開始，系統會自動計數')
+    print('    韌體 2.0 只在有變動時送資料：維持同一種坐姿，但可以小幅調整（換手、挪一下），')
+    print('    每次調整都會送出一筆；完全不動約 5 秒才一筆\n')
 
     for key, (code, label) in POSTURE_LABELS.items():
         print(f'  [{key}] 準備採集「{label}」')

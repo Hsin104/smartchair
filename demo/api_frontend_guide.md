@@ -121,10 +121,12 @@
 
 | API | 說明 |
 |---|---|
-| `GET /chair/status?device_id=` | 某張椅子目前誰在用：`device_id`、`online`、`active`、`username`、`since`、`calibrated`（不帶參數＝目前唯一那張實體椅子） |
-| `GET /chairs` | 所有椅子清單：`device_id`、`online`、`username`、`since`、`last_seen`、`firmware` |
+| `GET /chair/status?device_id=` | 某張椅子目前誰在用：`device_id`、`online`、`active`、`username`、`since`、`calibrated`、`battery`（不帶參數＝目前唯一那張實體椅子） |
+| `GET /chairs` | 所有椅子清單：`device_id`、`online`、`username`、`since`、`last_seen`、`firmware`、`battery` |
 
-`online`：新韌體（2.0）的椅子以椅子自己回報的連線狀態為準，斷電或斷網約 20～25 秒後變成 `false`；舊韌體＝最近 15 秒內有收到資料。椅子沒人坐時 30 秒才送一筆資料，`last_seen` 舊一點是正常的，請以 `online` 判斷。
+`online`：以椅子自己回報的連線狀態為準（韌體 2.0），斷電或斷網約 20～25 秒後變成 `false`。椅子沒人坐時 30 秒才送一筆資料，`last_seen` 舊一點是正常的，請以 `online` 判斷。
+
+`battery`（11/21 新增）：椅子最後一次回報的電量，`{"present": true, "percent": 65, "voltage": 7.567, "updated_at": "..."}`；從沒收到過時是 `null`。椅子約 5～30 秒回報一次，`updated_at` 舊一點是正常的。**`present` 為 `false` 時請顯示「未偵測到電池」，不要顯示「沒電」或 0%**（此時 `percent`、`voltage` 是 `null`）。
 
 ---
 

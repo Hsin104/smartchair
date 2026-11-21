@@ -5,7 +5,7 @@
 驗證「MQTT 接收 → 20 特徵坐姿預測 → 資料庫寫入 → 通知 → 馬達觸發 → AI 建議」完整鏈路。
 
 不會連線任何 MQTT Broker（本機或雲端），純呼叫後端函式，
-因此不會影響組員目前連線中的 EMQX Cloud（chair/pressure/01）。
+因此不會影響組員目前連線中的 EMQX Cloud 與真實椅子。
 
 執行方式：
     python test_full_pipeline.py            # 略過會呼叫 OpenAI API 的 AI 建議測試
@@ -32,7 +32,7 @@ from api.models import PostureRecord, Notification, MotorLog, ChairSession, Chai
 from types import SimpleNamespace
 from api import mqtt_publisher
 from api.management.commands.mqtt_subscriber import (
-    _handle_pressure, _handle_pressure_01, STABLE_READINGS, _posture_state, _empty_since, offline_sweep,
+    _handle_pressure, STABLE_READINGS, _posture_state, _empty_since, offline_sweep,
 )
 
 # 攔截所有 MQTT 發送：後端任何地方要送 MQTT 訊息（例如馬達指令）都會照 .env 的設定
@@ -122,7 +122,7 @@ def main():
     print(f'\n[前置] 測試使用者：{user.username}（已 check-in 測試椅 {TEST_DEVICE_ID}）')
 
     # ── 第一段：MQTT payload → 20 特徵預測 → PostureRecord ─────────────────
-    print('\n[第一段] MQTT payload 模擬（chair/pressure/01，含椅背 3 點）→ 坐姿預測')
+    print(f'\n[第一段] MQTT payload 模擬（chair/{TEST_DEVICE_ID}/pressure，含椅背 3 點）→ 坐姿預測')
     for posture, data in POSTURE_PAYLOADS.items():
         payload = {
             'device_id': TEST_DEVICE_ID,
@@ -140,7 +140,7 @@ def main():
         # 防手震機制需連續 STABLE_READINGS 筆讀值一致才算「確認變成」該坐姿並觸發通知
         # （見 mqtt_subscriber.py，2026-09-02 加入），單次呼叫不會觸發，須重複送同一份 payload
         for _ in range(STABLE_READINGS):
-            _handle_pressure_01(payload)
+            _handle_pressure(TEST_DEVICE_ID, payload)
 
         record = PostureRecord.objects.filter(user=user).order_by('-timestamp').first()
         check(

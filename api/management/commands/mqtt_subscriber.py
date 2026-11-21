@@ -7,9 +7,11 @@ MQTT 訂閱服務
 執行方式：
     python manage.py mqtt_subscriber
 
-訂閱的 Topic：
-    chair/pressure/01          — 壓力感測數值（EMQX Cloud，組員裝置）
-    chair/vibration/01/ack     — 馬達指令執行回覆（對應 mqtt_publisher.py 發布的指令）
+訂閱的 Topic（韌體 2.0；舊韌體的 chair/pressure/01、chair/vibration/01/… 已於 11/21 移除）：
+    chair/+/pressure           — 每張椅子的壓力感測數值
+    chair/+/online             — 在線狀態（LWT，retained）
+    chair/+/vibration/status   — 椅子事件（提醒、離座、校正結果、中立點套用）
+    chair/+/vibration/ack      — 手動馬達指令的執行回覆
     smartchair/sensor/seat     — 椅墊 8 個 FSR 數值（本機測試用）
     smartchair/sensor/back     — 椅背 3 個 FSR 數值（本機測試用）
     smartchair/result/posture  — 坐姿辨識結果（含 username）
@@ -36,9 +38,9 @@ from django.utils import timezone
 from api.models import Chair, ChairSession, PostureRecord, Notification
 from api.calibration import handle_device_event, push_neutral, user_calibration
 from api.chairs import (
-    ACK_TOPIC_PATTERN, LEGACY_PRESSURE_TOPIC, LEGACY_STATUS_TOPIC, ONLINE_TOPIC_PATTERN, PRESSURE_TOPIC_PATTERN,
+    ACK_TOPIC_PATTERN, ONLINE_TOPIC_PATTERN, PRESSURE_TOPIC_PATTERN,
     STATUS_TOPIC_PATTERN, active_session, auto_checkout, chair_for_device, device_id_from_online_topic,
-    device_id_from_status_topic, device_id_from_topic, event_time, handle_online, session_at,
+    device_id_from_status_topic, device_id_from_topic, event_time, handle_online, session_at, update_battery,
 )
 from api.views import predict_posture, _check_sedentary
 from api.physio_agent import POSTURE_DISPLAY
@@ -57,7 +59,7 @@ MQTT_USERNAME = getattr(settings, 'MQTT_USERNAME', '')
 MQTT_PASSWORD = getattr(settings, 'MQTT_PASSWORD', '')
 MQTT_USE_TLS  = getattr(settings, 'MQTT_USE_TLS',  False)
 
-# 預設使用者（chair/pressure/01 的訊息不帶 username 時使用）
+# 預設使用者（椅子沒有人入座、訊息也不帶 username 時使用）
 DEFAULT_USERNAME = 'user01'
 
 # 有人坐著的最低總壓力門檻（norm 8 個感測器絕對值總和）
@@ -75,9 +77,6 @@ TOPICS = [
     ACK_TOPIC_PATTERN,           # chair/+/vibration/ack
     STATUS_TOPIC_PATTERN,        # chair/+/vibration/status：提醒、離座、校正結果、設定套用回報
     ONLINE_TOPIC_PATTERN,        # chair/+/online：韌體 2.0 的在線狀態（LWT，retained）
-    LEGACY_STATUS_TOPIC,
-    'chair/pressure/01',         # 舊韌體（device_id 固定 chair_01）
-    'chair/vibration/01/ack',
     'smartchair/sensor/seat',
     'smartchair/sensor/back',
     'smartchair/result/posture',
@@ -121,19 +120,15 @@ def _get_buffer(username):
     return _sensor_buffer[username]
 
 
-def _handle_pressure_01(payload: dict):
-    """舊 topic chair/pressure/01 的進入點（舊韌體與整合測試使用），device_id 取自 payload，預設 chair_01。"""
-    _handle_pressure(device_id_from_topic(LEGACY_PRESSURE_TOPIC, payload), payload)
-
-
 def _handle_pressure(device_id: str, payload: dict):
     """
-    處理一張椅子的感測資料（chair/{device_id}/pressure 或舊的 chair/pressure/01），預測坐姿後寫入資料庫。
+    處理一張椅子的感測資料（chair/{device_id}/pressure），預測坐姿後寫入資料庫。
 
-    支援 ESP32 格式：{"device_id":"chair_01","ts":123,"norm":[...],"pose":{...}}
+    ESP32 格式：{"device_id":"chair_A1B2C3","ts":123,"norm":[...],"pose":{...},"power":{...}}
     資料寫進「這張椅子」目前入座的使用者名下（POST /api/chair/checkin 帶 device_id 登記）。
     """
     chair = chair_for_device(device_id)
+    update_battery(chair, payload)   # 只有 sync 筆帶 power，保留最後一次的值（有沒有人坐都要記）
     session = active_session(chair)
 
     # 有沒有人坐：韌體 2.0 以椅子的 pose.label 為準，舊格式用 norm/raw 總壓力門檻
@@ -331,7 +326,7 @@ def _handle_chair_event(device_id: str, payload: dict):
 
 
 def _dispatch_message(topic, payload):
-    # ── 感測資料：新 chair/{device_id}/pressure 與舊 chair/pressure/01 ─────────
+    # ── 感測資料：chair/{device_id}/pressure ─────────────────────────────────
     device_id = device_id_from_topic(topic, payload)
     if device_id:
         _handle_pressure(device_id, payload)
@@ -350,7 +345,7 @@ def _dispatch_message(topic, payload):
         _handle_chair_event(status_device, payload)
         return
 
-    # ── 馬達指令執行回覆：新 chair/{device_id}/vibration/ack 與舊 chair/vibration/01/ack ──
+    # ── 馬達指令執行回覆：chair/{device_id}/vibration/ack ────────────────────────
     if topic.startswith('chair/') and topic.endswith('/vibration/ack'):
         print(f'[MQTT] 馬達 ACK（{topic}）— cmd_id={payload.get("cmd_id")} '
               f'status={payload.get("status")} message={payload.get("message")}')

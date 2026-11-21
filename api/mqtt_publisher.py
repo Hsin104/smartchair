@@ -1,9 +1,9 @@
 """
 馬達震動指令發布層（依蕭芷萱 Agent Quickstart 規格）。
 
-Topic:
-    chair/vibration/01/cmd — 發布指令
-    chair/vibration/01/ack — 訂閱韌體回覆（見 mqtt_subscriber.py 的 on_message）
+Topic（韌體 2.0，每張椅子各自的 topic，由 api.chairs.motor_topic(device_id) 產生）：
+    chair/{device_id}/vibration/cmd — 發布指令
+    chair/{device_id}/vibration/ack — 韌體回覆（見 mqtt_subscriber.py）
 
 參數限制（韌體端會自動夾限，這裡先做一次防呆，避免夾限行為造成誤解）：
     motor_id: 1~4 | intensity: 0~100 | duration_ms: 50~5000 | stagger_ms: 0~500
@@ -20,8 +20,6 @@ import paho.mqtt.publish as mqtt_publish
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
-
-MOTOR_CMD_TOPIC = 'chair/vibration/01/cmd'
 
 # 我方 "M1".."M4" 字串 ↔ 韌體 1~4 整數 id
 MOTOR_ID_MAP = {'M1': 1, 'M2': 2, 'M3': 3, 'M4': 4}
@@ -106,10 +104,10 @@ def publish_json(topic, payload, retain=False):
 
 def publish_motor_command(motors, intensity=DEFAULT_INTENSITY,
                            duration_ms=DEFAULT_DURATION_MS,
-                           stagger_ms=DEFAULT_STAGGER_MS, topic=MOTOR_CMD_TOPIC):
+                           stagger_ms=DEFAULT_STAGGER_MS, *, topic):
     """
-    發布馬達震動指令。topic 預設為舊韌體的 chair/vibration/01/cmd；
-    多張椅子時傳入 api.chairs.motor_topic(device_id)，只送到使用者坐的那張椅子。
+    發布馬達震動指令到 topic（api.chairs.motor_topic(device_id)，只送到使用者坐的那張椅子）。
+    舊韌體的預設 topic chair/vibration/01/cmd 已移除，必須指定。
     失敗時回傳 None（見 publish_json）。
     """
     if not motors:

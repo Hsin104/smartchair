@@ -103,10 +103,8 @@ class Chair(models.Model):
     一張實體智慧椅，以 ESP32 的 device_id 識別（例如 chair_A1B2C3）。
 
     後端第一次收到某張椅子的 MQTT 資料就會自動登記，量產時不需要先手動建立。
-    舊韌體固定送 chair/pressure/01、device_id 為 chair_01，視為 LEGACY_DEVICE_ID 這張椅子；
-    App 呼叫 checkin 沒指定椅子時也預設坐這張，舊版 App 不用改。
+    11/21 起只支援韌體 2.0 的 chair/{device_id}/… topic（舊韌體固定的 chair/pressure/01、chair_01 已移除）。
     """
-    LEGACY_DEVICE_ID = 'chair_01'
 
     device_id  = models.CharField(max_length=40, unique=True, verbose_name='裝置 ID')
     name       = models.CharField(max_length=100, blank=True, verbose_name='名稱（例如擺放位置）')
@@ -118,6 +116,12 @@ class Chair(models.Model):
     firmware          = models.CharField(max_length=20, blank=True, verbose_name='韌體版本')
     # 目前有沒有人坐（依椅子的 pose.label）；用來決定 retained 中立點要送個人值還是預設值
     occupied          = models.BooleanField(null=True, blank=True, verbose_name='目前有人坐')
+    # 電量：韌體 2.0 只在 sync 筆（約 5 秒～30 秒一次）帶 power，保留最後一次的值。
+    # battery_present=False 表示沒偵測到電池（App 應顯示「未偵測到電池」，不是「沒電」）
+    battery_pct        = models.PositiveSmallIntegerField(null=True, blank=True, verbose_name='電量（%）')
+    battery_voltage    = models.FloatField(null=True, blank=True, verbose_name='電池電壓（V）')
+    battery_present    = models.BooleanField(null=True, blank=True, verbose_name='偵測到電池')
+    battery_updated_at = models.DateTimeField(null=True, blank=True, verbose_name='電量更新時間')
 
     # 這張椅子自己的預設中立點（沒校正的人坐時用）：由這張椅子累積的正常坐姿資料算出，
     # 每週重新計算（python manage.py update_default_neutral），資料不足時為 null、改用全部椅子的平均

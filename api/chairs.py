@@ -1,10 +1,8 @@
 """
 多張椅子：MQTT topic 與椅子的對應、找出椅子上的使用者。
 
-Topic 規劃（demo/esp32_spec_v2.md 第三節第 3 項）：
-    新韌體  chair/{device_id}/pressure         chair/{device_id}/vibration/cmd ...
-    舊韌體  chair/pressure/01（device_id 固定 chair_01）  chair/vibration/01/cmd ...
-兩種格式同時支援，硬體可以先改、後端不用等，反之亦然。
+Topic 規劃（韌體 2.0，demo/esp32_spec_v2.md）：chair/{device_id}/pressure、chair/{device_id}/vibration/cmd …
+舊韌體的 chair/pressure/01、chair/vibration/01/…（device_id 固定 chair_01）韌體已不再使用，11/21 移除。
 """
 
 from datetime import datetime, timedelta, timezone as dt_timezone
@@ -13,15 +11,11 @@ from django.utils import timezone
 
 from .models import Chair, ChairSession
 
-LEGACY_PRESSURE_TOPIC = 'chair/pressure/01'
-LEGACY_MOTOR_TOPIC = 'chair/vibration/01/cmd'
-
 # paho 訂閱用的萬用字元 topic
 PRESSURE_TOPIC_PATTERN = 'chair/+/pressure'
 ACK_TOPIC_PATTERN = 'chair/+/vibration/ack'
 # 椅子的系統事件（校正結果 calibrated／calibration_failed、設定套用 config_applied 等）
 STATUS_TOPIC_PATTERN = 'chair/+/vibration/status'
-LEGACY_STATUS_TOPIC = 'chair/vibration/01/status'
 # 韌體 2.0 的在線狀態（MQTT 遺囑 LWT，retained）：連線時 online=true，斷電斷網約 20～25 秒後 broker 代發 false
 ONLINE_TOPIC_PATTERN = 'chair/+/online'
 
@@ -35,9 +29,7 @@ def device_id_from_online_topic(topic: str):
 
 
 def device_id_from_status_topic(topic: str):
-    """chair/{device_id}/vibration/status 或舊的 chair/vibration/01/status；其他 topic 回傳 None。"""
-    if topic == LEGACY_STATUS_TOPIC:
-        return Chair.LEGACY_DEVICE_ID
+    """chair/{device_id}/vibration/status；其他 topic 回傳 None。"""
     parts = topic.split('/')
     if len(parts) == 4 and parts[0] == 'chair' and parts[2] == 'vibration' and parts[3] == 'status':
         return parts[1]
@@ -45,9 +37,7 @@ def device_id_from_status_topic(topic: str):
 
 
 def device_id_from_topic(topic: str, payload: dict):
-    """回傳這則感測資料屬於哪張椅子；不是感測資料 topic 時回傳 None。"""
-    if topic == LEGACY_PRESSURE_TOPIC:
-        return payload.get('device_id') or Chair.LEGACY_DEVICE_ID
+    """回傳這則感測資料（chair/{device_id}/pressure）屬於哪張椅子；不是感測資料 topic 時回傳 None。"""
     parts = topic.split('/')
     if len(parts) == 3 and parts[0] == 'chair' and parts[2] == 'pressure':
         return parts[1]
@@ -72,9 +62,7 @@ def user_session(user):
 
 
 def motor_topic(device_id: str) -> str:
-    """馬達指令要送到哪個 topic：舊韌體的 chair_01 用舊 topic，其他用 chair/{device_id}/vibration/cmd。"""
-    if not device_id or device_id == Chair.LEGACY_DEVICE_ID:
-        return LEGACY_MOTOR_TOPIC
+    """馬達指令要送到哪個 topic：chair/{device_id}/vibration/cmd。"""
     return f'chair/{device_id}/vibration/cmd'
 
 
@@ -122,6 +110,40 @@ def handle_online(device_id: str, payload: dict) -> Chair:
         for k, v in fields.items():
             setattr(chair, k, v)
     return chair
+
+
+def update_battery(chair: Chair, payload: dict) -> bool:
+    """
+    pressure 的 power 欄位（韌體 2.0 只在 sync 筆出現）→ 存最後一次的電量；沒帶 power 時不動。
+    回傳有沒有更新。battery_present=False 時電量與電壓沒有意義，存成 null。
+    """
+    power = payload.get('power')
+    if not isinstance(power, dict):
+        return False
+    present = power.get('battery_present')
+    pct, volt = power.get('battery_pct'), power.get('voltage_v')
+    fields = {
+        'battery_present':    present if isinstance(present, bool) else None,
+        'battery_pct':        max(0, min(100, int(pct))) if isinstance(pct, (int, float)) and present is not False else None,
+        'battery_voltage':    round(float(volt), 3) if isinstance(volt, (int, float)) and present is not False else None,
+        'battery_updated_at': timezone.now(),
+    }
+    Chair.objects.filter(pk=chair.pk).update(**fields)
+    for k, v in fields.items():
+        setattr(chair, k, v)
+    return True
+
+
+def battery_json(chair: Chair):
+    """椅子狀態 API 回傳的電量；從沒收到過 power 時回傳 None。"""
+    if chair.battery_updated_at is None:
+        return None
+    return {
+        'present':    chair.battery_present,
+        'percent':    chair.battery_pct,
+        'voltage':    chair.battery_voltage,
+        'updated_at': timezone.localtime(chair.battery_updated_at).isoformat(),
+    }
 
 
 def event_time(payload: dict):

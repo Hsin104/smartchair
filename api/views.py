@@ -36,7 +36,7 @@ from .schemas import (
 from .physio_agent import get_advice, POSTURE_DISPLAY
 from .mqtt_publisher import publish_motor_command
 from .motor_constants import MOTOR_MAP
-from .chairs import active_session, chair_for_device, is_online, motor_topic, user_session
+from .chairs import active_session, battery_json, chair_for_device, is_online, motor_topic, user_session
 from .models import CalibrationRequest, Chair, UserCalibration
 from .calibration import (
     CALIBRATION_DURATION_SECONDS, DEVICE_TIMEOUT_SECONDS, FAIL_MESSAGES,
@@ -1040,11 +1040,14 @@ def chair_status(request):
 
     不帶 device_id 時查預設椅子 DEFAULT_CHAIR_DEVICE_ID（舊版 App 不用改）。回傳欄位與舊版相同，另外多 device_id、online。
     calibrated：目前坐的人是否已有個人校正（記在使用者身上，換椅子也算）。
+    battery：最後一次回報的電量 {present, percent, voltage, updated_at}；從沒收到過為 null。
+             present=false 時請顯示「未偵測到電池」，不是「沒電」。
     """
     chair = Chair.objects.filter(
         device_id=request.query_params.get('device_id') or django_settings.DEFAULT_CHAIR_DEVICE_ID).first()
     session = active_session(chair) if chair else None
-    base = {'device_id': chair.device_id if chair else None, 'online': bool(chair and is_online(chair))}
+    base = {'device_id': chair.device_id if chair else None, 'online': bool(chair and is_online(chair)),
+            'battery': battery_json(chair) if chair else None}
     if session:
         return Response({
             **base,
@@ -1073,6 +1076,7 @@ def chair_list(request):
             'online':     is_online(chair),
             'last_seen':  chair.last_seen,
             'firmware':   chair.firmware,
+            'battery':    battery_json(chair),
             'active':     bool(session),
             'username':   session.user.username if session else None,
             'since':      session.started_at if session else None,
