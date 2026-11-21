@@ -116,13 +116,14 @@ const float BATTERY_SMOOTHING_ALPHA = 0.2f;
 const uint32_t BATTERY_READ_INTERVAL_MS = 1000;
 
 // ───────────────────────── 感測器座標 ─────────────────────────
-const float SENSOR_X_POS[SENSOR_COUNT] = {0.82f, 0.82f, 0.82f, 0.50f, 0.50f, 0.18f, 0.18f, 0.18f, 0.35f, 0.50f, 0.65f};
-const float SENSOR_Y_POS[SENSOR_COUNT] = {0.18f, 0.42f, 0.72f, 0.18f, 0.72f, 0.72f, 0.42f, 0.18f, 0.10f, 0.05f, 0.10f};
+// S9~S11 沿椅背中線由下而上；y 越小越靠後（越上方代表往後靠越多）
+const float SENSOR_X_POS[SENSOR_COUNT] = {0.82f, 0.82f, 0.82f, 0.50f, 0.50f, 0.18f, 0.18f, 0.18f, 0.50f, 0.50f, 0.50f};
+const float SENSOR_Y_POS[SENSOR_COUNT] = {0.18f, 0.42f, 0.72f, 0.18f, 0.72f, 0.72f, 0.42f, 0.18f, 0.10f, 0.06f, 0.02f};
 const bool SENSOR_ACTIVE[SENSOR_COUNT] = {true, true, true, true, true, true, true, true, true, true, true};
 // 坐墊感測器直接貼椅面、上蓋坐墊；椅背感測器加凸墊。更換安裝方式後需重新量測（DEBUG_RAW 設 1 看 raw）
 int adcMin[SENSOR_COUNT] = {2400, 2400, 2400, 2400, 2400, 2400, 2400, 2400, 2400, 2400, 2400};
 // S9~S11（椅背）背後沒有支撐、受力小，adcMax 先調低讓輕靠也有讀值（暫定 8000，約 3 倍靈敏；量到實際 raw 後再改）
-// 加裝凸點後：S9、S11 不需那麼敏感（14000），S10（中間）較難受力，再調敏感（5000）
+// 加裝凸墊後：S9（下）、S11（上）不需那麼敏感（14000），S10（中間）較難受力，再調敏感（5000）
 int adcMax[SENSOR_COUNT] = {20500, 20500, 20500, 20500, 20500, 20500, 20500, 20500, 14000, 5000, 14000};
 
 // ───────────────────────── 中立點 ─────────────────────────
