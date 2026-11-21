@@ -47,6 +47,7 @@ from .calibration import (
 # 伸展動作查表（不經過 LLM），實作在 api/stretch.py
 from .stretch import exercises_by_id as _exercises_by_id, recommend_exercises as _recommend_exercises
 from .daily_plan import get_daily_plan
+from .garden import garden_state
 from .models import WellnessCompletion
 
 logger = logging.getLogger(__name__)
@@ -1166,8 +1167,16 @@ def wellness_complete(request):
         user=request.user, exercise_id=exercise_id, date=timezone.localdate(),
         defaults={'source': source, 'feedback': feedback.strip()},
     )
-    return Response({'success': True, 'already_completed': not created, 'completion': _completion_json(record)},
+    return Response({'success': True, 'already_completed': not created, 'completion': _completion_json(record),
+                     'garden': garden_state(request.user)},
                     status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def wellness_garden(request):
+    """GET /api/wellness/garden — 健康花園的點數、等級、連續天數（依全部完成紀錄計算，規則見 api/garden.py）。"""
+    return Response(garden_state(request.user))
 
 
 @api_view(['GET'])

@@ -15,6 +15,7 @@
 | 帳號 | POST | /me/avatar | 更新頭像網址 | 是 | App |
 | 帳號 | POST | /me/avatar/upload | 上傳頭像圖片（PNG／JPG，multipart） | 是 | App |
 | 帳號 | POST | /auth/change-password | 已登入狀態下修改密碼 | 是 | App |
+| 花園 | GET | /wellness/garden | 健康花園點數、等級、連續天數（後端依完成紀錄計算） | 是 | App |
 | 帳號 | POST | /me/delete | 刪除帳號與個人資料（需輸入密碼；人工標註的訓練資料去識別化保留） | 是 | App |
 | 帳號 | POST | /auth/forgot-password/request | 忘記密碼：寄送 6 碼驗證碼到 Email | 否 | App |
 | 帳號 | POST | /auth/forgot-password/verify | 忘記密碼：驗證碼正確後重設密碼 | 否 | App |

@@ -200,7 +200,27 @@
 
 ### `GET /wellness/history?days=30`
 
-回傳自己的完成紀錄（新到舊），換裝置也看得到：`{"days": 30, "count": 1, "completions": [{"exercise_id", "title", "source", "feedback", "date", "completed_at"}]}`。點數、連續天數、花園等級仍由 App 計算。
+回傳自己的完成紀錄（新到舊），換裝置也看得到：`{"days": 30, "count": 1, "completions": [{"exercise_id", "title", "source", "feedback", "date", "completed_at"}]}`。
+
+### `GET /wellness/garden`：花園點數、等級、連續天數（11/21 新增）
+
+```json
+{"points": 105, "level": 2, "points_in_level": 5, "level_size": 100, "streak": 3,
+ "total_completions": 7, "active_days": 7, "completed_today": 1}
+```
+
+- **點數、等級、連續天數改由後端計算，App 不要再自己算或存在本機**。原本存在 SharedPreferences（網頁版是瀏覽器 localStorage），換瀏覽器、`flutter run` 換埠號、換手機都會歸零
+- 規則與現在的 `wellness_controller.dart` 相同：每完成一個動作 +10、當天第一個再 +5、每 100 點升一級；連續天數從今天往回數（今天還沒完成時為 0）
+- 依**全部**完成紀錄計算，10/31 起回報過的任務都會算進去
+- `POST /wellness/complete` 的回應也多了 `garden` 欄位（內容同上），完成任務後直接用它更新畫面，不用再查一次
+- 每日任務 API 失敗時的備用任務（id 是文字，如 `neck-reset`）不會回報後端，也就不會加點
+
+**`wellness_controller.dart` 要改的地方（zhen 分支）**
+1. `api_service.dart` 新增 `getWellnessGarden()`：`GET wellness/garden`，回傳 Map（寫法同 `getWellnessHistory`）；`completeWellnessTask` 改成回傳回應裡的 `garden`（失敗回 null）
+2. `initialize()`：不再從 SharedPreferences 讀 `points`、`streak`，改成呼叫 `getWellnessGarden()` 設定 `points`、`streak`
+3. `completeTask()`：用回應的 `garden` 更新 `points`、`streak`，刪掉 `points += earnedPoints` 與 `_recalculateStreak()`
+4. `level`、`pointsInLevel` 可以直接用後端的 `level`、`points_in_level`（現有的計算公式結果相同，不改也可以）
+5. `_persist()` 不再寫入 `points`、`streak`
 
 ---
 

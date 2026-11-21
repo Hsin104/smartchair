@@ -29,6 +29,7 @@ urlpatterns = [
     path('agent/stretch-plan',   views.stretch_plan, name='stretch-plan'),
     path('wellness/complete',    views.wellness_complete, name='wellness-complete'),
     path('wellness/history',     views.wellness_history,  name='wellness-history'),
+    path('wellness/garden',      views.wellness_garden,   name='wellness-garden'),
 
     # 馬達觸發
     path('motor/trigger',        views.motor_trigger, name='motor-trigger'),
