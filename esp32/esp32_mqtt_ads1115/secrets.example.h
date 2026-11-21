@@ -8,6 +8,7 @@ const char* WIFI_PASSWORD = "your-wifi-password";
 
 const char* MQTT_BROKER = "your-broker.emqxsl.com";
 const int MQTT_PORT = 8883;
+// v2 起 Client ID / device_id / OTA 主機名改由 WiFi MAC 自動產生（開機時序列埠會印出），下面兩個值不再使用
 const char* MQTT_CLIENT_ID = "esp32-chair-01";
 const char* MQTT_USER = "your-mqtt-user";
 const char* MQTT_PASS = "your-mqtt-password";

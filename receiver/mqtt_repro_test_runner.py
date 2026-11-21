@@ -30,10 +30,14 @@ MQTT_PASS = os.getenv("MQTT_PASS")
 if not MQTT_USER or not MQTT_PASS:
     raise RuntimeError("Missing MQTT_USER / MQTT_PASS in .env. Copy .env.example to .env and fill your values.")
 
-MQTT_TOPIC_CMD = os.getenv("MQTT_TOPIC_CMD", "chair/vibration/01/cmd")
-MQTT_TOPIC_ACK = os.getenv("MQTT_TOPIC_ACK", "chair/vibration/01/ack")
-MQTT_TOPIC_STATE = os.getenv("MQTT_TOPIC_STATE", "chair/vibration/01/state")
-MQTT_TOPIC_STATUS = os.getenv("MQTT_TOPIC_STATUS", "chair/vibration/01/status")
+# 韌體 v2 起 topic 為 chair/{device_id}/...，device_id 開機時印在序列埠（例如 chair_A1B2C3）
+CHAIR_DEVICE_ID = os.getenv("CHAIR_DEVICE_ID")
+if not CHAIR_DEVICE_ID and not os.getenv("MQTT_TOPIC_CMD"):
+    raise RuntimeError("Missing CHAIR_DEVICE_ID in .env (e.g. CHAIR_DEVICE_ID=chair_A1B2C3, printed on ESP32 serial at boot).")
+MQTT_TOPIC_CMD = os.getenv("MQTT_TOPIC_CMD", f"chair/{CHAIR_DEVICE_ID}/vibration/cmd")
+MQTT_TOPIC_ACK = os.getenv("MQTT_TOPIC_ACK", f"chair/{CHAIR_DEVICE_ID}/vibration/ack")
+MQTT_TOPIC_STATE = os.getenv("MQTT_TOPIC_STATE", f"chair/{CHAIR_DEVICE_ID}/vibration/state")
+MQTT_TOPIC_STATUS = os.getenv("MQTT_TOPIC_STATUS", f"chair/{CHAIR_DEVICE_ID}/vibration/status")
 
 MOTOR_COUNT = 4
 INTENSITY_MIN = 0
