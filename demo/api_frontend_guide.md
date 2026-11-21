@@ -31,6 +31,7 @@
 | `POST /me/avatar` | avatar_url | 200 使用者物件 | 存網址，不是上傳圖片 |
 | `POST /me/avatar/upload` | file（multipart） | 200 | **上傳頭像圖片**，見下方 |
 | `POST /auth/change-password` | current_password、new_password（≥6） | 200 | 目前密碼錯 401 |
+| `POST /me/delete` | password | **204**（沒有內容） | **刪除帳號**；密碼錯 401（`error_code: INVALID_PASSWORD`）。成功後 Token 立即失效，前端要清掉 Token 回登入頁。正在使用椅子會自動離座 |
 | `POST /auth/forgot-password/request` | username、email | 200 | 寄 6 碼驗證碼，10 分鐘有效 |
 | `POST /auth/forgot-password/verify` | username、code（6 碼字串）、new_password | 200 | 驗證碼錯誤或過期 400 |
 

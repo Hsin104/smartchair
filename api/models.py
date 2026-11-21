@@ -28,8 +28,10 @@ class PostureRecord(models.Model):
         ('sedentary', '久坐未動'),
     ]
 
+    # 刪除帳號時：一般紀錄跟著刪除（CASCADE）；人工標註的訓練資料（source='real'）先改成 user=None
+    # 去識別化保留，模型才能繼續重新訓練與評估（POST /api/me/delete）
     user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name='posture_records', verbose_name='使用者'
+        User, on_delete=models.CASCADE, null=True, blank=True, related_name='posture_records', verbose_name='使用者'
     )
     timestamp = models.DateTimeField(auto_now_add=True, verbose_name='時間戳')
     posture = models.CharField(max_length=20, choices=POSTURE_CHOICES, verbose_name='坐姿類別')
@@ -61,7 +63,8 @@ class PostureRecord(models.Model):
         verbose_name = '坐姿紀錄'
 
     def __str__(self):
-        return f'{self.user.username} - {self.posture} - {self.timestamp}'
+        name = self.user.username if self.user_id else '（已刪除帳號）'
+        return f'{name} - {self.posture} - {self.timestamp}'
 
 
 class Notification(models.Model):

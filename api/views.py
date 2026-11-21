@@ -11,6 +11,7 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 from django.contrib.auth import authenticate
 from django.core.mail import send_mail
 from django.conf import settings as django_settings
+from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 from rest_framework import status
@@ -429,6 +430,39 @@ def change_password(request):
     request.user.set_password(request.data['new_password'])
     request.user.save()
     return Response({'success': True, 'message': '密碼已更新'})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def delete_account(request):
+    """
+    POST /api/me/delete — 刪除自己的帳號與資料。payload: { "password": "..." }
+
+    - 需重新輸入密碼：避免手機借人或 Token 外洩時被刪除
+    - 正在使用椅子會先自動離座，椅子恢復預設中立點，可給下一位使用者綁定
+    - 人工標註的訓練資料（坐姿紀錄 source='real'）改成不屬於任何帳號後保留（去識別化），
+      其餘坐姿紀錄、通知、AI 紀錄、校正、伸展任務、登入 Token 等隨帳號一併刪除
+    - 上傳的頭像圖片檔一併刪除（檔案在硬碟上，資料庫刪除不會帶走）
+    成功回 204，之後原本的 Token 立即失效。
+    """
+    user = request.user
+    if not user.check_password(request.data.get('password') or ''):
+        return Response({
+            'success':    False,
+            'error_code': 'INVALID_PASSWORD',
+            'message':    '密碼錯誤，帳號未刪除',
+        }, status=status.HTTP_401_UNAUTHORIZED)
+
+    _end_sessions(ChairSession.objects.filter(user=user, is_active=True))
+    avatar = user.avatar_url or ''
+    with transaction.atomic():
+        kept = PostureRecord.objects.filter(user=user, source='real').update(user=None)
+        user_id = user.id
+        user.delete()
+    if '/media/avatars/' in avatar:
+        (Path(django_settings.MEDIA_ROOT) / 'avatars' / Path(avatar.split('/media/avatars/')[-1]).name).unlink(missing_ok=True)
+    logger.info(f'[帳號] user={user_id} 已刪除；去識別化保留 {kept} 筆標註資料')
+    return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 _RESET_CODE_TTL_MINUTES = 10
