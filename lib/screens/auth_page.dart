@@ -38,6 +38,8 @@ class _AuthPageState extends State<AuthPage> {
 
   late AuthMode _mode;
   bool _isSubmitting = false;
+  bool _isLoadingChairs = false;
+  String? _selectedChairId;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   String _usernameServerError = '';
@@ -47,6 +49,13 @@ class _AuthPageState extends State<AuthPage> {
   void initState() {
     super.initState();
     _mode = widget.initialMode;
+    _loadSavedChair();
+  }
+
+  Future<void> _loadSavedChair() async {
+    final chairId = await ApiService.getSavedChairId();
+    if (!mounted) return;
+    setState(() => _selectedChairId = chairId);
   }
 
   @override
@@ -67,6 +76,91 @@ class _AuthPageState extends State<AuthPage> {
   String get _headline => _mode == AuthMode.login ? '歡迎回來' : '建立帳號';
   String get _subtitle =>
       _mode == AuthMode.login ? '登入後即可查看你的智慧座椅資料' : '註冊後即可開始使用完整功能';
+
+  Future<String?> _showChairPicker(List<Map<String, dynamic>> chairs) async {
+    var selectedId =
+        chairs.any(
+          (chair) => chair['device_id']?.toString() == _selectedChairId,
+        )
+        ? _selectedChairId
+        : chairs.first['device_id']?.toString();
+
+    return showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('選擇椅子'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: chairs.map((chair) {
+                final id = chair['device_id']?.toString() ?? '';
+                final username = chair['username']?.toString();
+                final inUse = username != null && username.isNotEmpty;
+                return ListTile(
+                  onTap: id.isEmpty
+                      ? null
+                      : () => setDialogState(() => selectedId = id),
+                  leading: Icon(
+                    selectedId == id
+                        ? Icons.radio_button_checked
+                        : Icons.radio_button_unchecked,
+                    color: selectedId == id
+                        ? Theme.of(context).colorScheme.primary
+                        : null,
+                  ),
+                  title: Text(id),
+                  subtitle: inUse ? const Text('使用中') : null,
+                );
+              }).toList(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('稍後再選'),
+            ),
+            FilledButton(
+              onPressed: selectedId == null
+                  ? null
+                  : () => Navigator.pop(dialogContext, selectedId),
+              child: const Text('確認'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _chooseChair({bool promptAfterAuth = false}) async {
+    if (_isLoadingChairs) return;
+    setState(() => _isLoadingChairs = true);
+    try {
+      final chairs = await ApiService.getChairs();
+      final onlineChairs = chairs
+          .where((chair) => chair['online'] == true)
+          .toList();
+      if (!mounted) return;
+      if (onlineChairs.isEmpty) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('目前沒有線上的椅子，請確認椅子已開機。')));
+        return;
+      }
+      final selectedId = await _showChairPicker(onlineChairs);
+      if (!mounted || selectedId == null) return;
+      await ApiService.saveChairId(selectedId);
+      setState(() => _selectedChairId = selectedId);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('取得椅子清單失敗，請稍後再試。')));
+    } finally {
+      if (mounted) setState(() => _isLoadingChairs = false);
+    }
+  }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
@@ -119,6 +213,8 @@ class _AuthPageState extends State<AuthPage> {
     setState(() => _isSubmitting = false);
 
     if (result.success) {
+      await _chooseChair(promptAfterAuth: true);
+      if (!mounted) return;
       Navigator.of(context).pop(result.email);
     } else {
       if (_mode == AuthMode.login) {
@@ -413,6 +509,41 @@ class _AuthPageState extends State<AuthPage> {
                         ),
                       ),
                       const SizedBox(height: 16),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.event_seat_rounded,
+                              color: Color(0xFF2563EB),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                _selectedChairId == null
+                                    ? '尚未選擇椅子'
+                                    : '目前椅子：$_selectedChairId',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: !_isLoadingChairs && !_isSubmitting
+                                  ? () => _chooseChair()
+                                  : null,
+                              child: const Text('選擇椅子'),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
 
                       // 帳號（登入 & 註冊都需要）
                       TextFormField(

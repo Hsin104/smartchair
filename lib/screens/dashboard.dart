@@ -31,6 +31,7 @@ class DashboardPage extends StatefulWidget {
 class _DashboardPageState extends State<DashboardPage> {
   bool _isLoading = false;
   bool _isCalibrating = false;
+  final Set<String> _promptedAutoCheckoutIds = {};
   late final VoidCallback _controllerListener;
   Timer? _pageTimer;
   final ScrollController _scrollController = ScrollController();
@@ -100,11 +101,28 @@ class _DashboardPageState extends State<DashboardPage> {
     if (!widget.isLoggedIn) return;
 
     try {
-      final checkin = await ApiService.chairCheckin();
+      final chairId = await ApiService.getSavedChairId();
+      if (chairId == null || chairId.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('請先登出並重新登入以選擇椅子。')));
+        }
+        return;
+      }
+      final checkin = await ApiService.chairCheckin(deviceId: chairId);
+      if (!mounted || !checkin.success) {
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(checkin.message)));
+        }
+        return;
+      }
       widget.controller.startSession();
       widget.controller.startAutoSync();
       await _fetch();
-      if (!mounted || !checkin.success || checkin.calibrated) return;
+      if (!mounted || checkin.calibrated) return;
       final shouldCalibrate = await showDialog<bool>(
         context: context,
         builder: (dialogContext) => AlertDialog(
@@ -146,6 +164,58 @@ class _DashboardPageState extends State<DashboardPage> {
           ? ApiService.postureColor(widget.controller.postureCode)
           : const Color(0xFF64748B);
     });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      for (final item in widget.controller.notifications.reversed) {
+        if (item['kind']?.toString() != 'auto_checkout') continue;
+        final id = item['id']?.toString();
+        if (id == null || id.isEmpty) continue;
+        if (_promptedAutoCheckoutIds.add(id)) {
+          _promptRecheckIn();
+          break;
+        }
+      }
+    });
+  }
+
+  Future<void> _promptRecheckIn() async {
+    if (!mounted) return;
+    final shouldCheckin = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('椅子已自動離座'),
+        content: const Text('椅子已自動離座，要重新入座嗎？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('稍後'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('重新入座'),
+          ),
+        ],
+      ),
+    );
+    if (shouldCheckin != true || !mounted) return;
+    final chairId = await ApiService.getSavedChairId();
+    if (chairId == null || chairId.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('請先重新登入並選擇椅子。')));
+      }
+      return;
+    }
+    final result = await ApiService.chairCheckin(deviceId: chairId);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(result.success ? '已重新入座' : result.message)),
+    );
+    if (result.success) {
+      widget.controller.startSession();
+      await widget.controller.refreshFromServer();
+    }
   }
 
   Future<void> _fetch() async {
@@ -172,7 +242,14 @@ class _DashboardPageState extends State<DashboardPage> {
     setState(() => _isCalibrating = true);
 
     try {
-      await ApiService.chairCheckin();
+      final chairId = await ApiService.getSavedChairId();
+      if (chairId == null || chairId.isEmpty) {
+        throw StateError('請先選擇椅子');
+      }
+      final checkin = await ApiService.chairCheckin(deviceId: chairId);
+      if (!checkin.success) {
+        throw StateError(checkin.message);
+      }
       final result = await ApiService.calibrateChairAuto();
 
       if (!mounted) return;
@@ -392,6 +469,26 @@ class _DashboardPageState extends State<DashboardPage> {
                 icon: Icons.notifications_active_rounded,
                 accent: const Color(0xFF7C3AED),
               ),
+              const SizedBox(width: 10),
+              _InfoCard(
+                title: '椅子電量',
+                value:
+                    widget.controller.chairBattery?.label(
+                      online: widget.controller.chairOnline,
+                    ) ??
+                    '電量未知',
+                icon: Icons.battery_std_rounded,
+                accent: !widget.controller.chairOnline
+                    ? const Color(0xFF94A3B8)
+                    : (widget.controller.chairBattery?.isLow ?? false)
+                    ? const Color(0xFFDC2626)
+                    : const Color(0xFF16A34A),
+                valueColor: !widget.controller.chairOnline
+                    ? const Color(0xFF94A3B8)
+                    : (widget.controller.chairBattery?.isLow ?? false)
+                    ? const Color(0xFFDC2626)
+                    : null,
+              ),
             ],
           ),
 
@@ -454,16 +551,9 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildReportSnapshot() {
-    final history = widget.controller.postureHistory;
-    final total = history.length;
-    final postureCounts = <String, int>{};
-    final postureLabels = <String, String>{};
-    for (final item in history) {
-      final code = item['code']?.toString() ?? item['label']?.toString() ?? '';
-      final label = item['label']?.toString() ?? ApiService.toDisplayName(code);
-      postureCounts[code] = (postureCounts[code] ?? 0) + 1;
-      postureLabels[code] = label;
-    }
+    final postures = widget.controller.todayPostures
+        .where((item) => item['posture']?.toString() != 'empty')
+        .toList();
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -484,18 +574,23 @@ class _DashboardPageState extends State<DashboardPage> {
             ),
           ),
           const SizedBox(height: 8),
-          _buildPosturePieChart(postureCounts, postureLabels, total),
+          Text(
+            '今日總坐著時間 ${widget.controller.sittingMinutes.round()} 分鐘',
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF64748B),
+            ),
+          ),
+          const SizedBox(height: 8),
+          _buildPosturePieChart(postures),
         ],
       ),
     );
   }
 
-  Widget _buildPosturePieChart(
-    Map<String, int> postureCounts,
-    Map<String, String> postureLabels,
-    int total,
-  ) {
-    if (total == 0) {
+  Widget _buildPosturePieChart(List<Map<String, dynamic>> postures) {
+    if (postures.isEmpty) {
       return Container(
         height: 180,
         alignment: Alignment.center,
@@ -521,21 +616,26 @@ class _DashboardPageState extends State<DashboardPage> {
                 centerSpaceRadius: 38,
                 sectionsSpace: 2,
                 centerSpaceColor: Colors.white,
-                sections: postureCounts.entries
-                    .where((entry) => entry.value > 0)
-                    .map(
-                      (entry) => PieChartSectionData(
-                        value: entry.value.toDouble(),
-                        title: '${((entry.value / total) * 100).round()}%',
-                        color: ApiService.postureColor(entry.key),
+                sections: postures
+                    .where((item) {
+                      final ratio = (item['ratio'] as num?)?.toDouble() ?? 0;
+                      return ratio > 0;
+                    })
+                    .map((item) {
+                      final code = item['posture']?.toString() ?? '';
+                      final ratio = (item['ratio'] as num?)?.toDouble() ?? 0;
+                      return PieChartSectionData(
+                        value: ratio,
+                        title: '${(ratio * 100).round()}%',
+                        color: ApiService.postureColor(code),
                         radius: 54,
                         titleStyle: const TextStyle(
                           color: Colors.white,
                           fontSize: 11,
                           fontWeight: FontWeight.w900,
                         ),
-                      ),
-                    )
+                      );
+                    })
                     .toList(),
               ),
             ),
@@ -545,10 +645,19 @@ class _DashboardPageState extends State<DashboardPage> {
             flex: 6,
             child: ListView(
               physics: const NeverScrollableScrollPhysics(),
-              children: postureCounts.entries
-                  .where((entry) => entry.value > 0)
-                  .map(
-                    (entry) => Padding(
+              children: postures
+                  .where((item) {
+                    final ratio = (item['ratio'] as num?)?.toDouble() ?? 0;
+                    return ratio > 0;
+                  })
+                  .map((item) {
+                    final code = item['posture']?.toString() ?? '';
+                    final display =
+                        item['display']?.toString() ??
+                        ApiService.toDisplayName(code);
+                    final minutes = (item['minutes'] as num?)?.toInt() ?? 0;
+                    final episodes = (item['episodes'] as num?)?.toInt() ?? 0;
+                    return Padding(
                       padding: const EdgeInsets.only(bottom: 7),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
@@ -557,27 +666,26 @@ class _DashboardPageState extends State<DashboardPage> {
                         ),
                         decoration: BoxDecoration(
                           color: ApiService.postureColor(
-                            entry.key,
+                            code,
                           ).withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
                             color: ApiService.postureColor(
-                              entry.key,
+                              code,
                             ).withValues(alpha: 0.22),
                           ),
                         ),
                         child: Row(
                           children: [
                             Icon(
-                              _postureIcon(entry.key),
-                              color: ApiService.postureColor(entry.key),
+                              _postureIcon(code),
+                              color: ApiService.postureColor(code),
                               size: 19,
                             ),
                             const SizedBox(width: 7),
                             Expanded(
                               child: Text(
-                                postureLabels[entry.key] ??
-                                    ApiService.toDisplayName(entry.key),
+                                display,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
                                   fontSize: 13,
@@ -590,7 +698,7 @@ class _DashboardPageState extends State<DashboardPage> {
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
                                 Text(
-                                  '${entry.value} 次',
+                                  '$minutes 分鐘・$episodes 次',
                                   style: const TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w900,
@@ -598,11 +706,11 @@ class _DashboardPageState extends State<DashboardPage> {
                                   ),
                                 ),
                                 Text(
-                                  _postureStatus(entry.key),
+                                  _postureStatus(code),
                                   style: TextStyle(
                                     fontSize: 10,
                                     fontWeight: FontWeight.w800,
-                                    color: ApiService.postureColor(entry.key),
+                                    color: ApiService.postureColor(code),
                                   ),
                                 ),
                               ],
@@ -610,8 +718,8 @@ class _DashboardPageState extends State<DashboardPage> {
                           ],
                         ),
                       ),
-                    ),
-                  )
+                    );
+                  })
                   .toList(),
             ),
           ),
@@ -890,12 +998,14 @@ class _InfoCard extends StatelessWidget {
     required this.value,
     required this.icon,
     required this.accent,
+    this.valueColor,
   });
 
   final String title;
   final String value;
   final IconData icon;
   final Color accent;
+  final Color? valueColor;
 
   @override
   Widget build(BuildContext context) {
@@ -938,10 +1048,10 @@ class _InfoCard extends StatelessWidget {
             const SizedBox(height: 10),
             Text(
               value,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w800,
-                color: Color(0xFF0F172A),
+                color: valueColor ?? const Color(0xFF0F172A),
               ),
             ),
           ],

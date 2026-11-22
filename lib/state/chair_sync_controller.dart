@@ -16,10 +16,15 @@ class ChairSyncController extends ChangeNotifier {
   DateTime updatedAt = DateTime.now();
   DateTime lastBackendSyncAt = DateTime.now();
   bool _lastPostureWasSedentary = false;
+  ChairBattery? chairBattery;
+  bool chairOnline = false;
   final Set<String> _knownNotificationIds = {};
   bool _notificationHistoryLoaded = false;
 
   Timer? _syncTimer;
+  Timer? _todayTimer;
+  double sittingMinutes = 0;
+  List<Map<String, dynamic>> todayPostures = [];
 
   final List<Map<String, dynamic>> notifications = [];
   final List<Map<String, dynamic>> postureHistory = [];
@@ -39,7 +44,6 @@ class ChairSyncController extends ChangeNotifier {
     updatedAt = DateTime.now();
 
     addPostureHistory(label: label, score: score, isGood: isGood);
-    if (!isGood) addPostureNotification(label);
 
     notifyListeners();
   }
@@ -56,22 +60,6 @@ class ChairSyncController extends ChangeNotifier {
       'time': DateTime.now(),
     });
     if (postureHistory.length > 100) postureHistory.removeAt(0);
-  }
-
-  void addPostureNotification(String posture) {
-    final now = TimeOfDay.now();
-    final timeText =
-        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
-
-    notifications.insert(0, {
-      'title': posture,
-      'time': timeText,
-      'message': '坐姿提醒：請調整坐姿。',
-      'icon': Icons.warning_amber_rounded,
-      'color': ApiService.postureColor(posture),
-    });
-
-    if (notifications.length > 20) notifications.removeLast();
   }
 
   void clearNotifications() {
@@ -92,48 +80,78 @@ class ChairSyncController extends ChangeNotifier {
   void stopSession() {
     sessionOpenedAt = null;
     _lastPostureWasSedentary = false;
+    chairBattery = null;
+    chairOnline = false;
     notifyListeners();
   }
 
   @override
   void dispose() {
     _syncTimer?.cancel();
+    _todayTimer?.cancel();
     super.dispose();
   }
 
   /// Start periodic background sync with backend to keep UI consistent with server
   void startAutoSync({Duration interval = const Duration(seconds: 5)}) {
     _syncTimer?.cancel();
+    _todayTimer?.cancel();
     _syncTimer = Timer.periodic(interval, (_) async {
       await _pullFromServer();
     });
+    _todayTimer = Timer.periodic(
+      const Duration(seconds: 45),
+      (_) async => _pullPostureToday(),
+    );
     // do an immediate pull
     _pullFromServer();
+    _pullPostureToday();
   }
 
   Future<void> refreshFromServer() async {
-    await _pullFromServer();
+    await Future.wait([_pullFromServer(), _pullPostureToday()]);
   }
 
   void stopAutoSync() {
     _syncTimer?.cancel();
     _syncTimer = null;
+    _todayTimer?.cancel();
+    _todayTimer = null;
+  }
+
+  Future<void> _pullPostureToday() async {
+    final data = await ApiService.getPostureToday();
+    if (data == null) return;
+    final postures = data['postures'];
+    sittingMinutes = (data['sitting_minutes'] as num?)?.toDouble() ?? 0;
+    todayPostures = postures is List
+        ? postures
+              .whereType<Map>()
+              .map((item) => item.cast<String, dynamic>())
+              .where((item) => item['posture']?.toString() != 'empty')
+              .toList()
+        : [];
+    notifyListeners();
   }
 
   Future<void> _pullFromServer() async {
     try {
       // Pull latest posture history and notification history
-      final history = await ApiService.getPostureHistory(limit: 100);
+      final history = await ApiService.getPostureHistory(limit: 1);
       final notificationHistory = await ApiService.getNotificationHistory(
         limit: 50,
       );
+      final chairStatus = await ApiService.getChairStatus();
+      if (chairStatus != null) {
+        chairOnline = chairStatus['online'] == true;
+        chairBattery = ChairBattery.fromJson(chairStatus['battery']);
+      }
 
       // Map server posture entries into controller format
       if (history.isNotEmpty) {
         postureHistory.clear();
         _applyPosturePayload(history.first);
       } else {
-        final chairStatus = await ApiService.getChairStatus();
         if (chairStatus != null) {
           _applyPosturePayload(chairStatus);
         }
@@ -178,6 +196,7 @@ class ChairSyncController extends ChangeNotifier {
             ? const Color(0xFF2563EB)
             : ApiService.postureColor(displayPosture);
         notifications.add({
+          'id': notificationId,
           'title': title,
           'time': time.isNotEmpty ? time : _formatNow(),
           'message': message,

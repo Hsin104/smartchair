@@ -58,8 +58,6 @@ class _HomePageState extends State<HomePage> {
       });
 
       if (loggedIn && !wasLoggedIn) {
-        widget.chairSyncController.startSession();
-        widget.chairSyncController.startAutoSync();
       } else if (!loggedIn && wasLoggedIn) {
         widget.chairSyncController.stopSession();
         widget.chairSyncController.stopAutoSync();
@@ -103,6 +101,17 @@ class _HomePageState extends State<HomePage> {
     await _refreshAuthState();
   }
 
+  Future<void> _accountDeleted() async {
+    await ApiService.logout();
+    if (!mounted) return;
+    widget.chairSyncController.stopSession();
+    widget.chairSyncController.stopAutoSync();
+    widget.chairSyncController.clearNotifications();
+    widget.chairSyncController.clearPostureHistory();
+    _showMsg('帳號已刪除');
+    await _refreshAuthState();
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -141,6 +150,7 @@ class _HomePageState extends State<HomePage> {
         userEmail: _userEmail,
         wellnessController: widget.wellnessController,
         onLogout: _logout,
+        onAccountDeleted: _accountDeleted,
         onProfileChanged: _refreshAuthState,
       ),
     ];

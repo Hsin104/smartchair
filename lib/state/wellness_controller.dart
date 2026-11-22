@@ -145,8 +145,6 @@ class WellnessController extends ChangeNotifier {
     notifyListeners();
 
     final prefs = await SharedPreferences.getInstance();
-    points = prefs.getInt(_key('points')) ?? 0;
-    streak = prefs.getInt(_key('streak')) ?? 0;
     final savedTaskId = prefs.getString(_key('activeTaskId'));
     activeTaskId = savedTaskId == null || savedTaskId.isEmpty
         ? null
@@ -158,7 +156,14 @@ class WellnessController extends ChangeNotifier {
     _recalculateStreak();
     await _loadDailyTasks();
     await _loadWellnessHistory();
+    final garden = await ApiService.getWellnessGarden();
+    if (garden != null) _applyGarden(garden);
     notifyListeners();
+  }
+
+  void _applyGarden(Map<String, dynamic> garden) {
+    points = (garden['points'] as num?)?.toInt() ?? points;
+    streak = (garden['streak'] as num?)?.toInt() ?? streak;
   }
 
   Future<void> refreshDailyTasks() async {
@@ -261,13 +266,14 @@ class WellnessController extends ChangeNotifier {
 
   Future<bool> completeTask(WellnessTask task, {String feedback = '完成'}) async {
     if (isCompletedToday(task.id)) return false;
+    Map<String, dynamic>? garden;
     if (task.exerciseId != null) {
-      final synced = await ApiService.completeWellnessTask(
+      garden = await ApiService.completeWellnessTask(
         exerciseId: task.exerciseId!,
         source: 'daily',
         feedback: feedback,
       );
-      if (!synced) return false;
+      if (garden == null) return false;
     }
 
     final today = _dateKey(DateTime.now());
@@ -283,10 +289,14 @@ class WellnessController extends ChangeNotifier {
         points: earnedPoints,
       ),
     );
-    points += earnedPoints;
+    if (garden != null && garden.isNotEmpty) {
+      _applyGarden(garden);
+    } else if (task.exerciseId == null) {
+      points += earnedPoints;
+    }
     activeTaskId = null;
     latestFeedback = feedback;
-    _recalculateStreak();
+    if (task.exerciseId == null) _recalculateStreak();
     await _persist();
     notifyListeners();
     return true;
@@ -324,8 +334,6 @@ class WellnessController extends ChangeNotifier {
 
   Future<void> _persist() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_key('points'), points);
-    await prefs.setInt(_key('streak'), streak);
     await prefs.setString(_key('activeTaskId'), activeTaskId ?? '');
     await prefs.setString(_key('latestFeedback'), latestFeedback ?? '');
     await prefs.setString(
