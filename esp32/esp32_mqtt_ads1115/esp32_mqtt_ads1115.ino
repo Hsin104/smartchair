@@ -98,6 +98,7 @@ const int LED_MIN_PCT = 20;
 const int LED_BASE_PCT = 50;
 const int LED_MAX_PCT = 80;
 const float LED_LEAN_FULL_RADII = 1.0f;   // 重心偏移達綠環半徑（剛好判定為傾斜）時亮度到極限；嫌太敏感可調大
+const float LED_DEADZONE_RADII = 0.5f;    // 不反應區：偏移在綠環半徑的一半以內，兩邊維持 50%（坐正時燈條穩定一致）；0 = 關閉
 const float LED_GAMMA = 2.0f;             // 亮度百分比 → 實際 PWM 用 gamma 修正，人眼才看得出 20/50/80% 的差別
 const float LED_SMOOTH_ALPHA = 0.3f;      // 亮度變化平滑，避免閃動
 const uint32_t LED_UPDATE_MS = 100;       // 10 Hz 更新，畫面沒變就不送資料給燈條
@@ -131,7 +132,7 @@ const float DEFAULT_NORMAL_RADIUS = 0.055f;  // 綠環（正常範圍）半徑�
 // 前後方向：往後靠時重量會壓到椅背，坐墊重心幾乎不動，所以前後重心把椅背 S9~S11 也算進去
 const float BACKREST_Y_WEIGHT = 1.5f;      // 椅背壓力在前後重心的權重；0 = 只看坐墊（舊做法）
 // 各方向的判定範圍 = 綠環半徑 × 倍率；倍率越小越容易判定（越鬆），越大越嚴格
-const float BACKWARD_RADIUS_SCALE = 0.6f;  // 後仰
+const float BACKWARD_RADIUS_SCALE = 0.65f; // 後仰
 const float LATERAL_RADIUS_SCALE = 0.8f;   // 左右傾
 const float FORWARD_RADIUS_SCALE = 1.1f;   // 前傾
 const float CALIB_STABLE_RADIUS = 0.035f;  // 校正時重心需在平均位置 0.035 內
@@ -1055,10 +1056,16 @@ void ledUpdate(uint32_t now) {
   float tl = 0, tf = 0;
   if (on && poseNow.label != POSE_EMPTY) {
     float full = poseNormalRadius * LED_LEAN_FULL_RADII;
-    tl = clampFloat(-(poseNow.centerX - poseNeutralX) / (full * LATERAL_RADIUS_SCALE), -1.0f, 1.0f);
+    tl = -(poseNow.centerX - poseNeutralX) / (full * LATERAL_RADIUS_SCALE);
     float oy = poseNow.centerY - poseNeutralY;
     oy /= (oy < 0) ? BACKWARD_RADIUS_SCALE : FORWARD_RADIUS_SCALE;  // 與前後傾判定一致
-    tf = clampFloat(oy / full, -1.0f, 1.0f);
+    tf = oy / full;
+    // 不反應區：偏移在 LED_DEADZONE_RADII 以內維持 50%，超過才從 0 開始漸變，到 LED_LEAN_FULL_RADII 時到極限
+    float r = sqrtf(tl * tl + tf * tf);
+    float dz = LED_DEADZONE_RADII / LED_LEAN_FULL_RADII;
+    float k = (r > dz) ? clampFloat((r - dz) / (1.0f - dz), 0.0f, 1.0f) / r : 0.0f;
+    tl *= k;
+    tf *= k;
   }
   ledLeanLeft += (tl - ledLeanLeft) * LED_SMOOTH_ALPHA;
   ledLeanFront += (tf - ledLeanFront) * LED_SMOOTH_ALPHA;

@@ -106,7 +106,7 @@
 | `seq` | 每筆加 1。**跳號** = 漏封包或斷網期間沒送；**變小** = 椅子重開機（從 1 開始） |
 | `norm` | 長度 11，索引 0 = S1 … 10 = S11，0～100，已做平滑。順序與座標跟之前一樣 |
 | `pose.label` | `normal`／`left_lean`／`right_lean`／`forward_lean`／`backward_lean`／`no_occupancy`。需連續 1 秒相同才會改變，所以比動作晚約 1 秒 |
-| `pose.center_*` | 即時重心（0～1，x 小 = 左，y 小 = 後）。`center_x` 只算坐墊；`center_y` 連椅背 S9～S11 一起算（往後靠才判得出後仰）。判定範圍是綠環半徑乘上各方向倍率：後仰 0.6、左右傾 0.8、前傾 1.1。label 有 1 秒確認期，這段時間紅點出了綠環、label 仍是 `normal` 屬正常 |
+| `pose.center_*` | 即時重心（0～1，x 小 = 左，y 小 = 後）。`center_x` 只算坐墊；`center_y` 連椅背 S9～S11 一起算（往後靠才判得出後仰）。判定範圍是綠環半徑乘上各方向倍率：後仰 0.65、左右傾 0.8、前傾 1.1。label 有 1 秒確認期，這段時間紅點出了綠環、label 仍是 `normal` 屬正常 |
 | `pose.neutral_*`、`normal_radius` | 椅子目前使用的中立點，可以拿來確認你送的 `set_neutral` 有沒有生效 |
 | 其他 `pose` 欄位 | 意義與之前相同 |
 | `sitting.active` | 是否在一段坐著的期間（短暫離座 30 秒內仍算） |

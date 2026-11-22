@@ -52,7 +52,8 @@ DEFAULT_SITTING_LIMIT_MIN = 30
 LEDS_PER_STRIP = 35
 LED_MIN_PCT, LED_BASE_PCT, LED_MAX_PCT = 20, 50, 80
 LED_LEAN_FULL_RADII = 1.0
-BACKWARD_RADIUS_SCALE = 0.6   # 與韌體相同（倍率越小越容易判定）
+LED_DEADZONE_RADII = 0.5     # 與韌體相同：不反應區
+BACKWARD_RADIUS_SCALE = 0.65  # 與韌體相同（倍率越小越容易判定）
 LATERAL_RADIUS_SCALE = 0.8    # 與韌體相同
 FORWARD_RADIUS_SCALE = 1.1    # 與韌體相同
 LED_SMOOTH_ALPHA = 0.3
@@ -670,10 +671,15 @@ class ChairPoseDemo:
         tl = tf = 0.0
         if on:
             full = radius * LED_LEAN_FULL_RADII
-            tl = clamp(-(center_x - nx) / (full * LATERAL_RADIUS_SCALE), -1, 1)
+            tl = -(center_x - nx) / (full * LATERAL_RADIUS_SCALE)
             oy = center_y - ny
             oy /= BACKWARD_RADIUS_SCALE if oy < 0 else FORWARD_RADIUS_SCALE   # 與韌體相同
-            tf = clamp(oy / full, -1, 1)
+            tf = oy / full
+            # 不反應區（與韌體相同）：偏移在範圍內維持 50%，超過才漸變
+            r = (tl * tl + tf * tf) ** 0.5
+            dz = LED_DEADZONE_RADII / LED_LEAN_FULL_RADII
+            k = clamp((r - dz) / (1 - dz), 0, 1) / r if r > dz else 0.0
+            tl, tf = tl * k, tf * k
         self.led_lean_left += (tl - self.led_lean_left) * LED_SMOOTH_ALPHA
         self.led_lean_front += (tf - self.led_lean_front) * LED_SMOOTH_ALPHA
         if not on:
