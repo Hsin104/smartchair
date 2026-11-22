@@ -21,6 +21,7 @@
 | 帳號 | POST | /auth/forgot-password/verify | 忘記密碼：驗證碼正確後重設密碼 | 否 | App |
 | 坐姿 | POST | /posture | 上傳感測值，模型判斷坐姿後寫入紀錄 | 是 | 測試工具（ESP32 實際走 MQTT） |
 | 坐姿 | GET | /posture/history | 查詢自己的坐姿歷史紀錄 | 是 | App |
+| 坐姿 | GET | /posture/today | 今日每種坐姿的分鐘數、次數（今日坐姿分布圓餅圖用） | 是 | App |
 | AI 建議 | POST | /agent/jobs | 送出 AI 建議任務，立即回傳任務編號（非同步） | 是 | App |
 | AI 建議 | GET | /agent/jobs/{job_id} | 查詢 AI 任務狀態與結果（只能查自己的） | 是 | App |
 | AI 建議 | GET | /agent/stretch-plan | 健康花園每日 3 個任務（AI 依 7 天坐姿挑選，不與 AI 建議重複） | 是 | App |

@@ -48,6 +48,7 @@ from .calibration import (
 from .stretch import exercises_by_id as _exercises_by_id, recommend_exercises as _recommend_exercises
 from .daily_plan import get_daily_plan
 from .garden import garden_state
+from .posture_summary import today_summary
 from .models import WellnessCompletion
 
 logger = logging.getLogger(__name__)
@@ -815,6 +816,13 @@ def posture_history(request):
     limit   = int(request.query_params.get('limit', 50))
     records = PostureRecord.objects.filter(user=request.user)[:limit]
     return Response(PostureRecordSerializer(records, many=True).data)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def posture_today(request):
+    """GET /api/posture/today — 今日每種坐姿坐了幾分鐘、進入幾次（計算方式見 api/posture_summary.py）。"""
+    return Response(today_summary(request.user))
 
 
 @api_view(['GET'])

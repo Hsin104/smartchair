@@ -21,6 +21,7 @@ urlpatterns = [
     # 坐姿數據
     path('posture',         views.posture_create,   name='posture-create'),
     path('posture/history', views.posture_history,  name='posture-history'),
+    path('posture/today',   views.posture_today,    name='posture-today'),
 
     # Physio Agent
     path('agent',                views.agent_advice, name='agent-advice'),

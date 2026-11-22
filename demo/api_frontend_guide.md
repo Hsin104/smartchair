@@ -117,6 +117,28 @@
 - 坐姿代碼：`normal`、`left`、`right`、`forward`、`recline`、`sedentary`（久坐）、`empty`（沒人坐）
 - `confidence` 為 AI 判斷的信心（0～1），有時是 null（由規則判斷，例如久坐）
 
+### 5. 今日坐姿分布：`GET /posture/today`（11/22 新增）
+
+**「今日坐姿分布」圓餅圖請改用這支，不要再用 `posture/history` 的筆數計算**。原本拿最近 100 筆來數：
+一筆紀錄代表的時間長短不一（韌體坐著不動約 5 秒一筆、動來動去每秒 1～2 筆），筆數不是次數，比例也不是時間比例；
+而且 100 筆只有最近幾分鐘，舊資料被擠掉時數字還會變小。
+
+```json
+{"date": "2026-11-22", "sitting_minutes": 214.0, "updated_at": "2026-11-22T15:30:00+08:00",
+ "postures": [
+   {"posture": "normal",  "display": "標準坐姿", "minutes": 150.0, "ratio": 0.701, "episodes": 9, "records": 812},
+   {"posture": "recline", "display": "過度後仰", "minutes": 45.0,  "ratio": 0.21,  "episodes": 6, "records": 301}
+ ]}
+```
+
+- 今天＝台灣時間 00:00 起，數字只會隨時間增加，不會變小
+- 圓餅圖用 `ratio`（時間比例）；右側清單建議顯示「`minutes` 分鐘・`episodes` 次」
+- `episodes`：進入這個坐姿幾次（連續同一坐姿算 1 次；離座回來或中斷超過 60 秒算新的一次）
+- `records` 是資料筆數，只供除錯，不要顯示成「次數」
+- **不含「無人就坐」**（那不是坐姿，也不需要調整）；總坐著時間看 `sitting_minutes`
+- `postures` 依分鐘多到少排序；今天還沒坐過時是空陣列
+- 建議每 30～60 秒查一次即可
+
 ### 5. 椅子狀態
 
 | API | 說明 |
