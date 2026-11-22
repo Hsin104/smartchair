@@ -1068,10 +1068,9 @@ class _SettingPageState extends State<SettingPage> {
               const SizedBox(height: 14),
               SizedBox(
                 width: double.infinity,
-                child: FilledButton.icon(
+                child: FilledButton(
                   onPressed: widget.isLoggedIn ? _changePassword : null,
-                  icon: const Icon(Icons.password_rounded),
-                  label: const Text('更新密碼'),
+                  child: const Text('更新密碼'),
                 ),
               ),
             ],
