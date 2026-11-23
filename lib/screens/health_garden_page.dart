@@ -29,6 +29,9 @@ class _HealthGardenPageState extends State<HealthGardenPage>
       duration: const Duration(seconds: 4),
     )..repeat(reverse: true);
     widget.controller.addListener(_refresh);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.controller.refreshHistory();
+    });
   }
 
   @override
@@ -117,6 +120,13 @@ class _HealthGardenPageState extends State<HealthGardenPage>
             ),
             const SizedBox(height: 10),
             ...controller.tasks.map(_taskCard),
+            const SizedBox(height: 8),
+            const Text(
+              '完成紀錄',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 10),
+            _historyCard(controller),
           ],
         ),
       ),
@@ -442,6 +452,152 @@ class _HealthGardenPageState extends State<HealthGardenPage>
       ],
     );
   }
+
+  Widget _historyCard(WellnessController controller) {
+    if (controller.records.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: const Text(
+          '尚未有完成紀錄，完成今日任務後會顯示在這裡。',
+          style: TextStyle(color: Color(0xFF64748B)),
+        ),
+      );
+    }
+
+    return Column(
+      children: controller.records.take(8).map((record) {
+        final task = [...controller.tasks, ..._baseTaskFallback].firstWhere(
+          (item) => item.id == record.taskId,
+          orElse: () => WellnessTask(
+            id: record.taskId,
+            title: '伸展任務',
+            description: '',
+            postureCode: 'ai',
+            durationSeconds: 0,
+            points: record.points,
+          ),
+        );
+        final date =
+            '${record.completedAt.month}/${record.completedAt.day} '
+            '${record.completedAt.hour.toString().padLeft(2, '0')}:'
+            '${record.completedAt.minute.toString().padLeft(2, '0')}';
+        return Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.check_circle_rounded, color: Color(0xFF16A34A)),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      task.title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF0F172A),
+                      ),
+                    ),
+                    if (record.feedback.isNotEmpty)
+                      Text(
+                        record.feedback,
+                        style: const TextStyle(
+                          color: Color(0xFF64748B),
+                          fontSize: 12,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    '+${record.points} 能量',
+                    style: const TextStyle(
+                      color: Color(0xFF16A34A),
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  Text(
+                    date,
+                    style: const TextStyle(
+                      color: Color(0xFF94A3B8),
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  static const List<WellnessTask> _baseTaskFallback = [
+    WellnessTask(
+      id: 'neck-reset',
+      title: '頸部回正呼吸',
+      description: '',
+      postureCode: 'forward',
+      durationSeconds: 45,
+      points: 10,
+    ),
+    WellnessTask(
+      id: 'side-open',
+      title: '側身開展',
+      description: '',
+      postureCode: 'left',
+      durationSeconds: 40,
+      points: 10,
+    ),
+    WellnessTask(
+      id: 'side-balance',
+      title: '左右平衡伸展',
+      description: '',
+      postureCode: 'right',
+      durationSeconds: 40,
+      points: 10,
+    ),
+    WellnessTask(
+      id: 'chest-open',
+      title: '胸口開展',
+      description: '',
+      postureCode: 'recline',
+      durationSeconds: 45,
+      points: 10,
+    ),
+    WellnessTask(
+      id: 'stand-reset',
+      title: '起身重置',
+      description: '',
+      postureCode: 'sedentary',
+      durationSeconds: 60,
+      points: 15,
+    ),
+    WellnessTask(
+      id: 'posture-check',
+      title: '姿勢覺察練習',
+      description: '',
+      postureCode: 'normal',
+      durationSeconds: 30,
+      points: 8,
+    ),
+  ];
 
   Widget _taskCard(WellnessTask task) {
     final completed = widget.controller.isCompletedToday(task.id);

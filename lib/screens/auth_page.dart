@@ -213,7 +213,9 @@ class _AuthPageState extends State<AuthPage> {
     setState(() => _isSubmitting = false);
 
     if (result.success) {
-      await _chooseChair(promptAfterAuth: true);
+      if (_mode == AuthMode.login) {
+        await _chooseChair(promptAfterAuth: true);
+      }
       if (!mounted) return;
       Navigator.of(context).pop(result.email);
     } else {
@@ -509,41 +511,43 @@ class _AuthPageState extends State<AuthPage> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF8FAFC),
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.event_seat_rounded,
-                              color: Color(0xFF2563EB),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                _selectedChairId == null
-                                    ? '尚未選擇椅子'
-                                    : '目前椅子：$_selectedChairId',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w700,
+                      if (_mode == AuthMode.login) ...[
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.event_seat_rounded,
+                                color: Color(0xFF2563EB),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  _selectedChairId == null
+                                      ? '尚未選擇椅子'
+                                      : '目前椅子：$_selectedChairId',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                  ),
                                 ),
                               ),
-                            ),
-                            TextButton(
-                              onPressed: !_isLoadingChairs && !_isSubmitting
-                                  ? () => _chooseChair()
-                                  : null,
-                              child: const Text('選擇椅子'),
-                            ),
-                          ],
+                              TextButton(
+                                onPressed: !_isLoadingChairs && !_isSubmitting
+                                    ? () => _chooseChair()
+                                    : null,
+                                child: const Text('選擇椅子'),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 12),
+                        const SizedBox(height: 12),
+                      ],
 
                       // 帳號（登入 & 註冊都需要）
                       TextFormField(

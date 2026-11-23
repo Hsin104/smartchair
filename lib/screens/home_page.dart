@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../services/nav_order_storage.dart';
 import '../state/chair_sync_controller.dart';
 import 'auth_page.dart';
 import 'dashboard.dart';
@@ -28,19 +29,42 @@ class _HomePageState extends State<HomePage> {
   bool _isLoggedIn = false;
   String? _userEmail;
   int _authRefreshVersion = 0;
+  List<int> _navOrder = [0, 1, 2, 3];
 
   final List<Map<String, dynamic>> navItems = const [
     {'icon': Icons.event_seat, 'label': '健康總覽', 'hint': '坐姿與報表'},
     {'icon': Icons.psychology_alt_rounded, 'label': 'AI 建議', 'hint': '治療師建議'},
     {'icon': Icons.local_florist_rounded, 'label': '健康花園', 'hint': '每日養成'},
     {'icon': Icons.notifications_active_rounded, 'label': '通知', 'hint': '提醒中心'},
-    {'icon': Icons.tune_rounded, 'label': '設定', 'hint': '個人偏好'},
   ];
 
   @override
   void initState() {
     super.initState();
+    _loadNavOrder();
     _refreshAuthState();
+  }
+
+  Future<void> _loadNavOrder() async {
+    final savedValue = await loadSavedNavOrder();
+    if (savedValue == null || !mounted) return;
+
+    final order = savedValue
+        .split(',')
+        .map(int.tryParse)
+        .whereType<int>()
+        .where((index) => index >= 0 && index < navItems.length)
+        .toSet()
+        .toList();
+    if (order.length != navItems.length) return;
+
+    setState(() => _navOrder = order);
+  }
+
+  Future<void> _saveNavOrder() async {
+    await saveNavOrderValue(
+      _navOrder.map((index) => index.toString()).join(','),
+    );
   }
 
   Future<void> _refreshAuthState() async {
@@ -130,7 +154,7 @@ class _HomePageState extends State<HomePage> {
         wellnessController: widget.wellnessController,
         onOpenAi: () => setState(() => currentIndex = 1),
         onOpenGarden: () => setState(() => currentIndex = 2),
-        onOpenSettings: () => setState(() => currentIndex = 4),
+        onOpenSettings: () => setState(() => currentIndex = 0),
       ),
       AiAdvicePage(
         controller: widget.chairSyncController,
@@ -145,15 +169,15 @@ class _HomePageState extends State<HomePage> {
         controller: widget.chairSyncController,
         wellnessController: widget.wellnessController,
       ),
-      SettingPage(
-        isLoggedIn: _isLoggedIn,
-        userEmail: _userEmail,
-        wellnessController: widget.wellnessController,
-        onLogout: _logout,
-        onAccountDeleted: _accountDeleted,
-        onProfileChanged: _refreshAuthState,
-      ),
     ];
+    final settingsPage = SettingPage(
+      isLoggedIn: _isLoggedIn,
+      userEmail: _userEmail,
+      wellnessController: widget.wellnessController,
+      onLogout: _logout,
+      onAccountDeleted: _accountDeleted,
+      onProfileChanged: _refreshAuthState,
+    );
 
     return Scaffold(
       body: Container(
@@ -193,68 +217,148 @@ class _HomePageState extends State<HomePage> {
                           ),
                           const Spacer(),
                           IconButton(
-                            onPressed: _logout,
-                            tooltip: '登出',
+                            tooltip: '個人設定',
+                            icon: const Icon(Icons.settings_outlined),
+                            onPressed: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => Scaffold(
+                                    appBar: AppBar(title: const Text('個人設定')),
+                                    body: settingsPage,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                          IconButton(
+                            tooltip: '登出帳號',
                             icon: const Icon(Icons.logout_rounded),
+                            onPressed: _logout,
                           ),
                         ],
                       ),
                       const SizedBox(height: 10),
-                      Row(
-                        children: List.generate(navItems.length, (index) {
-                          final bool selected = index == currentIndex;
-                          return Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 4,
-                              ),
-                              child: InkWell(
-                                borderRadius: BorderRadius.circular(18),
-                                onTap: () =>
-                                    setState(() => currentIndex = index),
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 180),
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 18,
-                                    horizontal: 16,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: selected
-                                        ? colorScheme.primary
-                                        : const Color(0xFFF1F5F9),
-                                    borderRadius: BorderRadius.circular(18),
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        navItems[index]['icon'] as IconData,
-                                        size: selected ? 26 : 24,
-                                        color: selected
-                                            ? Colors.white
-                                            : const Color(0xFF475569),
-                                      ),
-                                      const SizedBox(width: 14),
-                                      Expanded(
-                                        child: Text(
-                                          navItems[index]['label'] as String,
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(
-                                            fontSize: selected ? 18 : 17,
-                                            color: selected
-                                                ? Colors.white
-                                                : const Color(0xFF334155),
-                                            fontWeight: FontWeight.w800,
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          final compact = constraints.maxWidth < 720;
+                          final itemWidth =
+                              (constraints.maxWidth - 8) / navItems.length;
+                          return SizedBox(
+                            height: compact ? 68 : 62,
+                            child: ReorderableListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              buildDefaultDragHandles: false,
+                              itemCount: navItems.length,
+                              onReorder: (oldIndex, newIndex) {
+                                setState(() {
+                                  if (newIndex > oldIndex) newIndex -= 1;
+                                  final pageIndex = _navOrder.removeAt(
+                                    oldIndex,
+                                  );
+                                  _navOrder.insert(newIndex, pageIndex);
+                                });
+                                _saveNavOrder();
+                              },
+                              itemBuilder: (context, position) {
+                                final pageIndex = _navOrder[position];
+                                final item = navItems[pageIndex];
+                                final selected = pageIndex == currentIndex;
+                                return ReorderableDragStartListener(
+                                  key: ValueKey('nav_$pageIndex'),
+                                  index: position,
+                                  child: SizedBox(
+                                    width: itemWidth,
+                                    child: Tooltip(
+                                      message: '拖曳可調整順序',
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 4,
+                                        ),
+                                        child: InkWell(
+                                          borderRadius: BorderRadius.circular(
+                                            18,
+                                          ),
+                                          onTap: () => setState(
+                                            () => currentIndex = pageIndex,
+                                          ),
+                                          child: AnimatedContainer(
+                                            duration: const Duration(
+                                              milliseconds: 180,
+                                            ),
+                                            padding: const EdgeInsets.symmetric(
+                                              vertical: 12,
+                                              horizontal: 8,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: selected
+                                                  ? colorScheme.primary
+                                                  : const Color(0xFFF1F5F9),
+                                              borderRadius:
+                                                  BorderRadius.circular(18),
+                                            ),
+                                            child: Flex(
+                                              direction: compact
+                                                  ? Axis.vertical
+                                                  : Axis.horizontal,
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                Icon(
+                                                  item['icon'] as IconData,
+                                                  size: selected ? 26 : 24,
+                                                  color: selected
+                                                      ? Colors.white
+                                                      : const Color(0xFF475569),
+                                                ),
+                                                SizedBox(
+                                                  width: compact ? 0 : 8,
+                                                  height: compact ? 4 : 0,
+                                                ),
+                                                Flexible(
+                                                  child: Text(
+                                                    item['label'] as String,
+                                                    textAlign: TextAlign.center,
+                                                    style: TextStyle(
+                                                      fontSize: compact
+                                                          ? (selected ? 14 : 13)
+                                                          : (selected
+                                                                ? 18
+                                                                : 17),
+                                                      color: selected
+                                                          ? Colors.white
+                                                          : const Color(
+                                                              0xFF334155,
+                                                            ),
+                                                      fontWeight:
+                                                          FontWeight.w800,
+                                                    ),
+                                                  ),
+                                                ),
+                                                if (!compact) ...[
+                                                  const SizedBox(width: 4),
+                                                  Icon(
+                                                    Icons
+                                                        .drag_indicator_rounded,
+                                                    size: 16,
+                                                    color: selected
+                                                        ? Colors.white70
+                                                        : const Color(
+                                                            0xFF94A3B8,
+                                                          ),
+                                                  ),
+                                                ],
+                                              ],
+                                            ),
                                           ),
                                         ),
                                       ),
-                                    ],
+                                    ),
                                   ),
-                                ),
-                              ),
+                                );
+                              },
                             ),
                           );
-                        }),
+                        },
                       ),
                     ],
                   ),
