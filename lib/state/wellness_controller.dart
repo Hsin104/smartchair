@@ -144,6 +144,7 @@ class WellnessController extends ChangeNotifier {
     _scope = nextScope == null || nextScope.isEmpty ? 'guest' : nextScope;
 
     final prefs = await SharedPreferences.getInstance();
+    // 登入後先讀取本機快取，避免畫面短暫顯示為零進度。
     points = prefs.getInt(_key('points')) ?? points;
     streak = prefs.getInt(_key('streak')) ?? streak;
     final savedTaskId = prefs.getString(_key('activeTaskId'));

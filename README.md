@@ -4,11 +4,12 @@
 
 ## 目前功能
 
-- **儀表板**：即時姿勢、分數、風險、就座時間、提醒次數與健康花園進度。
+- **健康總覽**：即時姿勢、分數、風險、就座時間、椅子電量及今日坐姿分布；桌面版橫排顯示，窄螢幕自動改為雙欄。
 - **AI 物理治療師**：透過 `/api/agent/jobs` 非同步取得文字建議與伸展影片。
-- **推薦伸展影片**：最多顯示 3 張影片卡片，可直接開啟 YouTube。
-- **健康養成花園**：接受建議、完成每日任務、回報身體感受、累積能量與連續天數。
-- **歷史報表**：已整合在「健康總覽」，顯示姿勢分布、平均分數、提醒次數、有效健康介入與最近紀錄。
+- **推薦伸展影片**：最多顯示 6 張伸展建議，可直接開啟 YouTube。
+- **健康養成花園**：接受建議、完成每日任務、回報身體感受、累積能量、連續天數及完成紀錄。
+- **健康報表**：顯示今日就坐時間、正常坐姿比例、提醒次數與姿勢分布。
+- **可調整導覽**：主要導覽支援拖曳排序，順序使用瀏覽器 localStorage 保存。
 - **通知**：姿勢提醒紀錄與當日健康介入數。
 - **設定**：帳號、個人資料、頭像與健康介入進度。
 - **頭像**：Web 端使用 multipart 上傳 PNG/JPG/JPEG，最大 5 MB；圖片顯示會帶 ngrok header 下載 bytes，避免免費網域警告頁造成破圖。
@@ -17,7 +18,8 @@
 
 - Flutter / Dart SDK `^3.11.1`
 - `http`：REST API 呼叫
-- `shared_preferences`：登入狀態、個人設定與健康花園本地持久化
+- - `shared_preferences`：登入狀態、個人設定與健康花園本地持久化
+- `dart:html` / localStorage：跨重新整理與重新開啟頁面保存導覽順序
 - `fl_chart`：姿勢報表圖表
 - `url_launcher`：開啟 YouTube 推薦影片
 - `file_picker`：Web 與桌面端選擇頭像檔案
@@ -82,9 +84,9 @@ AI 建議流程：
 
 1. `POST /api/agent/jobs` 取得 `job_id`。
 2. 每 2 秒查詢 `/api/agent/jobs/<job_id>`。
-3. `done` 時顯示 `advice`、`posture_display` 和最多 3 筆 `recommended_exercises`。
+3. `done` 時顯示 `advice`、`posture_display` 和最多 6 筆 `recommended_exercises`。
 
-健康花園每天從 `/api/agent/stretch-plan` 取得一次 AI 伸展計畫，只顯示 3 個任務，並在當天以本地快取保持任務一致；下一天才重新取得計畫。
+健康花園每天從 `/api/agent/stretch-plan` 取得一次 AI 伸展計畫，最多顯示 6 個任務，並在當天以本地快取保持任務一致；下一天才重新取得計畫。
 
 每日任務使用後端回傳的數字 `id` 與 `group` 判斷動作，AI 建議完成後會重新取得今日計畫，讓後端替換與 AI 建議重複的動作。完成任務會呼叫 `/api/wellness/complete`，登入時也會從 `/api/wellness/history` 同步跨裝置的完成紀錄。
 
@@ -107,6 +109,9 @@ lib/
 		api_service.dart
 		browser_notification_stub.dart
 		browser_notification_web.dart
+		nav_order_storage.dart
+		nav_order_storage_stub.dart
+		nav_order_storage_web.dart
 	state/
 		chair_sync_controller.dart
 		wellness_controller.dart

@@ -46,6 +46,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _loadNavOrder() async {
+    // 瀏覽器原生 localStorage 不受登入登出或頁面熱重載影響。
     final savedValue = await loadSavedNavOrder();
     if (savedValue == null || !mounted) return;
 
@@ -62,6 +63,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _saveNavOrder() async {
+    // 使用逗號分隔儲存頁面索引，開啟分頁或重新整理後可直接還原。
     await saveNavOrderValue(
       _navOrder.map((index) => index.toString()).join(','),
     );

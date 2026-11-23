@@ -681,7 +681,7 @@ class ApiService {
               (item['title'] ?? item['name'])?.toString().trim().isNotEmpty ??
               false,
         )
-        .take(3)
+        .take(6)
         .toList();
   }
 
@@ -709,7 +709,7 @@ class ApiService {
       return value
           .whereType<Map>()
           .map((item) => item.cast<String, dynamic>())
-          .take(3)
+          .take(6)
           .toList();
     } catch (_) {
       return [];

@@ -29,6 +29,7 @@ class _HealthGardenPageState extends State<HealthGardenPage>
       duration: const Duration(seconds: 4),
     )..repeat(reverse: true);
     widget.controller.addListener(_refresh);
+    // 每次進入花園頁都重新合併本機紀錄與後端歷史。
     WidgetsBinding.instance.addPostFrameCallback((_) {
       widget.controller.refreshHistory();
     });
