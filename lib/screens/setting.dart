@@ -463,6 +463,12 @@ class _SettingPageState extends State<SettingPage> {
     ).showSnackBar(SnackBar(content: Text(response.message)));
   }
 
+  Future<void> _logoutAndClose() async {
+    await widget.onLogout?.call();
+    if (!mounted) return;
+    Navigator.of(context).pop();
+  }
+
   Future<void> _deleteAccount() async {
     deletePasswordController.clear();
     final confirmed = await showDialog<bool>(
@@ -823,7 +829,7 @@ class _SettingPageState extends State<SettingPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        widget.isLoggedIn ? '帳號已連線' : '尚未登入',
+                        widget.isLoggedIn ? '使用者已連線' : '尚未登入',
                         style: const TextStyle(
                           fontSize: 16,
                           color: Color(0xFF0F172A),
@@ -969,7 +975,7 @@ class _SettingPageState extends State<SettingPage> {
                         ),
                         const SizedBox(width: 12),
                         const Text(
-                          '登入帳號',
+                          '使用者名稱',
                           style: TextStyle(color: Color(0xFF64748B)),
                         ),
                       ],
@@ -1129,10 +1135,10 @@ class _SettingPageState extends State<SettingPage> {
             SizedBox(
               width: double.infinity,
               child: TextButton.icon(
-                onPressed: widget.onLogout,
+                onPressed: _logoutAndClose,
                 icon: const Icon(Icons.logout_rounded, color: Colors.red),
                 label: const Text(
-                  '登出帳號',
+                  '登出',
                   style: TextStyle(color: Colors.red, fontSize: 16),
                 ),
                 style: TextButton.styleFrom(

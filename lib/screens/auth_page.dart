@@ -15,7 +15,7 @@ class AuthPage extends StatefulWidget {
     required bool usernameExists,
   }) {
     if (isRegisterMode && usernameExists) {
-      return '此帳號已存在';
+      return '此使用者名稱已存在';
     }
     return '';
   }
@@ -73,7 +73,7 @@ class _AuthPageState extends State<AuthPage> {
   }
 
   String get _title => _mode == AuthMode.login ? '登入' : '註冊';
-  String get _headline => _mode == AuthMode.login ? '歡迎回來' : '建立帳號';
+  String get _headline => _mode == AuthMode.login ? '歡迎回來' : '建立使用者名稱';
   String get _subtitle =>
       _mode == AuthMode.login ? '登入後即可查看你的智慧座椅資料' : '註冊後即可開始使用完整功能';
 
@@ -172,7 +172,7 @@ class _AuthPageState extends State<AuthPage> {
       if (!usernameExists) {
         if (!mounted) return;
         setState(() {
-          _usernameServerError = '無此帳戶，請去註冊';
+          _usernameServerError = '無此使用者名稱，請去註冊';
           _passwordServerError = '';
           _isSubmitting = false;
         });
@@ -228,7 +228,7 @@ class _AuthPageState extends State<AuthPage> {
             : _classifyLoginError(result.message);
         setState(() {
           _usernameServerError = authError == _LoginErrorKind.username
-              ? '無此帳戶，請去註冊'
+              ? '無此使用者名稱，請去註冊'
               : '';
           _passwordServerError = authError == _LoginErrorKind.password
               ? '密碼錯誤'
@@ -257,7 +257,7 @@ class _AuthPageState extends State<AuthPage> {
     _forgotPasswordNewPasswordController.clear();
     _forgotPasswordConfirmPasswordController.clear();
 
-    // step 1 = 輸入帳號＋Email 索取驗證碼；step 2 = 輸入驗證碼＋新密碼完成重設
+    // step 1 = 輸入使用者名稱＋Email 索取驗證碼；step 2 = 輸入驗證碼＋新密碼完成重設
     var step = 1;
     var isBusy = false;
     var dialogError = '';
@@ -422,7 +422,8 @@ class _AuthPageState extends State<AuthPage> {
 
   _LoginErrorKind _classifyLoginError(String message) {
     final normalized = message.toLowerCase();
-    if (normalized.contains('無此帳戶') ||
+    if (normalized.contains('無此使用者名稱') ||
+        normalized.contains('無此帳戶') ||
         normalized.contains('無此帳號') ||
         normalized.contains('不存在') ||
         normalized.contains('not found') ||
@@ -549,7 +550,7 @@ class _AuthPageState extends State<AuthPage> {
                         const SizedBox(height: 12),
                       ],
 
-                      // 帳號（登入 & 註冊都需要）
+                      // 使用者名稱（登入 & 註冊都需要）
                       TextFormField(
                         controller: _usernameController,
                         onChanged: (_) {
@@ -558,11 +559,11 @@ class _AuthPageState extends State<AuthPage> {
                           }
                         },
                         decoration: const InputDecoration(
-                          labelText: '帳號',
+                          labelText: '使用者名稱',
                           border: OutlineInputBorder(),
                         ),
                         validator: (v) =>
-                            (v ?? '').trim().isEmpty ? '請輸入帳號' : null,
+                            (v ?? '').trim().isEmpty ? '請輸入使用者名稱' : null,
                       ),
                       if (_usernameServerError.isNotEmpty) ...[
                         const SizedBox(height: 6),
@@ -720,7 +721,9 @@ class _AuthPageState extends State<AuthPage> {
                                   _passwordServerError = '';
                                 }),
                           child: Text(
-                            _mode == AuthMode.login ? '沒有帳號？前往註冊' : '已有帳號？前往登入',
+                            _mode == AuthMode.login
+                                ? '沒有使用者名稱？前往註冊'
+                                : '已有使用者名稱？前往登入',
                           ),
                         ),
                       ),

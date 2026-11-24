@@ -196,7 +196,7 @@ class _HomePageState extends State<HomePage> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
                 child: Container(
-                  padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+                  padding: const EdgeInsets.fromLTRB(18, 16, 10, 16),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(24),
@@ -233,7 +233,7 @@ class _HomePageState extends State<HomePage> {
                             },
                           ),
                           IconButton(
-                            tooltip: '登出帳號',
+                            tooltip: '登出',
                             icon: const Icon(Icons.logout_rounded),
                             onPressed: _logout,
                           ),

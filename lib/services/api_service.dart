@@ -353,7 +353,7 @@ class ApiService {
             _ => null,
           };
       final message = switch (errorCode) {
-        'USER_NOT_FOUND' => '無此帳戶，請去註冊',
+        'USER_NOT_FOUND' => '無此使用者名稱，請去註冊',
         'INVALID_PASSWORD' => '密碼錯誤',
         _ => _extractMessage(
           data,
@@ -439,7 +439,7 @@ class ApiService {
             _ => null,
           };
       final message = switch (errorCode) {
-        'ACCOUNT_EXISTS' => '此帳號已被註冊',
+        'ACCOUNT_EXISTS' => '此使用者名稱已被註冊',
         _ => _extractMessage(
           data,
           '伺服器回應 ${res.statusCode}，內容：${res.body.isNotEmpty ? res.body.substring(0, res.body.length > 120 ? 120 : res.body.length) : '空'}',
@@ -867,7 +867,7 @@ class ApiService {
     final safeNewPassword = newPassword.trim();
 
     if (safeUsername.isEmpty || safeCode.length != 6) {
-      throw StateError('請輸入帳號與 6 碼驗證碼');
+      throw StateError('請輸入使用者名稱與 6 碼驗證碼');
     }
     if (safeNewPassword.length < 6) {
       throw StateError('新密碼至少需要 6 碼');
@@ -880,7 +880,7 @@ class ApiService {
     };
   }
 
-  /// 忘記密碼第一步：驗證帳號＋Email 後，請後端寄出 6 碼驗證碼到信箱。
+  /// 忘記密碼第一步：驗證使用者名稱＋Email 後，請後端寄出 6 碼驗證碼到信箱。
   static Future<({bool success, String message})> requestPasswordResetCode({
     required String username,
     required String email,
